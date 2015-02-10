@@ -53,4 +53,4 @@ cppCheck:
 
 dir:
 	mkdir -p $(LIBDIR)
-	mkdir -p $(HEADDIR)
+	mkdir -p $(BINDIR)
