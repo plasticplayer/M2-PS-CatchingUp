@@ -47,6 +47,16 @@ MessageProtocol * Programe::createMessage(HeaderProtocol head,byte * data, byte 
   mess->sendCounter = 0;
   return mess;
 }
+void Programe::deleteMessage(MessageProtocol * mess)
+{
+  if(mess != NULL)
+  {
+    if(mess->lenght != 0)
+      free(mess->data); 
+    delete(mess);
+    mess = NULL;
+  }
+}
 boolean Programe::pushWaitAck(MessageProtocol * mess)
 {
   return fileMessageWaitAck.add(mess);
@@ -123,7 +133,7 @@ int Programe::getWaitAckHeader(HeaderProtocol head,MessageProtocol * &ptr)
 }
 void Programe::deleteMessageWaitAck(int index)
 {
-  fileMessageWaitAck.remove(index);
+  deleteMessage(fileMessageWaitAck.remove(index));
 }
 
 boolean Programe::isAckNeeded(HeaderProtocol head)
@@ -151,7 +161,7 @@ byte Programe::prepareMessage(MessageProtocol message,byte * &data)
   debugPrint( "--> ");
   for ( int i =0; i < bufferSendLenght; i++ )
   {
-    debugPrint(bufferSend[i],HEX);
+    debugPrintHex(bufferSend[i]);
     debugPrint ( " ");
   }
   debugPrintln ( " ");
@@ -163,7 +173,7 @@ void Programe::receiveMessage(byte * data,byte len)
   debugPrint( "<-- ");
   for ( int i =0; i < len; i++ )
   {
-    debugPrint(data[i],HEX);
+    debugPrintHex(data[i]);
     debugPrint ( " ");
   }
   debugPrintln ( " ");
@@ -197,7 +207,7 @@ void Programe::setFunctChangeAddr(FuncChange func)
 void Programe::__callback_default( BYTE data[], int size ){
   debugPrintln("Message non connu recu !");
   for ( int i =0; i < size; i++ )
-    debugPrint( data[i] , HEX);
+    debugPrintHex( data[i] );
 }
 
 void Programe::__callback_POOL_PARKING( BYTE data[], int size ){
@@ -207,7 +217,7 @@ void Programe::__callback_POOL_PARKING( BYTE data[], int size ){
     countParking = 0;
     _idRespParking =  random(0, 0xFFFF) & 0xFFFF;
     byte data[] = {
-      _idRespParking >> 8, _idRespParking & 0xFF    };
+      _idRespParking >> 8, _idRespParking & 0xFF        };
     MessageProtocol * mes = createMessage(RESP_PARKING,data,sizeof(data));
     pushToSend(mes);
   }
@@ -239,9 +249,9 @@ void Programe::__callback_ATTRIB_ADRESS( BYTE data[], int size ){
   {
     debugPrintln("Message ATTRIB_ADRESS avec mauvais ID genere :");
     debugPrint("Attendu : ");
-    debugPrint(_idRespParking,HEX);
+    debugPrintHex(_idRespParking);
     debugPrint(" recu : ");
-    debugPrintln(word(data[0],data[1]),HEX);
+    debugPrintHex(word(data[0],data[1]));
 
 
   }
@@ -250,7 +260,7 @@ void Programe::__callback_ATTRIB_ADRESS( BYTE data[], int size ){
 void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
   debugPrintln("Message AUTH_RESP recu");
   byte dataAck[] = {
-    AUTH_RESP      };
+    AUTH_RESP        };
   MessageProtocol * mes = createMessage(ACK,dataAck,sizeof(dataAck));
   pushToSend(mes);
 
@@ -262,7 +272,7 @@ void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
   if(data[0] == 0x01) // Connexion authorisée
   {
     byte data[] ={
-      0x01            };
+      0x01                };
     MessageProtocol * mes = createMessage(START_REC,data,sizeof(data));
     pushToSend(mes);
   }
@@ -275,7 +285,7 @@ void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
 void Programe::__callback_STATUS_ASK( BYTE data[], int size ){
   debugPrintln("Message STATUS_ASK recu");
   byte dataAck[] = {
-    0xAD      };
+    0xAD        };
   MessageProtocol * mes = createMessage(STATUS_RESP,dataAck,sizeof(dataAck));
   pushToSend(mes);
 }
@@ -299,6 +309,7 @@ void Programe::__callback_ACK(BYTE data[], int size ){
     if(_PtrFunction != NULL)
       _PtrFunction(_adresseRPI,_adresseArduino);
 }
+
 
 
 

@@ -6,7 +6,7 @@
 #include "Communication.h"
 #include "LinkedList.h"
 
-#define SIZE_FILE_SEND 10
+//#define SIZE_FILE_SEND 10
 
 typedef enum _HeaderProtocol
 {
@@ -46,6 +46,7 @@ class Programe
 public :
   Programe();
   static MessageProtocol * createMessage(HeaderProtocol header,byte * data, byte lenght) ;
+  static void deleteMessage(MessageProtocol * mess);
   static boolean isAckNeeded(HeaderProtocol head);
   static void receiveMessage(byte * data,byte len);
   static byte prepareMessage(MessageProtocol message,byte * &data);

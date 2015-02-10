@@ -13,11 +13,14 @@ static void check_mem() {
 }*/
 
 #ifdef DEBUG_ON
-#define debugPrint  Serial.print
-#define debugPrintln  Serial.println
+#define debugPrint(s)  Serial.print(s)
+#define debugPrintln(s)  Serial.println(s)
+#define debugPrintHex(s)  Serial.print(s,HEX)
 #else
-#define debugPrint
-#define debugPrintln
+#define debugPrint(s)
+#define debugPrintln(s)
+#define debugPrintHex(s)
+#define printf(f,...)
 #endif
 
 

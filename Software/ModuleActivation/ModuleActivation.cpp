@@ -9,7 +9,9 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 // Utilitaires
+#ifdef DEBUG_ON
 #include "printf.h"
+#endif
 
 #define MAX_RESEND 5 // 5 envois max (1 + 4 rejeux)
 #define RESEND_DELAY 2000 // ms
@@ -41,8 +43,6 @@ PN532 nfc(pn532);
 // Module Radio NRF24
 RF24 radio(RF_CE_PIN,RF_CSN_PIN);
 
-         
-
 // Dernier Tag lu par le lecteur RFID
 uint8_t tagRead[] = {
   0,0,0,0,0,0,0        };
@@ -61,7 +61,7 @@ void setup(void) {
   while (!Serial);
   while( Serial.read() != 'S')
   {
-    debugPrintln("Debug Mode Active. Presser sur S pour demarrer le programme");
+    debugPrintln(F("Debug Mode Active. Presser sur S pour demarrer le programme"));
     delay(1000);
   }
   printf_begin();
@@ -70,7 +70,7 @@ void setup(void) {
   nfc.begin();
 #ifdef DEBUG_ON
   uint32_t versiondata = nfc.getFirmwareVersion();
-  debugPrint("Version lecteur RFID :");
+  debugPrint(F("Version lecteur RFID :"));
   debugPrintln(versiondata);
 #endif
 
@@ -121,12 +121,13 @@ void loop(void) {
     //debugPrintln(mess->sendCounter);
     if(mess->sendCounter >= MAX_RESEND)
     {
-      debugPrintln("Message en attente de Ack to resend en erreur renvoye trop de fois");
+      debugPrintln(F("Message en attente de Ack to resend en erreur renvoye trop de fois"));
       prog.deleteMessageWaitAck(indexMessage);
+      
     }
     else
     { 
-      debugPrintln("Message en attente de Ack to resend");
+      debugPrintln(F("Message en attente de Ack to resend"));
       sendMessage(mess);
     }
   }
@@ -182,16 +183,16 @@ boolean newTagAvailable()
     if(bNew)
     {
 #ifdef DEBUG_ON
-      Serial.print("  UID Length: ");
+      Serial.print(F("  UID Length: "));
       Serial.print(uidLength, DEC);
-      Serial.println(" bytes");
-      Serial.print("  UID Value: ");
+      Serial.println(F(" bytes"));
+      Serial.print(F("  UID Value: "));
       for(int i = 0 ; i < uidLength; i++)
       {
         Serial.print(uid[i],HEX);
-        Serial.print(" ");
+        Serial.print(F(" "));
       }
-      Serial.println(" ");
+      Serial.println(F(" "));
 #endif
       memset(tagRead,0,7);
       memset(Olduid,0,7);
@@ -223,7 +224,7 @@ void changeNRFAdresses()
 }
 void changeAdresses(uint64_t RPI,uint64_t ARDU)
 {
- printf("Changement d'adresse : 0x%X 0x%X \r\n",RPI,ARDU);
+  printf(("Changement d'adresse : 0x%X 0x%X \r\n"),RPI,ARDU);
   EEPROM.write(EEP_ADR_SET,0x00);
 
   EEPROM.write(EEP_ADR_RPI, (RPI >> 24) & 0xFF);
@@ -255,7 +256,7 @@ void readEEPAdresses()
     prog.setAddressARD(ADRESSE_EMISSION_PARKING);
   }
 
- printf("Read d'adresse : 0x%X 0x%X \r\n",prog.getAddressRPI(),prog.getAddressARD());
+ printf(("Read d'adresse : 0x%X 0x%X \r\n"),prog.getAddressRPI(),prog.getAddressARD());
   /*debugPrintln("Changement d'addresse !");
   debugPrint(" RPI: ");
   debugPrintln(prog.getAddressRPI(),HEX);

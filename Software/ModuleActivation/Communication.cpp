@@ -7,10 +7,10 @@
 //
 
 #include "Communication.h"
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <arduino.h>
+//#include <stdlib.h>
+//#include <string.h>
+//#include <stdio.h>
+//#include <arduino.h>
 
 using namespace std;
 

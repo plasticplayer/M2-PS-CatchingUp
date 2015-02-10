@@ -25,7 +25,6 @@ public:
   int encodeData( BYTE* dataIn, BYTE** dataOut, int sizeDataIn );
   void setFunction( void (*FuncType)( BYTE data[], int size) , int ida);
 
-
   Communication( BYTE start, BYTE stope, BYTE escape );
 
   void recieveData( BYTE* data, int size );
