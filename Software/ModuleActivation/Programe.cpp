@@ -38,6 +38,7 @@ boolean Programe::recording = false;
 boolean Programe::connexionOk = false;
 //boolean Programe::resetAddress = false;
 unsigned long Programe::countPress = 0;
+unsigned long Programe::lastMessRec = 0;
 boolean Programe::inParking = false;
 
 LinkedList<MessageProtocol*> Programe::fileMessageToSend = LinkedList<MessageProtocol*>();
@@ -175,7 +176,7 @@ void Programe::tick()
 }
 boolean Programe::isNFCneeded()
 { 
-  return connexionOk && !recording && isToSendEmpty() && isWiatAckEmpty();
+  return connexionOk && !recording && isToSendEmpty() && isWaitAckEmpty();
 }
 void Programe::disconnect()
 {
@@ -300,6 +301,10 @@ boolean Programe::isAckNeeded(HeaderProtocol head)
     return false;
   }
 }
+unsigned long Programe::getLastMessRec()
+{
+ return lastMessRec;
+}
 byte Programe::prepareMessage(MessageProtocol message,byte * &data)
 {
   byte datas[message.lenght +1];
@@ -329,7 +334,10 @@ void Programe::receiveMessage(byte * data,byte len)
   }
   debugPrintln ( " ");
   if(communicationProtocol->recieveData(data,len))
+  {
+    lastMessRec = millis();
     connexionOk = true;
+  }
   else
     connexionOk = false;
 }
@@ -435,8 +443,7 @@ void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
 
   if(data[0] == 0x01) // Connexion authorisée
   {
-    byte data[] ={
-      0x01                                                                    };
+    byte data[] ={0x01};
     MessageProtocol * mes = createMessage(START_REC,data,sizeof(data));
     pushToSend(mes);
   }
@@ -448,14 +455,14 @@ void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
 
 void Programe::__callback_STATUS_ASK( BYTE data[], int size ){
   debugPrintln("Message STATUS_ASK recu");
-  byte dataAck[] = {
-    0xAD                                  };
-  MessageProtocol * mes = createMessage(STATUS_RESP,dataAck,sizeof(dataAck));
+  recording = (data[1] == 0x01);
+  MessageProtocol * mes = createMessage(STATUS_RESP,NULL,0);
   pushToSend(mes);
 }
 
 void Programe::__callback_STATUS_RESP( BYTE data[], int size ){
   debugPrintln("Message STATUS_RESP recu");
+  recording = (data[1] == 0x01);
   MessageProtocol * tmp;
   byte index = getWaitAckHeader(STATUS_ASK,tmp);
   if(index != -1)

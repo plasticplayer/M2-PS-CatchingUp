@@ -73,6 +73,7 @@ public :
   static boolean isRecording();
   static boolean isNFCneeded();
   static void disconnect();
+  static unsigned long getLastMessRec();
 
 private :
   // Callbacks
@@ -95,7 +96,8 @@ private :
   static boolean connexionOk;
   static boolean inParking;
   //static boolean resetAddress;
- static unsigned long countPress;
+  static unsigned long countPress;
+  static unsigned long lastMessRec;
  
   static LinkedList<MessageProtocol*> fileMessageToSend;
   static LinkedList<MessageProtocol*> fileMessageWaitAck;

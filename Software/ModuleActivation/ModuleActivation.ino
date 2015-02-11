@@ -16,6 +16,7 @@
 
 #define MAX_RESEND 5 // 5 envois max (1 + 4 rejeux)
 #define RESEND_DELAY 2000 // ms
+#define KEEP_ALIVE 60000 //ms == 1 Minute ?
 #define EEP_ADR_SET 0x0F
 #define EEP_ADR_RPI 0x1F
 #define EEP_ADR_ARD 0x2F
@@ -108,6 +109,7 @@ void resetAddr()
 byte * buffToSend = NULL;
 void loop(void) {
 
+ 
 
   if(radio.available()) // Quelque chose de disponnible ?
   {
@@ -124,6 +126,14 @@ void loop(void) {
     //printf("messageToSend : %X \r\n" , mess);
     if(sendMessage(mess))
       prog.pushWaitAck(mess);
+  }
+  else if(prog.isWaitAckEmpty()) // Aucun message en attente
+  {
+    if(millis() - prog.getLastMessRec() >= KEEP_ALIVE) // Ca fait KEEP_ALIVE qu'on a rien recu
+    {
+      MessageProtocol * mess2 = prog.createMessage(STATUS_ASK,NULL,0);
+      prog.pushToSend(mess2);
+    } 
   }
   MessageProtocol * mess;
   int indexMessage;
@@ -187,11 +197,11 @@ boolean sendMessage(MessageProtocol * mess)
 boolean newTagAvailable()
 {
   static uint8_t Olduid[] = { 
-    0, 0, 0, 0, 0, 0, 0                    }; 
+    0, 0, 0, 0, 0, 0, 0                        }; 
   boolean success = false;
   boolean bNew = false;
   uint8_t uid[] = { 
-    0, 0, 0, 0, 0, 0, 0                                               };  // Buffer to store the returned UID
+    0, 0, 0, 0, 0, 0, 0                                                   };  // Buffer to store the returned UID
   uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
   unsigned long start = millis();
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength,250);
@@ -304,3 +314,5 @@ void readEEPAdresses()
   }
 
 }
+
+
