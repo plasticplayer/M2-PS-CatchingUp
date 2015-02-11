@@ -27,12 +27,12 @@ public:
 
   Communication( BYTE start, BYTE stope, BYTE escape );
 
-  void recieveData( BYTE* data, int size );
+  boolean recieveData( BYTE* data, int size );
 
 protected:
   bool _Escaped , _StartDetected;
   FuncType _PtrFunctions[256];
-  BYTE _DecodeDatas[60];
+  BYTE _DecodeDatas[BUFFER_SIZE];
   int _PosDecodeData;
   char _Start, _Stop, _Escape;
 };

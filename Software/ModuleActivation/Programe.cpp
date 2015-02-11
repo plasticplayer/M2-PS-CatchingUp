@@ -5,21 +5,61 @@
 #include "Programe.h"
 #include "debug.h"
 #include "LinkedList.h"
+#include "led.h"
+
+// Definition des PINS utilisés
+#define LED_ROUGE_PIN  3
+#define LED_VERTE_PIN  2
+#define BTN_PIN        A1
+#define COUNT_BTN_LONG 5000
+#define COUNT_BTN_COURT 250
+
+#define LED_V_BLINK ledVerte.speed(500);
+#define LED_V_ON ledVerte.speed(0); \
+ledVerte.on();
+#define LED_V_OFF ledVerte.speed(0); \
+ledVerte.off();
+
+#define LED_R_BLINK ledRouge.speed(500);
+#define LED_R_ON ledRouge.speed(0); \
+ledRouge.on();
+#define LED_R_OFF ledRouge.speed(0); \
+ledRouge.off();
+
 
 Communication * Programe::communicationProtocol = NULL;
 word Programe::_idRespParking = 0x00;
-byte Programe::_adresseRPI = 0x00;
-byte Programe::_adresseArduino = 0x00;
+uint64_t Programe::_adresseRPI = 0x00;
+uint64_t Programe::_adresseArduino = 0x00;
 byte * Programe::bufferSend = NULL;
 byte Programe::bufferSendLenght = 0;
 byte Programe::countParking = 0;
+boolean Programe::recording = false;
+boolean Programe::connexionOk = false;
+//boolean Programe::resetAddress = false;
+unsigned long Programe::countPress = 0;
+boolean Programe::inParking = false;
 
 LinkedList<MessageProtocol*> Programe::fileMessageToSend = LinkedList<MessageProtocol*>();
 LinkedList<MessageProtocol*> Programe::fileMessageWaitAck = LinkedList<MessageProtocol*>();
 FuncChange Programe::_PtrFunction = NULL;
+FuncResetAddr Programe::_PtrFunctionResetAddr = NULL;
+
+led Programe::ledVerte(LED_VERTE_PIN);
+led Programe::ledRouge(LED_ROUGE_PIN);
 
 Programe::Programe()
 {  
+  pinMode(BTN_PIN, INPUT_PULLUP);  
+  ledVerte.init();
+  ledRouge.init();
+  LED_R_ON;
+  LED_V_ON;
+  //delay(5);
+  LED_R_OFF;
+  LED_V_OFF;
+  LED_V_BLINK;
+
   communicationProtocol = new Communication(0x10,0x22,0x20);
 
   //communicationProtocol->setFunction( &__callback_default , 0x00);
@@ -30,6 +70,117 @@ Programe::Programe()
   communicationProtocol->setFunction( &__callback_STATUS_RESP , STATUS_RESP);
   communicationProtocol->setFunction( &__callback_ACK , ACK);
   _idRespParking = 0x0000;
+}
+boolean Programe::isRecording()
+{
+  return recording;
+}
+void Programe::tick()
+{
+  
+    if(connexionOk)
+  {
+    if(isWaitAckEmpty())
+    {
+      if(!recording)
+      {
+        ledVerte.speed(250);
+      }
+      else
+      {
+        ledVerte.speed(0);
+        ledVerte.on();
+      }
+      ledRouge.speed(0);
+      ledRouge.off();
+    }
+    else
+    {
+      ledVerte.speed(0);
+        ledVerte.off();
+      
+      ledRouge.speed(0);
+      ledRouge.on();
+    }
+  }
+  else
+  {
+    if(inParking)
+    {
+      ledRouge.speed(500);
+    }
+    else
+    {
+      ledRouge.speed(100);
+    }
+    ledVerte.speed(0);
+    ledVerte.off();
+  }
+  
+  if(digitalRead(BTN_PIN) == LOW) // Btn Appuyé
+  {
+    if(countPress == 0)
+    {
+      countPress = millis(); 
+    }
+    else
+    {
+      if(millis() - countPress >= COUNT_BTN_LONG)
+      {
+          ledVerte.speed(0);
+        ledVerte.on();
+          ledRouge.speed(0);
+        ledRouge.on();
+      }
+      //printf("Bouton appuyé en attente : %lu\r\n", millis() - countPress);
+    }
+  }
+  else
+  {
+    if(countPress != 0) // On a été appuyé
+    {
+      if(millis() - countPress >= COUNT_BTN_LONG)
+      {
+        //if(!resetAddress)
+        {
+          if(_PtrFunctionResetAddr != NULL)
+          {
+            _PtrFunctionResetAddr();
+            _idRespParking = 0;
+            countPress = 0;
+            //resetAddress = true;
+          }
+        }
+        //resetAddress = false;
+      }
+      else if(millis() - countPress >= COUNT_BTN_COURT)
+      {
+        if(recording)
+        {
+          byte data[] ={
+            0x00                                                                      };
+          MessageProtocol * mes = createMessage(START_REC,data,sizeof(data));
+          pushToSend(mes);
+        }
+      }
+      countPress = 0;
+    }
+  }
+
+
+
+
+  ledVerte.run();
+  ledRouge.run(); 
+}
+boolean Programe::isNFCneeded()
+{ 
+  return connexionOk && !recording && isToSendEmpty() && isWiatAckEmpty();
+}
+void Programe::disconnect()
+{
+  connexionOk = false;
+  recording = false;
 }
 
 MessageProtocol * Programe::createMessage(HeaderProtocol head,byte * data, byte len)
@@ -177,7 +328,10 @@ void Programe::receiveMessage(byte * data,byte len)
     debugPrint ( " ");
   }
   debugPrintln ( " ");
-  communicationProtocol->recieveData(data,len);
+  if(communicationProtocol->recieveData(data,len))
+    connexionOk = true;
+  else
+    connexionOk = false;
 }
 
 
@@ -202,7 +356,16 @@ void Programe::setFunctChangeAddr(FuncChange func)
 {
   _PtrFunction = func;
 }
-
+void Programe::setFunctResetAddr(FuncResetAddr reset)
+{
+  _PtrFunctionResetAddr = reset;
+}
+void Programe::setParking(uint64_t ARDU,uint64_t RPI)
+{
+   setAddressRPI(ARDU);
+   setAddressARD(RPI);
+   inParking = true;
+}
 /* PRIVATE */
 void Programe::__callback_default( BYTE data[], int size ){
   debugPrintln("Message non connu recu !");
@@ -212,20 +375,23 @@ void Programe::__callback_default( BYTE data[], int size ){
 
 void Programe::__callback_POOL_PARKING( BYTE data[], int size ){
   debugPrintln("Message POOL_PARKING recu");
-  if(_idRespParking == 0x0000)
+  if(inParking)
   {
-    countParking = 0;
-    _idRespParking =  random(0, 0xFFFF) & 0xFFFF;
-    byte data[] = {
-      _idRespParking >> 8, _idRespParking & 0xFF        };
-    MessageProtocol * mes = createMessage(RESP_PARKING,data,sizeof(data));
-    pushToSend(mes);
-  }
-  else
-  {
-    debugPrintln("Message POOL_PARKING recu alors que la reponse a deja ete envoye");
-    if(countParking++ >= 5)
-      _idRespParking = 0;
+    if(_idRespParking == 0x0000)
+    {
+      countParking = 0;
+      _idRespParking =  random(0, 0xFFFF) & 0xFFFF;
+      byte data[] = {
+        _idRespParking >> 8, _idRespParking & 0xFF                                                            };
+      MessageProtocol * mes = createMessage(RESP_PARKING,data,sizeof(data));
+      pushToSend(mes);
+    }
+    else
+    {
+      debugPrintln("Message POOL_PARKING recu alors que la reponse a deja ete envoye");
+      if(countParking++ >= 5)
+        _idRespParking = 0;
+    }
   }
 }
 
@@ -252,15 +418,13 @@ void Programe::__callback_ATTRIB_ADRESS( BYTE data[], int size ){
     debugPrintHex(_idRespParking);
     debugPrint(" recu : ");
     debugPrintHex(word(data[0],data[1]));
-
-
   }
 }
 
 void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
   debugPrintln("Message AUTH_RESP recu");
   byte dataAck[] = {
-    AUTH_RESP        };
+    AUTH_RESP                                  };
   MessageProtocol * mes = createMessage(ACK,dataAck,sizeof(dataAck));
   pushToSend(mes);
 
@@ -272,7 +436,7 @@ void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
   if(data[0] == 0x01) // Connexion authorisée
   {
     byte data[] ={
-      0x01                };
+      0x01                                                                    };
     MessageProtocol * mes = createMessage(START_REC,data,sizeof(data));
     pushToSend(mes);
   }
@@ -285,7 +449,7 @@ void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
 void Programe::__callback_STATUS_ASK( BYTE data[], int size ){
   debugPrintln("Message STATUS_ASK recu");
   byte dataAck[] = {
-    0xAD        };
+    0xAD                                  };
   MessageProtocol * mes = createMessage(STATUS_RESP,dataAck,sizeof(dataAck));
   pushToSend(mes);
 }
@@ -305,10 +469,31 @@ void Programe::__callback_ACK(BYTE data[], int size ){
   if(index != -1)
     deleteMessageWaitAck(index);
 
-  if((HeaderProtocol)data[0] == ATTRIB_OK)
+  if((HeaderProtocol)data[0] == START_REC)
+  {
+    recording = !recording;
+
+  }
+  else if((HeaderProtocol)data[0] == ATTRIB_OK)
+  {
     if(_PtrFunction != NULL)
       _PtrFunction(_adresseRPI,_adresseArduino);
+     inParking = false;
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

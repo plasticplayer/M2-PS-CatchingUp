@@ -5,7 +5,7 @@
 #include "Arduino.h"
 #include "Communication.h"
 #include "LinkedList.h"
-
+#include "led.h"
 //#define SIZE_FILE_SEND 10
 
 typedef enum _HeaderProtocol
@@ -40,7 +40,7 @@ typedef struct _MessageProtocol
 MessageProtocol;
 
 typedef void (*FuncChange)( uint64_t RPI, uint64_t ARDU);
-
+typedef void (*FuncResetAddr)( void );
 class Programe
 {
 public :
@@ -66,8 +66,13 @@ public :
   static void setAddressARD(uint64_t addr);
   static uint64_t getAddressRPI();
   static uint64_t getAddressARD();
+  static void setParking(uint64_t ARDU,uint64_t RPI);
   static void setFunctChangeAddr(FuncChange func);
-
+  static void setFunctResetAddr(FuncResetAddr reset);
+  static void tick();
+  static boolean isRecording();
+  static boolean isNFCneeded();
+  static void disconnect();
 
 private :
   // Callbacks
@@ -81,15 +86,24 @@ private :
 
   static Communication * communicationProtocol;
   static word _idRespParking;
-  static byte _adresseRPI;
-  static byte _adresseArduino;
+  static uint64_t _adresseRPI;
+  static uint64_t _adresseArduino;
   static byte * bufferSend;
   static byte bufferSendLenght;
   static byte countParking;
-
+  static boolean recording;
+  static boolean connexionOk;
+  static boolean inParking;
+  //static boolean resetAddress;
+ static unsigned long countPress;
+ 
   static LinkedList<MessageProtocol*> fileMessageToSend;
   static LinkedList<MessageProtocol*> fileMessageWaitAck;
   static FuncChange _PtrFunction;
+  static FuncResetAddr _PtrFunctionResetAddr;
+  static led ledVerte;
+  static led ledRouge;
+ 
   /*static MessageProtocol fileMessageToSend[SIZE_FILE_SEND];
    static MessageProtocol fileMessageWaitAck[SIZE_FILE_SEND];
    static byte indexPushToSend;
@@ -102,6 +116,7 @@ private :
 };
 
 #endif
+
 
 
 

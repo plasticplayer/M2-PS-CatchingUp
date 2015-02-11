@@ -18,13 +18,16 @@ Communication::Communication( BYTE start, BYTE stope, BYTE escape ){
   this->_Start = start;
   this->_Stop = stope;
   this->_Escape = escape;
-
+  this->_Escaped = false;
+  this->_StartDetected = false;
+  this->_PosDecodeData = 0;
   for (int i = 0; i<256;i++) this->_PtrFunctions[i] = NULL;
 
   memset(this->_DecodeDatas,0, BUFFER_SIZE);
 }
 
-void Communication::recieveData( BYTE* data, int size ){
+boolean Communication::recieveData( BYTE* data, int size ){
+  boolean bOk = false;
   for (int i = 0; i < size; i++ ){
 
     if ( data[i] == this->_Escape ){
@@ -60,17 +63,19 @@ void Communication::recieveData( BYTE* data, int size ){
       else{
         if ( _StartDetected ){
           // Fin de la trame
-          //cout << "Get Frame: " ;
-          // for ( int i =0; i < this->_PosDecodeData ; i++ )
-          //    printf("%02x ", this->_DecodeDatas[i] );
+          /* //cout << "Get Frame: " ;
+           for ( int i =0; i < this->_PosDecodeData ; i++ )
+              printf("%02x ", this->_DecodeDatas[i] );
           //cout << endl;
 
-
-          if ( this->_PosDecodeData >=0 && this->_PtrFunctions[this->_DecodeDatas[0]] != NULL ){
+          printf("Receive S : %i : %x\r\n",this->_PosDecodeData,this->_DecodeDatas[0]);*/
+          if ( this->_PosDecodeData >0 && this->_PtrFunctions[this->_DecodeDatas[0]] != NULL ){
             unsigned char *recieveData = ( unsigned char * ) malloc ( sizeof( unsigned char) * this->_PosDecodeData -1);
             memcpy(recieveData, this->_DecodeDatas+1, this->_PosDecodeData -1);
+            //printf("Function ID : %X\r\n",this->_DecodeDatas[0]);
             this->_PtrFunctions[this->_DecodeDatas[0]](recieveData,this->_PosDecodeData -1);
             free(recieveData);
+            bOk = true;
           }
 
           _StartDetected = false;
@@ -85,6 +90,7 @@ void Communication::recieveData( BYTE* data, int size ){
       this->_DecodeDatas[this->_PosDecodeData++] = data[i];
     }
   }
+  return bOk;
 }
 
 void Communication::setFunction( void (*FuncType)( BYTE data[], int size) , int ida){

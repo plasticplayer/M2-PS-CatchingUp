@@ -1,5 +1,6 @@
 #include "Programe.h"
 #include "debug.h"
+//#include "led.h"
 // On inclue les fichiers pour l'utilisation du lecteur de carte RFID
 #include <PN532_HSU.h>
 #include <PN532.h>
@@ -25,16 +26,13 @@
 // Utilisation d'un CRC pour le CRC
 #define RF_CRC RF24_CRC_8
 // Adresses pour le NRF 24
-#define ADRESSE_RECEPTION_PARKING  0x00000001LL
-#define ADRESSE_EMISSION_PARKING   0x00000002LL
+#define ADRESSE_RECEPTION_PARKING  0xF1000000LL
+#define ADRESSE_EMISSION_PARKING   0xF2000000LL
 // Pins utilisés par le RFID
 #define RF_CE_PIN 8
 #define RF_CSN_PIN 10
 
-// Definition des PINS utilisés
-#define LED_ROUGE_PIN  3
-#define LED_VERTE_PIN  2
-#define BTN_PIN  A2
+
 
 // Lecteur de carte RFID
 PN532_HSU pn532(Serial1);
@@ -52,9 +50,11 @@ Programe prog;
 
 void setup(void) {
   randomSeed(analogRead(0));
-  pinMode(LED_ROUGE_PIN, OUTPUT);     
-  pinMode(LED_VERTE_PIN, OUTPUT);     
-  pinMode(BTN_PIN, INPUT_PULLUP);  
+
+
+  //pinMode(LED_ROUGE_PIN, OUTPUT);     
+  //pinMode(LED_VERTE_PIN, OUTPUT);     
+
 
 #ifdef DEBUG_ON
   Serial.begin(9600);
@@ -73,7 +73,9 @@ void setup(void) {
   debugPrint(F("Version lecteur RFID :"));
   debugPrintln(versiondata);
 #endif
-
+  //#ifdef DEBUG_ON
+  //  EEPROM.write(EEP_ADR_SET,0x00);
+  //#endif 
   nfc.SAMConfig();
 
   radio.begin();                          // Start up the radio
@@ -82,15 +84,25 @@ void setup(void) {
   radio.setCRCLength(RF_CRC);
   radio.setRetries(15,15);                // Max delay between retries & number of retries
   radio.setDataRate(RF_BANDWITH);
+  radio.enableDynamicPayloads();
   readEEPAdresses();
   changeNRFAdresses();
-  radio.enableDynamicPayloads();
-  radio.startListening();                 // Start listening
-#ifdef DEBUG_ON
-  radio.printDetails();                 // Dump the configuration of the rf unit for debugging
-#endif
+
+
+  //#ifdef DEBUG_ON
+  //radio.printDetails();                 // Dump the configuration of the rf unit for debugging
+  //#endif
 
   prog.setFunctChangeAddr(&changeAdresses);
+  prog.setFunctResetAddr(&resetAddr);
+  //ledVerte.speed(500);
+}
+
+void resetAddr()
+{
+  EEPROM.write(EEP_ADR_SET,0x00);
+  readEEPAdresses();
+  changeNRFAdresses();
 }
 
 byte * buffToSend = NULL;
@@ -99,6 +111,7 @@ void loop(void) {
 
   if(radio.available()) // Quelque chose de disponnible ?
   {
+    printf("%lu : ",millis());
     byte len = radio.getDynamicPayloadSize(); 
     byte datas[len];
     radio.read(datas,len);
@@ -122,27 +135,40 @@ void loop(void) {
     if(mess->sendCounter >= MAX_RESEND)
     {
       debugPrintln(F("Message en attente de Ack to resend en erreur renvoye trop de fois"));
+      if(mess->header == ATTRIB_OK)
+      {
+        // Force return to parking adress
+        resetAddr();
+      }
       prog.deleteMessageWaitAck(indexMessage);
-      
+      prog.disconnect();
     }
     else
     { 
+
       debugPrintln(F("Message en attente de Ack to resend"));
       sendMessage(mess);
     }
   }
-
-  if(newTagAvailable())
+  if(prog.isNFCneeded())
   {
-    MessageProtocol * mess2 = prog.createMessage(AUTH_ASK,tagRead,7);
-    prog.pushToSend(mess2);
+    if(newTagAvailable())
+    {
+      if(!prog.isRecording()){
+
+        MessageProtocol * mess2 = prog.createMessage(AUTH_ASK,tagRead,7);
+        prog.pushToSend(mess2);
+      }
+    }
   }
 
+  prog.tick();
 }
 
 
 boolean sendMessage(MessageProtocol * mess)
 {
+  printf("%lu : ",millis());
   byte length = prog.prepareMessage(*mess,buffToSend);
   radio.stopListening();
 
@@ -154,7 +180,6 @@ boolean sendMessage(MessageProtocol * mess)
     return false;
   else
     return true;
-
 }
 
 
@@ -162,13 +187,13 @@ boolean sendMessage(MessageProtocol * mess)
 boolean newTagAvailable()
 {
   static uint8_t Olduid[] = { 
-    0, 0, 0, 0, 0, 0, 0            }; 
+    0, 0, 0, 0, 0, 0, 0                    }; 
   boolean success = false;
   boolean bNew = false;
   uint8_t uid[] = { 
-    0, 0, 0, 0, 0, 0, 0                                       };  // Buffer to store the returned UID
+    0, 0, 0, 0, 0, 0, 0                                               };  // Buffer to store the returned UID
   uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
-
+  unsigned long start = millis();
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength,250);
   if (success) {
     for(int i = 0 ; i < uidLength; i++)
@@ -177,6 +202,7 @@ boolean newTagAvailable()
       {
         // Le Tag est différent de l'ancien lu
         bNew = true;
+
         break;
       }
     }
@@ -201,6 +227,7 @@ boolean newTagAvailable()
         Olduid[i] = uid[i];
         tagRead[7 - i-1] = uid[uidLength -1 - i];
       }
+
       return true;
     }
   }
@@ -221,10 +248,29 @@ void changeNRFAdresses()
   radio.openWritingPipe(prog.getAddressRPI());
   radio.openReadingPipe(1, prog.getAddressARD());
   radio.startListening();                 // Start listening
+
+#ifdef DEBUG_ON
+    printAdress();
+#endif
 }
+#ifdef DEBUG_ON
+void printAdress()
+{
+  /* uint64_t ad = prog.getAddressRPI();
+   printf(("RPI : 0x%08X \r\n"),ADRESSE_RECEPTION_PARKING);
+   ad = prog.getAddressARD();
+   //printf(("ARD : 0x %X %X %X %X \r\n"),ad>>24,(ad>>16)&0xFF,(ad>>8)&0xFF,ad&0xFF);*/
+#ifdef DEBUG_ON
+  printf("_______________________________\r\n");
+  radio.printDetails();                 // Dump the configuration of the rf unit for debugging
+  printf("_______________________________\r\n");
+#endif
+}
+#endif
 void changeAdresses(uint64_t RPI,uint64_t ARDU)
 {
-  printf(("Changement d'adresse : 0x%X 0x%X \r\n"),RPI,ARDU);
+  changeNRFAdresses();
+
   EEPROM.write(EEP_ADR_SET,0x00);
 
   EEPROM.write(EEP_ADR_RPI, (RPI >> 24) & 0xFF);
@@ -245,40 +291,16 @@ void readEEPAdresses()
 
   if(Flag == 0x01) // Adresses are sets 
   {
-    uint64_t addr = (uint64_t)EEPROM.read(EEP_ADR_RPI) << 24 | (uint64_t)EEPROM.read(EEP_ADR_RPI+1) << 16 | (uint64_t)EEPROM.read(EEP_ADR_RPI+2) << 8 |EEPROM.read(EEP_ADR_RPI+3);
+    uint64_t addr = (uint64_t)EEPROM.read(EEP_ADR_RPI) << 24 | (uint64_t)EEPROM.read(EEP_ADR_RPI+1) << 16 | (uint64_t)EEPROM.read(EEP_ADR_RPI+2) << 8 | EEPROM.read(EEP_ADR_RPI+3);
     prog.setAddressRPI(addr);
-    addr = (uint64_t)EEPROM.read(EEP_ADR_ARD) << 24 | (uint64_t)EEPROM.read(EEP_ADR_ARD+1) << 16 | (uint64_t)EEPROM.read(EEP_ADR_ARD+2) << 8 |EEPROM.read(EEP_ADR_ARD+3);
-    prog.setAddressARD(EEPROM.read(EEP_ADR_ARD));
+    addr = (uint64_t)EEPROM.read(EEP_ADR_ARD) << 24 | (uint64_t)EEPROM.read(EEP_ADR_ARD+1) << 16 | (uint64_t)EEPROM.read(EEP_ADR_ARD+2) << 8 | EEPROM.read(EEP_ADR_ARD+3);
+    prog.setAddressARD(addr);
   }
   else // Switch to parking mode
   {
-    prog.setAddressRPI(ADRESSE_RECEPTION_PARKING);
-    prog.setAddressARD(ADRESSE_EMISSION_PARKING);
+    prog.setParking(ADRESSE_RECEPTION_PARKING,ADRESSE_EMISSION_PARKING);
+    //prog.setAddressRPI(ADRESSE_RECEPTION_PARKING);
+    //prog.setAddressARD(ADRESSE_EMISSION_PARKING);
   }
 
- printf(("Read d'adresse : 0x%X 0x%X \r\n"),prog.getAddressRPI(),prog.getAddressARD());
-  /*debugPrintln("Changement d'addresse !");
-  debugPrint(" RPI: ");
-  debugPrintln(prog.getAddressRPI(),HEX);
-  debugPrint(" ARD: ");
-  debugPrintln(prog.getAddressARD(),HEX);*/
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
