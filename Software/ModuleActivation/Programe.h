@@ -67,6 +67,7 @@ public :
   static uint64_t getAddressRPI();
   static uint64_t getAddressARD();
   static void setParking(uint64_t ARDU,uint64_t RPI);
+  boolean isInParking();
   static void setFunctChangeAddr(FuncChange func);
   static void setFunctResetAddr(FuncResetAddr reset);
   static void tick();

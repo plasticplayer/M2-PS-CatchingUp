@@ -374,6 +374,10 @@ void Programe::setParking(uint64_t ARDU,uint64_t RPI)
    setAddressARD(RPI);
    inParking = true;
 }
+boolean Programe::isInParking()
+{
+  return inParking;
+}
 /* PRIVATE */
 void Programe::__callback_default( BYTE data[], int size ){
   debugPrintln("Message non connu recu !");

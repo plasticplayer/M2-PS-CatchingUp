@@ -129,11 +129,14 @@ void loop(void) {
   }
   else if(prog.isWaitAckEmpty()) // Aucun message en attente
   {
+    if(!prog.isInParking())
+    {
     if(millis() - prog.getLastMessRec() >= KEEP_ALIVE) // Ca fait KEEP_ALIVE qu'on a rien recu
     {
       MessageProtocol * mess2 = prog.createMessage(STATUS_ASK,NULL,0);
       prog.pushToSend(mess2);
     } 
+    }
   }
   MessageProtocol * mess;
   int indexMessage;
@@ -160,7 +163,7 @@ void loop(void) {
       sendMessage(mess);
     }
   }
-  if(prog.isNFCneeded())
+  if(prog.isNFCneeded() && !prog.isInParking())
   {
     if(newTagAvailable())
     {
@@ -171,7 +174,6 @@ void loop(void) {
       }
     }
   }
-
   prog.tick();
 }
 
