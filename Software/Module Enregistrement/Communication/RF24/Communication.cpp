@@ -14,18 +14,25 @@
 
 using namespace std;
 
-Communication::Communication( BYTE start, BYTE stop, BYTE escape ){
+Communication::Communication( BYTE start, BYTE stop, BYTE escape  ){
     this->_Start = start;
     this->_Stop = stop;
+    this->_PosDecodeData = 0;
+    this->_Escaped = false;
+    this->_StartDetected = false;
     this->_Escape = escape;
-    this->state = WAIT_FOR_DATA;
+    this->_Connected = false;
 
-    for (int i = 0; i<256;i++) this->_PtrFunctions[i] = NULL;
+    for (int i = 0; i<256 ; i++) this->_PtrFunctions[i] = NULL;
 
     memset(this->_DecodeDatas,0, BUFFER_SIZE);
 }
 
 void Communication::recieveData( BYTE* data, int size ){
+    // Set connexion Flag
+    this->_Connected = true;
+    time(&_LastFrameRecieve);
+
     for (int i = 0; i < size; i++ ){
 
         if ( data[i] == this->_Escape ){
@@ -46,7 +53,6 @@ void Communication::recieveData( BYTE* data, int size ){
                     // Ancienne trame non complété
                     cout << "Last frame not completed " << endl;
                 }
-
                 memset(this->_DecodeDatas,0, BUFFER_SIZE);
                 this->_PosDecodeData = 0;
                 this->_StartDetected = true;
@@ -66,28 +72,18 @@ void Communication::recieveData( BYTE* data, int size ){
                         printf("%02x ", this->_DecodeDatas[i] );
                     cout << endl;
 
-                    if ( state == WAIT_ACK ){
-                        if ( this->_DecodeDatas[0] == ACK ){
-                            Frame f = _FrameToSend.front();
-                            if ( f.header == this->_DecodeDatas[1] )
-                            state = WAIT_FOR_DATA;
-                            _FrameToSend.pop_front();
-                            free(f.data);
-                            free(&f);
-                        }
+
+                    if ( this->_PosDecodeData > 0 && this->_PtrFunctions[this->_DecodeDatas[0]] != NULL ){
+                        unsigned char *recieveData = ( unsigned char * ) malloc ( sizeof( unsigned char) * this->_PosDecodeData -1 );
+                        memcpy(recieveData, (this->_DecodeDatas+1), this->_PosDecodeData-1 );
+                        this->_PtrFunctions[this->_DecodeDatas[0]](recieveData,this->_PosDecodeData-1);
+                        free( recieveData );
+                    }
+                    else{
+                        cout << "No function found" << endl;
                     }
 
-                    else {
-                        if ( this->_PosDecodeData >=0 && this->_PtrFunctions[this->_DecodeDatas[0]] != NULL ){
-                            unsigned char *recieveData = ( unsigned char * ) malloc ( sizeof( unsigned char) * this->_PosDecodeData );
-                            memcpy(recieveData, (this->_DecodeDatas+1), this->_PosDecodeData-1 );
-                            this->_PtrFunctions[this->_DecodeDatas[0]](recieveData,this->_PosDecodeData-1);
-                        }
-                        else{
-                        cout << "No function found" << endl;
-                        }
                     _StartDetected = false;
-                    }
                 }
             }
         }
@@ -138,16 +134,28 @@ void Communication::sendAck( HEADER_Protocol header ){
     Frame *f = ( Frame *) malloc(sizeof(Frame));
     f->header = ACK;
     f->needAck = false;
-    f->size = encodeData((BYTE*)header,&(f->data),1);
-    f->lastSend = time(NULL);
+    BYTE data[] = {ACK,header};
+    f->size = encodeData(data ,&(f->data),2);
+    f->lastSend = 0;
+    f->maxRetry = 0;
     _FrameToSend.push_back(*f);
 }
 
-void Communication::sendBuffer( HEADER_Protocol header, BYTE* data, int length, bool needAck ){
+void Communication::sendBuffer( HEADER_Protocol header, BYTE* data, int length, bool needAck, int nretry ){
     Frame *f = ( Frame *) malloc(sizeof(Frame));
     f->header = header;
     f->needAck = needAck;
+    f->data = NULL;
     f->size = encodeData(data,&(f->data),length);
-    f->lastSend = time(NULL);
+    f->maxRetry = nretry;
+    f->lastSend = 0;
     _FrameToSend.push_back(*f);
+}
+
+void Communication::clearCommunications(){
+    while ( !_FrameToSend.empty() ){
+        Frame f = _FrameToSend.front();
+        _FrameToSend.pop_front();
+        free(f.data);
+    }
 }

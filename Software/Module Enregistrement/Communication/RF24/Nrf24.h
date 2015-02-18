@@ -18,15 +18,26 @@
 
 class Nrf24 : public Communication{
 public:
-    Nrf24();
-    //static bool _Continue;
+
+    Nrf24( );
+    void SendPoolingFrame();
+    void setTransactionErrorFunction( void (*FuncType)( BYTE data[], int size) );
+	void updateAddr( uint64_t rx, uint64_t tx );
 
 private:
+    void poolState();
+    bool _UpdateAddr;
+
     pthread_t _Thread;
     RF24 *_Radio;
 
 
+
+    FuncType _Error;
+
     static void *getData( void *);
+
+    uint64_t _Address[2];
 };
 
 #endif /* defined(__ProtocolCommunication__Nrf24__) */

@@ -11,53 +11,92 @@
 #include <stdlib.h>
 #include "Nrf24.h"
 #include "Communication.h"
+#include "CallBack.h"
 #include <list>
-typedef unsigned char BYTE ;
+#include <cstring>
+#include <string>
+#include <cstdlib>
+#include "INIReader.h"
 
+typedef unsigned char BYTE ;
 using namespace std;
 
 
-Nrf24 *nrfCom ;
+typedef struct {
+        BYTE *server, *client;//, *password, *database;
+       // gint port;
+} Settings;
 
-void authentificationRequest( BYTE data[], int size ){
-    std::cout << "Authentification request. (Tag Id: " << endl;
-    for ( int i =0; i < size; i++ )
-        printf("%02x ", data[i]);
-    cout << ")"<< endl;
 
-    bool status = true;
+/*void readConfigFile(BYTE* &server, BYTE* &client) {
 
-    BYTE answer[] = { ( status )?0x01:0x00 } ;
-    nrfCom->sendBuffer(AUTH_ANS,answer,1,true);
-}
+        Settings *conf;
+        GKeyFile *keyfile;
+        GKeyFileFlags flags;
+        GError *error = NULL;
+        gsize length;
 
-void statusRequest( BYTE data[], int size ){
-    std::cout << "Status request " ;
+        keyfile = g_key_file_new ();
+        //flags = G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS;
 
-    BYTE answer[] = {  0x15 } ;
-    nrfCom->sendBuffer(STAUTS_ANS,answer,1,true);
-}
+        cout << "Looking for config file " << cfgfile << endl;
 
-void ControlRequest( BYTE data[], int size ){
-    std::cout << "Control request " << data[0] << endl ;
+        if (!g_key_file_load_from_file (keyfile, cfgfile, flags, &error)) {
+                g_error (error->message);
+        } else {
+            cout << "config file loaded." << endl;
+            conf = g_slice_new (Settings);
+            conf->server    = g_key_file_get_string(keyfile, "config", "server", NULL);
+            server = conf->server;
+            conf->user      = g_key_file_get_string(keyfile, "config", "client", NULL);
+            client = conf->user;
+        }
 
-    nrfCom->sendAck(ACTIVATE_RECORDING);
-}
+}*/
 
 
 
 int main(int argc, const char * argv[]) {
-    nrfCom = new Nrf24();
+	int server, client;
+	cout << "TnEST !!!!"<<endl<<endl;
+	//readConfigFile("./config.ini", server, client);
+    INIReader reader("./config.ini");
+    if(reader.ParseError() < 0)
+    {
+        cout << "Erreur lecture fichier INI"<<endl;
+        return -1;
+    }
+    server = reader.GetInteger("config","server",-1);
+    client= reader.GetInteger("config","client",-1);
+
+    cout << "Serveur : " << server << " | Client : "<< client <<endl;
+
+
+
+    Nrf24* nrfCom = new Nrf24( );
+    setComm( nrfCom );
+
+    nrfCom->setFunction(&getAck,ACK);
     nrfCom->setFunction(&authentificationRequest, AUTH_ASK);
     nrfCom->setFunction(&statusRequest, STATUS_ASK);
+    nrfCom->setFunction(&statusAns, STATUS_ANS);
     nrfCom->setFunction(&ControlRequest, ACTIVATE_RECORDING);
+    nrfCom->setFunction(&AppariagePoolingStep1, POOL_PARK_ADDR_ANS);
+	nrfCom->setFunction(&AppariageValidConfig, POOL_VALIDATE_CONFIG);
+    nrfCom->setTransactionErrorFunction(&transactionError);
 
-    //com->setFunction(&test2, 0x06);
+    while ( char c = getchar() ){
 
-    getchar();
-
-    std::cout << "Hello, World!\n";
+		if(c == 'a' )
+		{
+		    appairage();
+            fflush(stdin);
+		}
+        if(c == 'q' )
+		{
+		   break;
+		}
+    }
     return 0;
-
 }
 
