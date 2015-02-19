@@ -19,9 +19,16 @@ typedef unsigned char BYTE ;
 #include <string>
 #include <list>
 
-#define TIME_RETRY_S 2
+#define TIME_RETRY 2
+#define TIME_POOLING 20
+#define TIME_MAX_APPAIRAGE_ S   30
+
+#define ADDR_PARKING_TX 0xF2000000LL
+#define ADDR_PARKING_RX 0xF1000000LL
 
 using namespace std;
+
+
 
 enum HEADER_Protocol {
     /// Authentification
@@ -39,43 +46,44 @@ enum HEADER_Protocol {
 
     /// Status
     STATUS_ASK = 0x0A,
-    STAUTS_ANS = 0x0B,
+    STATUS_ANS = 0x0B,
 
     /// ACK
     ACK = 0x0F
 };
-enum StateAutomate { WAIT_FOR_DATA, WAIT_ACK, POOLING, STAND_BY };
+
 
 
 typedef void (*FuncType)( unsigned char data[], int size);
 
-typedef struct { HEADER_Protocol header; BYTE *data; int size; bool needAck; time_t lastSend; }Frame;
-
-
+typedef struct { HEADER_Protocol header; BYTE *data; int size; bool needAck; time_t lastSend; int maxRetry;  }Frame;
 
 
 class Communication {
 
-public:
+    public:
+    Communication( BYTE start, BYTE stop, BYTE escape );
+    void clearCommunications();
 
     void sendAck( HEADER_Protocol header );
     int encodeData( BYTE* dataIn, BYTE** dataOut, int sizeDataIn );
     void setFunction( void (*FuncType)( BYTE data[], int size) , int ida);
-    void sendBuffer( HEADER_Protocol header, BYTE* data, int length, bool needAck );
+    void sendBuffer( HEADER_Protocol header, BYTE* data, int length, bool needAck, int Retry );
+    list<Frame> _FrameToSend;
 
 protected:
-    Communication( BYTE start, BYTE stop, BYTE escape );
+    bool _Connected;
+
     bool _Escaped, _StartDetected;
-    FuncType _PtrFunctions[256];
+    FuncType _PtrFunctions[256] ;
     BYTE _DecodeDatas[1024], _Start, _Stop, _Escape;
     int _PosDecodeData;
+    time_t _LastFrameRecieve;
 
 
     void recieveData( BYTE* data, int size );
 
 
-    list<Frame> _FrameToSend;
-    StateAutomate state;
 
 };
 
