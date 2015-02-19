@@ -38,7 +38,7 @@ boolean Programe::recording = false;
 boolean Programe::connexionOk = false;
 //boolean Programe::resetAddress = false;
 unsigned long Programe::countPress = 0;
-unsigned long Programe::lastMessRec = 0;
+unsigned long Programe::lastMessRec = -60000;
 boolean Programe::inParking = false;
 
 LinkedList<MessageProtocol*> Programe::fileMessageToSend = LinkedList<MessageProtocol*>();
@@ -78,35 +78,46 @@ boolean Programe::isRecording()
 }
 void Programe::tick()
 {
-  
-    if(connexionOk)
+  MessageProtocol * mess;
+  int indexMessage;
+  if(connexionOk) // Si on est connecté (pas d'erreur d'ack)
   {
-    if(isWaitAckEmpty())
+    if((indexMessage = getWaitAckSup(2000,mess)) == -1) // Si il y a pas de message en attente
     {
-      if(!recording)
+      if(inParking) // on est en parking
       {
-        ledVerte.speed(250);
+        ledVerte.speed(0);
+        ledVerte.off();
+        ledRouge.speed(500);
       }
       else
       {
-        ledVerte.speed(0);
-        ledVerte.on();
+        if(!recording) // Si on est pas en train d'enregistrer
+        {
+          ledVerte.speed(250);
+        }
+        else // Si on est en train d'enregistrer
+        {
+          ledVerte.speed(0);
+          ledVerte.on();
+        }
+        // Dans tout les cas on eteint la led rouge
+        ledRouge.speed(0);
+        ledRouge.off();
       }
-      ledRouge.speed(0);
-      ledRouge.off();
     }
-    else
+    else // Si on a un message en attente 
     {
       ledVerte.speed(0);
-        ledVerte.off();
-      
+      ledVerte.off();
+
       ledRouge.speed(0);
       ledRouge.on();
     }
   }
-  else
+  else // Si on est pas connecter 
   {
-    if(inParking)
+    if(inParking) // on est en parking
     {
       ledRouge.speed(500);
     }
@@ -117,7 +128,7 @@ void Programe::tick()
     ledVerte.speed(0);
     ledVerte.off();
   }
-  
+
   if(digitalRead(BTN_PIN) == LOW) // Btn Appuyé
   {
     if(countPress == 0)
@@ -128,9 +139,9 @@ void Programe::tick()
     {
       if(millis() - countPress >= COUNT_BTN_LONG)
       {
-          ledVerte.speed(0);
+        ledVerte.speed(0);
         ledVerte.on();
-          ledRouge.speed(0);
+        ledRouge.speed(0);
         ledRouge.on();
       }
       //printf("Bouton appuyé en attente : %lu\r\n", millis() - countPress);
@@ -159,7 +170,7 @@ void Programe::tick()
         if(recording)
         {
           byte data[] ={
-            0x00                                                                      };
+            0x00                                                                                                    };
           MessageProtocol * mes = createMessage(START_REC,data,sizeof(data));
           pushToSend(mes);
         }
@@ -167,9 +178,6 @@ void Programe::tick()
       countPress = 0;
     }
   }
-
-
-
 
   ledVerte.run();
   ledRouge.run(); 
@@ -216,15 +224,6 @@ boolean Programe::pushWaitAck(MessageProtocol * mess)
 boolean Programe::pushToSend(MessageProtocol * mess)
 {
   return fileMessageToSend.add(mess);
-  /* if(countToSend < SIZE_FILE_SEND)
-   {
-   
-   fileMessageToSend[indexPushToSend] = mess;
-   indexPushToSend = (indexPushToSend+1)%SIZE_FILE_SEND ;
-   countToSend++;
-   return true;
-   }
-   else return false;*/
 }
 
 boolean Programe::isToSendEmpty()
@@ -238,23 +237,10 @@ boolean Programe::isWaitAckEmpty()
 MessageProtocol * Programe::getToSend()
 {
   return fileMessageToSend.shift();
-  // if(isEmpty())
-  //return MessageProtocol;
-  /*countToSend--;
-   MessageProtocol mess = fileMessageToSend[indexPopToSend];
-   indexPopToSend = (indexPopToSend+1)%SIZE_FILE_SEND;
-   return mess;*/
 }
 MessageProtocol * Programe::getWaitAck()
 {
   return fileMessageWaitAck.shift();
-  // if(isEmpty())
-  //return MessageProtocol;
-  /* countWaitAck--;
-   
-   MessageProtocol mess = fileMessageWaitAck[indexPopWaitAck];
-   indexPopWaitAck = (indexPopWaitAck+1)%SIZE_FILE_SEND;
-   return mess;*/
 }
 int Programe::getWaitAckSup(unsigned long time,MessageProtocol * &ptr)
 {
@@ -293,7 +279,7 @@ boolean Programe::isAckNeeded(HeaderProtocol head)
   switch (head)
   {
   case ATTRIB_OK:
-  case AUTH_RESP:
+    //case AUTH_RESP:
   case START_REC:
   case STATUS_RESP:
     return true;
@@ -303,7 +289,7 @@ boolean Programe::isAckNeeded(HeaderProtocol head)
 }
 unsigned long Programe::getLastMessRec()
 {
- return lastMessRec;
+  return lastMessRec;
 }
 byte Programe::prepareMessage(MessageProtocol message,byte * &data)
 {
@@ -370,9 +356,9 @@ void Programe::setFunctResetAddr(FuncResetAddr reset)
 }
 void Programe::setParking(uint64_t ARDU,uint64_t RPI)
 {
-   setAddressRPI(ARDU);
-   setAddressARD(RPI);
-   inParking = true;
+  setAddressRPI(ARDU);
+  setAddressARD(RPI);
+  inParking = true;
 }
 boolean Programe::isInParking()
 {
@@ -394,7 +380,7 @@ void Programe::__callback_POOL_PARKING( BYTE data[], int size ){
       countParking = 0;
       _idRespParking =  random(0, 0xFFFF) & 0xFFFF;
       byte data[] = {
-        _idRespParking >> 8, _idRespParking & 0xFF                                                            };
+        _idRespParking >> 8, _idRespParking & 0xFF                                                                              };
       MessageProtocol * mes = createMessage(RESP_PARKING,data,sizeof(data));
       pushToSend(mes);
     }
@@ -435,42 +421,45 @@ void Programe::__callback_ATTRIB_ADRESS( BYTE data[], int size ){
 
 void Programe::__callback_AUTH_RESP( BYTE data[], int size ){
   debugPrintln("Message AUTH_RESP recu");
-  byte dataAck[] = {
-    AUTH_RESP                                  };
-  MessageProtocol * mes = createMessage(ACK,dataAck,sizeof(dataAck));
-  pushToSend(mes);
-
-  MessageProtocol * tmp;
-  byte index = getWaitAckHeader(AUTH_ASK,tmp);
-  if(index != -1)
-    deleteMessageWaitAck(index);
-
+  /* byte dataAck[] = {
+   AUTH_RESP                                  };*/
+  // MessageProtocol * mes = createMessage(ACK,dataAck,sizeof(dataAck));
+  //pushToSend(mes);
   if(data[0] == 0x01) // Connexion authorisée
   {
-    byte data[] ={0x01};
-    MessageProtocol * mes = createMessage(START_REC,data,sizeof(data));
+    byte data2[] ={
+      0x01            };
+    MessageProtocol * mes = createMessage(START_REC,data2,sizeof(data2));
     pushToSend(mes);
   }
   else // Connexion refusée
   {
 
   }
+  MessageProtocol * tmp;
+  byte index = getWaitAckHeader(AUTH_ASK,tmp);
+  if(index != -1)
+    deleteMessageWaitAck(index);
 }
 
 void Programe::__callback_STATUS_ASK( BYTE data[], int size ){
   debugPrintln("Message STATUS_ASK recu");
-  recording = (data[1] == 0x01);
+  recording = (data[0] == 0x01);
   MessageProtocol * mes = createMessage(STATUS_RESP,NULL,0);
   pushToSend(mes);
 }
 
 void Programe::__callback_STATUS_RESP( BYTE data[], int size ){
   debugPrintln("Message STATUS_RESP recu");
-  recording = (data[1] == 0x01);
+  recording = (data[0] == 0x01);
   MessageProtocol * tmp;
   byte index = getWaitAckHeader(STATUS_ASK,tmp);
   if(index != -1)
     deleteMessageWaitAck(index);
+  byte dataAck[] = {
+    STATUS_RESP                                        };
+  MessageProtocol * mes = createMessage(ACK,dataAck,sizeof(dataAck));
+  pushToSend(mes);
 }
 
 void Programe::__callback_ACK(BYTE data[], int size ){
@@ -478,54 +467,20 @@ void Programe::__callback_ACK(BYTE data[], int size ){
   MessageProtocol * tmp;
   byte index = getWaitAckHeader((HeaderProtocol)data[0],tmp);
   if(index != -1)
+  {
     deleteMessageWaitAck(index);
 
-  if((HeaderProtocol)data[0] == START_REC)
-  {
-    recording = !recording;
-
-  }
-  else if((HeaderProtocol)data[0] == ATTRIB_OK)
-  {
-    if(_PtrFunction != NULL)
-      _PtrFunction(_adresseRPI,_adresseArduino);
-     inParking = false;
+    if((HeaderProtocol)data[0] == START_REC )
+    {
+      recording = !recording;
+    }
+    else if((HeaderProtocol)data[0] == ATTRIB_OK)
+    {
+      if(_PtrFunction != NULL)
+        _PtrFunction(_adresseRPI,_adresseArduino);
+      inParking = false;
+    }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

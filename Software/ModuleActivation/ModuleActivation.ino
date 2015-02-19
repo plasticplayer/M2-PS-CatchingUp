@@ -51,12 +51,8 @@ Programe prog;
 
 void setup(void) {
   randomSeed(analogRead(0));
-
-
   //pinMode(LED_ROUGE_PIN, OUTPUT);     
   //pinMode(LED_VERTE_PIN, OUTPUT);     
-
-
 #ifdef DEBUG_ON
   Serial.begin(9600);
   while (!Serial);
