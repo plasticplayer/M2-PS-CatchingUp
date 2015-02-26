@@ -14,12 +14,12 @@ int main(int argc, const char **argv)
    RASPISTILL_STATE state;
 
    MMAL_STATUS_T status = MMAL_SUCCESS;
-   MMAL_PORT_T *camera_preview_port = NULL;
-   MMAL_PORT_T *camera_video_port = NULL;
+   //MMAL_PORT_T *camera_preview_port = NULL;
+   //MMAL_PORT_T *camera_video_port = NULL;
    MMAL_PORT_T *camera_still_port = NULL;
    MMAL_PORT_T *preview_input_port = NULL;
    MMAL_PORT_T *encoder_input_port = NULL;
-   MMAL_PORT_T *encoder_output_port = NULL;
+   //MMAL_PORT_T *encoder_output_port = NULL;
 
    bcm_host_init();
 
@@ -29,28 +29,32 @@ int main(int argc, const char **argv)
    signal(SIGINT, signal_handler);
 
    default_status(&state);
+   state.timeout = 0;
+   state.filename = "capture.jpeg";
+   state.verbose = 0;
+
 
    // Do we have any parameters
-   if (argc == 1)
+   /*if (argc == 1)
    {
       fprintf(stderr, "\%s Camera App %s\n\n", basename(argv[0]), VERSION_STRING);
 
       display_valid_parameters((char*)basename(argv[0]));
       exit(0);
-   }
+   }*/
 
    // Parse the command line and put options in to our status structure
-   if (parse_cmdline(argc, argv, &state))
+/*if (parse_cmdline(argc, argv, &state))
    {
       exit(0);
-   }
+   }*/
 
-   if (state.verbose)
+   /*if (state.verbose)
    {
       fprintf(stderr, "\n%s Camera App %s\n\n", basename(argv[0]), VERSION_STRING);
 
       dump_status(&state);
-   }
+   }*/
 
    // OK, we have a nice set of parameters. Now set up our components
    // We have three components. Camera, Preview and encoder.
@@ -61,11 +65,11 @@ int main(int argc, const char **argv)
    {
       vcos_log_error("%s: Failed to create camera component", __func__);
    }
-   else if (!raspipreview_create(&state.preview_parameters))
+   /*else if (!raspipreview_create(&state.preview_parameters))
    {
       vcos_log_error("%s: Failed to create preview component", __func__);
       destroy_camera_component(&state);
-   }
+   }*/
    else if (!create_encoder_component(&state))
    {
       vcos_log_error("%s: Failed to create encode component", __func__);
@@ -79,14 +83,14 @@ int main(int argc, const char **argv)
       if (state.verbose)
          fprintf(stderr, "Starting component connection stage\n");
 
-      camera_preview_port = state.camera_component->output[MMAL_CAMERA_PREVIEW_PORT];
-      camera_video_port   = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
+      //camera_preview_port = state.camera_component->output[MMAL_CAMERA_PREVIEW_PORT];
+      //camera_video_port   = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
       camera_still_port   = state.camera_component->output[MMAL_CAMERA_CAPTURE_PORT];
-      preview_input_port  = state.preview_parameters.preview_component->input[0];
+      //preview_input_port  = state.preview_parameters.preview_component->input[0];
       encoder_input_port  = state.encoder_component->input[0];
       encoder_output_port = state.encoder_component->output[0];
 
-      if (state.preview_parameters.wantPreview )
+      /*if (state.preview_parameters.wantPreview )
       {
          if (state.verbose)
          {
@@ -97,7 +101,7 @@ int main(int argc, const char **argv)
          // Connect camera to preview
          status = connect_ports(camera_preview_port, preview_input_port, &state.preview_connection);
       }
-      else
+      else*/
       {
          status = MMAL_SUCCESS;
       }
@@ -140,7 +144,7 @@ int main(int argc, const char **argv)
             goto error;
          }
 
-         if (state.demoMode)
+         /*if (state.demoMode)
          {
             // Run for the user specific time..
             int num_iterations = state.timeout / state.demoInterval;
@@ -151,18 +155,18 @@ int main(int argc, const char **argv)
                vcos_sleep(state.demoInterval);
             }
          }
-         else
+         else*/
          {
-            int num_iterations =  state.timelapse ? state.timeout / state.timelapse : 1;
+            int num_iterations =  1;
             int frame;
             FILE *output_file = NULL;
 
             for (frame = 1;frame<=num_iterations; frame++)
             {
-               if (state.timelapse)
+              /* if (state.timelapse)
                   vcos_sleep(state.timelapse);
                else
-                  vcos_sleep(state.timeout);
+                  vcos_sleep(state.timeout);*/
 
                // Open the file
                if (state.filename)
@@ -177,15 +181,15 @@ int main(int argc, const char **argv)
                   else
                   {
                      char *use_filename = state.filename;
-	
+
 	                  if (state.timelapse)
 	                     asprintf(&use_filename, state.filename, frame);
-	
+
 	                  if (state.verbose)
 	                     fprintf(stderr, "Opening output file %s\n", use_filename);
-	
+
 	                  output_file = fopen(use_filename, "wb");
-	
+
 	                  if (!output_file)
 	                  {
 	                     // Notify user, carry on but discarding encoded output buffers
@@ -196,7 +200,7 @@ int main(int argc, const char **argv)
 	                  if (state.timelapse)
 	                     free(use_filename);
                   }
-									
+
                   add_exif_tags(&state);
 
                   callback_data.file_handle = output_file;
