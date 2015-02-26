@@ -14,12 +14,12 @@ int main(int argc, const char **argv)
    RASPISTILL_STATE state;
 
    MMAL_STATUS_T status = MMAL_SUCCESS;
-   //MMAL_PORT_T *camera_preview_port = NULL;
-   //MMAL_PORT_T *camera_video_port = NULL;
+   MMAL_PORT_T *camera_preview_port = NULL;
+   MMAL_PORT_T *camera_video_port = NULL;
    MMAL_PORT_T *camera_still_port = NULL;
    MMAL_PORT_T *preview_input_port = NULL;
    MMAL_PORT_T *encoder_input_port = NULL;
-   //MMAL_PORT_T *encoder_output_port = NULL;
+   MMAL_PORT_T *encoder_output_port = NULL;
 
    bcm_host_init();
 
@@ -29,11 +29,12 @@ int main(int argc, const char **argv)
    signal(SIGINT, signal_handler);
 
    default_status(&state);
-   state.timeout = 0;
-   state.filename = "capture.jpeg";
-   state.verbose = 0;
-
-
+state.timeout = 0;                        /// Time taken before frame is grabbed and app then shuts down. Units are milliseconds
+state.filename = "test_%d.jpeg";
+state.verbose = 1;
+state.width = 640;                          /// Requested width of image
+state.height = 380;                         /// requested height of image
+state.preview_parameters.wantPreview=0;
    // Do we have any parameters
    /*if (argc == 1)
    {
@@ -41,20 +42,20 @@ int main(int argc, const char **argv)
 
       display_valid_parameters((char*)basename(argv[0]));
       exit(0);
-   }*/
+   }
 
    // Parse the command line and put options in to our status structure
-/*if (parse_cmdline(argc, argv, &state))
+   if (parse_cmdline(argc, argv, &state))
    {
       exit(0);
    }*/
 
-   /*if (state.verbose)
+   if (state.verbose)
    {
       fprintf(stderr, "\n%s Camera App %s\n\n", basename(argv[0]), VERSION_STRING);
 
       dump_status(&state);
-   }*/
+   }
 
    // OK, we have a nice set of parameters. Now set up our components
    // We have three components. Camera, Preview and encoder.
@@ -156,55 +157,46 @@ int main(int argc, const char **argv)
             }
          }
          else*/
-         {
-            int num_iterations =  1;
-            int frame;
+
+        vcos_sleep(1000); // Wait for the Caméra to start
+            //int num_iterations =  1;
+            int frame = 1;
             FILE *output_file = NULL;
 
-            for (frame = 1;frame<=num_iterations; frame++)
+            for (frame = 1;frame<=3; frame++)
             {
-              /* if (state.timelapse)
-                  vcos_sleep(state.timelapse);
+
+               /*if (state.timelapse)
+
                else
-                  vcos_sleep(state.timeout);*/
-
+                  vcos_sleep(state.timeout);
+                */
                // Open the file
-               if (state.filename)
-               {
-		            if (state.filename[0] == '-')
-    		         {
-		               output_file = stdout;
 
-		               // Ensure we don't upset the output stream with diagnostics/info
-		               state.verbose = 0;
-    		         }
-                  else
-                  {
-                     char *use_filename = state.filename;
+             char *use_filename = state.filename;
 
-	                  if (state.timelapse)
-	                     asprintf(&use_filename, state.filename, frame);
+              //if (state.timelapse)
+                 asprintf(&use_filename, state.filename, frame);
 
-	                  if (state.verbose)
-	                     fprintf(stderr, "Opening output file %s\n", use_filename);
+              if (state.verbose)
+                 fprintf(stderr, "Opening output file %s\n", use_filename);
 
-	                  output_file = fopen(use_filename, "wb");
+              output_file = fopen(use_filename, "wb");
 
-	                  if (!output_file)
-	                  {
-	                     // Notify user, carry on but discarding encoded output buffers
-	                     vcos_log_error("%s: Error opening output file: %s\nNo output file will be generated\n", __func__, use_filename);
-	                  }
+              if (!output_file)
+              {
+                 // Notify user, carry on but discarding encoded output buffers
+                 vcos_log_error("%s: Error opening output file: %s\nNo output file will be generated\n", __func__, use_filename);
+              }
 
-	                  // asprintf used in timelapse mode allocates its own memory which we need to free
-	                  if (state.timelapse)
-	                     free(use_filename);
-                  }
+              // asprintf used in timelapse mode allocates its own memory which we need to free
+              //if (state.timelapse)
+              //   free(use_filename);
+
 
                   add_exif_tags(&state);
-
                   callback_data.file_handle = output_file;
-               }
+
 
                // We only capture if a filename was specified and it opened
                if (output_file)
@@ -236,6 +228,7 @@ int main(int argc, const char **argv)
                      // Wait for capture to complete
                      // For some reason using vcos_semaphore_wait_timeout sometimes returns immediately with bad parameter error
                      // even though it appears to be all correct, so reverting to untimed one until figure out why its erratic
+
                      vcos_semaphore_wait(&callback_data.complete_semaphore);
                      if (state.verbose)
                         fprintf(stderr, "Finished capture %d\n", frame);
@@ -247,11 +240,11 @@ int main(int argc, const char **argv)
                   if (output_file != stdout)
                      fclose(output_file);
                }
+vcos_sleep(1000);
 
-            } // end for (frame)
-
+ }
             vcos_semaphore_delete(&callback_data.complete_semaphore);
-         }
+
       }
       else
       {
@@ -267,7 +260,7 @@ error:
          fprintf(stderr, "Closing down\n");
 
       // Disable all our ports that are not handled by connections
-      check_disable_port(camera_video_port);
+      //check_disable_port(camera_video_port);
       check_disable_port(encoder_output_port);
 
       if (state.preview_parameters.wantPreview )
