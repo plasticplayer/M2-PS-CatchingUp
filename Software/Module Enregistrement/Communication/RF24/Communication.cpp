@@ -134,11 +134,12 @@ void Communication::sendAck( HEADER_Protocol header ){
     Frame *f = ( Frame *) malloc(sizeof(Frame));
     f->header = ACK;
     f->needAck = false;
+    f->data = NULL;
     BYTE data[] = {ACK,header};
     f->size = encodeData(data ,&(f->data),2);
     f->lastSend = 0;
     f->maxRetry = 0;
-    _FrameToSend.push_back(*f);
+    _AckToSend.push_back(*f);
 }
 
 void Communication::sendBuffer( HEADER_Protocol header, BYTE* data, int length, bool needAck, int nretry ){
@@ -156,6 +157,11 @@ void Communication::clearCommunications(){
     while ( !_FrameToSend.empty() ){
         Frame f = _FrameToSend.front();
         _FrameToSend.pop_front();
+        free(f.data);
+    }
+     while ( !_AckToSend.empty() ){
+        Frame f = _AckToSend.front();
+        _AckToSend.pop_front();
         free(f.data);
     }
 }

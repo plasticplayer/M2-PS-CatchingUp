@@ -19,7 +19,6 @@ BYTE idGenerate[2];
 uint64_t addressGenerate[2];
 
 
-
 void transactionError( BYTE data[], int size ){
     cout << "Transaction Error" << endl;
 }
@@ -28,7 +27,7 @@ void appairage(){
     nrfCom->clearCommunications();
     isParking = true;
 
-    nrfCom->updateAddr(ADDR_PARKING_RX,ADDR_PARKING_TX);
+    nrfCom->updateAddr(ADDR_PARKING_RX,ADDR_PARKING_TX, false);
 	BYTE answer[] = { POOL_PARK_ADDR } ;
     nrfCom->sendBuffer(POOL_PARK_ADDR,answer,1,false, 10);
 }
@@ -37,7 +36,7 @@ void getAck(BYTE data[], int size){
     if ( size == 0 )
         return;
 
-    cout << "ACK " << (int) data[0];
+    cout << "ACK " << (int) data[0] << endl;
     if ( nrfCom->_FrameToSend.empty() )
         return;
 
@@ -63,19 +62,23 @@ void authentificationRequest( BYTE data[], int size ){
     bool status = true;
 
     BYTE answer[] = { AUTH_ANS, ( status )?0x01:0x00 } ;
-    nrfCom->sendBuffer(AUTH_ANS,answer,2,true, 10);
+    nrfCom->sendBuffer(AUTH_ANS,answer,2,false, 0);
 }
 
 void statusRequest( BYTE data[], int size ){
     if ( isParking == true ){
-         cout << "Status request ignored" ;
+        cout << "Status request ignored" ;
         return;
     }
 
     cout << "Status request " ;
-
+    if ( size == -1 ){
+        BYTE answer[] = {  STATUS_ASK, ( isRecording )?0x01:0x00 } ;
+        nrfCom->sendBuffer(STATUS_ASK, answer, sizeof(answer), false, 0);
+        return;
+    }
     BYTE answer[] = {  STATUS_ANS, ( isRecording )?0x01:0x00 } ;
-    nrfCom->sendBuffer(STATUS_ANS, answer, sizeof(answer), true, 10);
+    nrfCom->sendBuffer(STATUS_ANS, answer, sizeof(answer), true, 0);
 
 }
 
@@ -86,12 +89,14 @@ void statusAns( BYTE data[], int size ){
     }
     cout << "Status Ans"  << endl ;
 
-    Frame f =  nrfCom->_FrameToSend.front();
-    if ( f.header == STATUS_ASK ){
-        nrfCom->_FrameToSend.pop_front();
-        state = WAIT_FOR_DATA;
-    }
-
+	if ( ! nrfCom->_FrameToSend.empty()  ){
+   	 	Frame f =  nrfCom->_FrameToSend.front();
+   	 	if ( f.header == STATUS_ASK )
+   	 	{
+        	nrfCom->_FrameToSend.pop_front();
+			state = WAIT_FOR_DATA;
+		}
+	}
     nrfCom->sendAck(STATUS_ANS);
 }
 
@@ -116,8 +121,8 @@ void AppariagePoolingStep1(BYTE data[], int size){
 
 	memcpy(idGenerate,data,2);
 
-	addressGenerate[0] = 0x12349876LL;
-	addressGenerate[1] = 0x67125793LL;
+	addressGenerate[0] = (uint64_t) ( rand()<<32 | rand()<<16 | rand() ) & 0x00FFFFFFFF;
+	addressGenerate[1] = (uint64_t) ( rand()<<32 | rand()<<16 | rand() ) & 0x00FFFFFFFF ;
 
     BYTE answer[] = {  	POOL_SET_ADDR , idGenerate[0] , idGenerate[1] ,
     					(addressGenerate[0]>>24) & 0xFF, (addressGenerate[0]>>16) & 0xFF,  (addressGenerate[0]>>8) & 0xFF,  (addressGenerate[0] & 0xFF),
@@ -135,5 +140,5 @@ void AppariageValidConfig(BYTE data[], int size){
 
    nrfCom->sendAck(POOL_VALIDATE_CONFIG);
    usleep(2500000);
-   nrfCom->updateAddr( addressGenerate[0], addressGenerate[1] );
+   nrfCom->updateAddr( addressGenerate[0], addressGenerate[1], true );
 }

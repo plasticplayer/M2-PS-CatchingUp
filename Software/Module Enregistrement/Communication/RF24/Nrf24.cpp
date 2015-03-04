@@ -12,13 +12,12 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include "INIReader.h"
 
 using namespace std;
 
 Nrf24::Nrf24( ) : Communication( 0x10,0x22,0x20 ){
 	_UpdateAddr = false;
-	_Address[0] = 0x00000024LL;
-	_Address[1] = 0x00000035LL;
 
     _Error = NULL;
 
@@ -36,13 +35,15 @@ Nrf24::Nrf24( ) : Communication( 0x10,0x22,0x20 ){
     _Radio->setDataRate(RF24_1MBPS);
     _Radio->enableDynamicPayloads();
 
-    _Radio->printDetails();
+	_Radio->startListening();
+     usleep(100000);
 
-    _Radio->openWritingPipe(_Address[1]);
-    _Radio->openReadingPipe(1,_Address[0]);
-    _Radio->startListening();
+	_Radio->openWritingPipe( ADDR_PARKING_RX );
+    _Radio->openReadingPipe(1,ADDR_PARKING_TX);
+}
 
-    pthread_create(&_Thread , NULL, &(this->getData), (void *) this) ;
+void Nrf24::start(){
+	pthread_create(&_Thread , NULL, &(this->getData), (void *) this) ;
 }
 
 int isTime( time_t ref ){
@@ -54,25 +55,41 @@ int isTime( time_t ref ){
   return (int)difftime(now,ref);
 }
 
-void Nrf24::updateAddr( uint64_t rx, uint64_t tx ){
+void Nrf24::updateAddr( uint64_t rx, uint64_t tx, bool writeToFile ){
 	_Address[0] = rx;
 	_Address[1] = tx;
 	_UpdateAddr = true;
+
+	if ( writeToFile == true ){
+		INIReader reader("./config.ini");
+	    if(reader.ParseError() < 0)
+	    {
+	        cout << "Erreur lecture fichier INI"<<endl;
+	        return;
+	    }
+	    char res[10];
+	    sprintf(res,"%x",rx);
+	    reader.updateValue("config","client", res);
+	    sprintf(res,"%x",tx);
+		reader.updateValue("config","server", res);
+		reader.writeIniFile("./config.ini");
+	}
 }
 
 void Nrf24::SendPoolingFrame(){
     cout << "Add Pooling Frame"  << endl;
     time(&_LastFrameRecieve);
 
-    BYTE DAT[] = {STATUS_ASK,0x02};
-    sendBuffer( STATUS_ASK, DAT, sizeof(DAT), false, 10 );
+    if ( this->_PtrFunctions[STATUS_ASK] != NULL ){
+        this->_PtrFunctions[STATUS_ASK](NULL,-1);
+    }
+
 }
 
 void* Nrf24::getData( void * r ){
     Nrf24 *nrf = ( Nrf24 * ) r;
-    list<Frame> *llist = &( nrf->_FrameToSend );
+    list<Frame> *llist = &( nrf->_FrameToSend ), *_Acks = &( nrf->_AckToSend );
     RF24 *radio = nrf->_Radio;
-
 
     char *BUFF = NULL;
 
@@ -81,12 +98,13 @@ void* Nrf24::getData( void * r ){
 			radio->stopListening();
 
 			usleep(10000);
+			radio->startListening();
 
 			radio->openWritingPipe(nrf->_Address[1]);
 			radio->openReadingPipe(1,nrf->_Address[0]);
 
             nrf->_Connected = false;
-			radio->startListening();
+
 			radio->printDetails();
 
 			nrf->_UpdateAddr = false;
@@ -97,12 +115,10 @@ void* Nrf24::getData( void * r ){
                 free(BUFF);
 
             int payloadSize = radio->getDynamicPayloadSize();
-            //cout << "PayLoadSize: " <<  payloadSize << endl;
 
             BUFF = ( char * ) malloc( sizeof(char)*payloadSize);
 
             memset(BUFF,0, payloadSize );
-
 
             radio->read( BUFF, payloadSize );
 
@@ -120,8 +136,23 @@ void* Nrf24::getData( void * r ){
             nrf->SendPoolingFrame();
 
         }
+        while ( _Acks->size() > 0 ){
+            Frame f = _Acks->front();
+            radio->stopListening();
 
+                printf("--> ");
+                for (int i = 0; i < f.size; i ++){
+                    printf("%02x ", (unsigned char) f.data[i] );
+                }
+                cout << endl;
+
+
+				radio->write( (f.data), f.size );
+                radio->startListening();
+				_Acks->pop_front();
+        }
 		if ( llist->size() > 0 ){
+
 			Frame f = llist->front();
 			if ( isTime( f.lastSend ) > TIME_RETRY ){
 				radio->stopListening();
@@ -131,13 +162,8 @@ void* Nrf24::getData( void * r ){
                     printf("%02x ", (unsigned char) f.data[i] );
                 }
                 cout << endl;
-                int maxRetry = 5;
-				while ( 1!= radio->write( (f.data), f.size ) && maxRetry-- ){
-				    usleep(5000);
-				    if ( maxRetry == 0 && nrf->_Error != NULL){
-                            nrf->_Error( (BYTE*) (f.header), 1);
-				    }
-                };
+				radio->write( (f.data), f.size );
+
                 radio->startListening();
 				llist->pop_front();
 

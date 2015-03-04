@@ -20,9 +20,11 @@ class Nrf24 : public Communication{
 public:
 
     Nrf24( );
+    
+    void start();
     void SendPoolingFrame();
     void setTransactionErrorFunction( void (*FuncType)( BYTE data[], int size) );
-	void updateAddr( uint64_t rx, uint64_t tx );
+	void updateAddr( uint64_t rx, uint64_t tx, bool writeToFile );
 
 private:
     void poolState();
