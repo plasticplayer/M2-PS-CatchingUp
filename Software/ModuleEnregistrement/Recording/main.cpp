@@ -9,9 +9,46 @@
 #include <sstream>
 #include <iostream>
 
+
+
+#define APP_NAME "CatchingUpRecorder"
+#define APP_VERSION 0.1
+
+#define DEBUG_LEVEL
+
+
+#ifdef DEBUG_LEVEL
+
+#define LOGGER_START(MIN_PRIORITY, FILE) Logger::Start(MIN_PRIORITY, FILE)
+#define LOGGER_STOP() Logger::Stop()
+#define LOGGER_WRITE(PRIORITY, MESSAGE) Logger::Write(PRIORITY, MESSAGE)
+
+#define LOGGER_ERROR(MESSAGE) Logger::Write(Logger::ERROR, SSTR(MESSAGE))
+#define LOGGER_WARN(MESSAGE) Logger::Write(Logger::WARNING, SSTR(MESSAGE))
+#define LOGGER_INFO(MESSAGE) Logger::Write(Logger::INFO, SSTR(MESSAGE))
+#define LOGGER_CONFIG(MESSAGE) Logger::Write(Logger::CONFIG, SSTR(MESSAGE))
+#define LOGGER_DEBUG(MESSAGE) Logger::Write(Logger::DEBUG, SSTR(MESSAGE))
+
+#else
+
+#define LOGGER_START(MIN_PRIORITY, FILE)
+#define LOGGER_STOP()
+
+#define LOGGER_WRITE(PRIORITY, MESSAGE)
+#define LOGGER_ERROR(MESSAGE)
+#define LOGGER_WARN(MESSAGE)
+#define LOGGER_INFO(MESSAGE)
+#define LOGGER_CONFIG(MESSAGE)
+#define LOGGER_DEBUG(MESSAGE)
+
+#endif
+
+#include "logger.h"
+
 // casting integer to string easyly
 #define SSTR( x ) (dynamic_cast< std::ostringstream & >( \
         ( std::ostringstream() << std::dec << x ) ).str())
+
 using namespace std;
 /**
  * main
@@ -32,32 +69,16 @@ void *recording_thread (void * arg)
 	uint64_t frame = 1;
 	FILE *output_file = NULL;
 
-	bcm_host_init();
-	// Register our application with the logging system
-	vcos_log_register("RaspiStill", VCOS_LOG_CATEGORY);
-
-
-
-	default_status(&state);
-	state.timeout = 60*1000;                  /// Time between snapshoots, in ms
-	state.filename = "test_";
-	state.verbose = 1;
-	state.width = 400;                          /// Requested width of image
-	state.height = 300;                         /// requested height of image
-	state.preview_parameters.wantPreview=0;
 
 	if (!create_camera_component(&state))
 	{
-		vcos_log_error("%s: Failed to create camera component", __func__);
+		//vcos_log_error("%s: Failed to create camera component", __func__);
+		LOGGER_ERROR("Failed to create camera component \n");
 	}
-	/*else if (!raspipreview_create(&state.preview_parameters))
-	{
-	   vcos_log_error("%s: Failed to create preview component", __func__);
-	   destroy_camera_component(&state);
-	}*/
 	else if (!create_encoder_component(&state))
 	{
-		vcos_log_error("%s: Failed to create encode component", __func__);
+		//vcos_log_error("%s: Failed to create encode component", __func__);
+		LOGGER_ERROR("Failed to create encode component \n");
 		raspipreview_destroy(&state.preview_parameters);
 		destroy_camera_component(&state);
 	}
@@ -65,8 +86,7 @@ void *recording_thread (void * arg)
 	{
 		PORT_USERDATA callback_data;
 
-		if (state.verbose)
-			fprintf(stderr, "Starting component connection stage\n");
+        LOGGER_DEBUG("Starting component connection stage \n");
 
 		//camera_preview_port = state.camera_component->output[MMAL_CAMERA_PREVIEW_PORT];
 		//camera_video_port   = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
@@ -77,15 +97,14 @@ void *recording_thread (void * arg)
 
 		VCOS_STATUS_T vcos_status;
 
-		if (state.verbose)
-			fprintf(stderr, "Connecting camera stills port to encoder input port\n");
 
+        LOGGER_DEBUG("Connecting camera stills port to encoder input port");
 		// Now connect the camera to the encoder
 		status = connect_ports(camera_still_port, encoder_input_port, &state.encoder_connection);
 
 		if (status != MMAL_SUCCESS)
 		{
-			vcos_log_error("%s: Failed to connect camera video port to encoder input", __func__);
+			 LOGGER_ERROR("Failed to connect camera video port to encoder input");
 			goto error;
 		}
 
@@ -97,15 +116,15 @@ void *recording_thread (void * arg)
 
 		encoder_output_port->userdata = (struct MMAL_PORT_USERDATA_T *)&callback_data;
 
-		if (state.verbose)
-			fprintf(stderr, "Enabling encoder output port\n");
 
+        LOGGER_DEBUG("Enabling encoder output port");
 		// Enable the encoder output port and tell it its callback function
 		status = mmal_port_enable(encoder_output_port, encoder_buffer_callback);
 
 		if (status != MMAL_SUCCESS)
 		{
-			vcos_log_error("Failed to setup encoder output");
+		    LOGGER_ERROR("Failed to setup encoder output");
+
 			goto error;
 		}
 
@@ -143,15 +162,15 @@ void *recording_thread (void * arg)
 			//if (state.timelapse)
 			//asprintf(&use_filename, state.filename, frame);
 
-			if (state.verbose)
-				fprintf(stderr, "Opening output file %s\n", use_filename.c_str());
 
+            LOGGER_DEBUG("Opening output file " << use_filename);
 			output_file = fopen(use_filename.c_str(), "wb");
 
 			if (!output_file)
 			{
+			    LOGGER_ERROR("Error opening output file: " << use_filename <<"No output file will be generated" << use_filename);
 				// Notify user, carry on but discarding encoded output buffers
-				vcos_log_error("%s: Error opening output file: %s\nNo output file will be generated\n", __func__, use_filename.c_str());
+				//vcos_log_error("%s: Error opening output file: %s\n No output file will be generated\n", __func__, use_filename.c_str());
 			}
 
 			// asprintf used in timelapse mode allocates its own memory which we need to free
@@ -175,18 +194,18 @@ void *recording_thread (void * arg)
 					MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(state.encoder_pool->queue);
 
 					if (!buffer)
-						vcos_log_error("Unable to get a required buffer %d from pool queue", q);
+                        LOGGER_ERROR("Unable to get a required buffer " << q << " from pool queue");
+						//vcos_log_error("Unable to get a required buffer %d from pool queue", q);
 
 					if (mmal_port_send_buffer(encoder_output_port, buffer)!= MMAL_SUCCESS)
-						vcos_log_error("Unable to send a buffer to encoder output port (%d)", q);
+						LOGGER_ERROR("Unable to send a buffer to encoder output port ("<<q<<")");
 				}
-
-				if (state.verbose)
-					fprintf(stderr, "Starting capture %d\n", frame);
+                LOGGER_DEBUG("Starting capture" << frame);
 
 				if (mmal_port_parameter_set_boolean(camera_still_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
 				{
-					vcos_log_error("%s: Failed to start capture", __func__);
+				    LOGGER_ERROR("Failed to start capture");
+					//vcos_log_error("%s: Failed to start capture", __func__);
 				}
 				else
 				{
@@ -195,8 +214,7 @@ void *recording_thread (void * arg)
 					// even though it appears to be all correct, so reverting to untimed one until figure out why its erratic
 
 					vcos_semaphore_wait(&callback_data.complete_semaphore);
-					if (state.verbose)
-						fprintf(stderr, "Finished capture %d\n", frame);
+					LOGGER_DEBUG("Finished capture " << frame);
 				}
 
 				// Ensure we don't die if get callback with no open file
@@ -210,15 +228,11 @@ void *recording_thread (void * arg)
 			frame++;
 
 		}
-
-
-
 error:
-
 		mmal_status_to_int(status);
 
-		if (state.verbose)
-			fprintf(stderr, "Closing down\n");
+
+			LOGGER_DEBUG("Closing down");
 
 		// Disable all our ports that are not handled by connections
 		//check_disable_port(camera_video_port);
@@ -243,8 +257,7 @@ error:
 		//raspipreview_destroy(&state.preview_parameters);
 		destroy_camera_component(&state);
 
-		if (state.verbose)
-			fprintf(stderr, "Close down completed, all components disconnected, disabled and destroyed\n\n");
+			LOGGER_DEBUG("Close down completed, all components disconnected, disabled and destroyed");
 	}
 	if (status != 0)
 		raspicamcontrol_check_configuration(128);
@@ -255,53 +268,75 @@ error:
 
 int main(int argc, const char **argv)
 {
+    LOGGER_START(Logger::DEBUG,"");
+
+    bcm_host_init();
+	// Register our application with the logging system
+	vcos_log_register(APP_NAME,VCOS_LOG_CATEGORY);
+
+	default_status(&state);
+	state.timeout = 10000;                  /// Time between snapshoots, in ms
+	state.filename = (char*) "test_";
+	state.verbose = 1;
+	state.width = 400;                          /// Requested width of image
+	state.height = 300;                         /// requested height of image
+	state.preview_parameters.wantPreview=0;
 
 	signal(SIGINT, signal_handler);
 
-	pthread_t threadRecording;
+	pthread_t * threadRecording ;
 	void *ret;
 
+    LOGGER_INFO("Program name : " << APP_NAME << " version : " << APP_VERSION);
+    LOGGER_INFO("Program started waiting command");
+
 	char ch;
-	cout << "Program started waiting command "<<endl;
-	while((ch = getchar()) != NULL)
+	while((ch = getchar()) != 0)
 	{
 		if(ch == 's')
 		{
 			if(threadRecording == NULL)
 			{
-				cout << "Starting capture thread"<<endl;
+			    LOGGER_DEBUG("Starting capture thread");
+
 				bRecording = true;
-				if (pthread_create (&threadRecording, NULL, recording_thread, NULL) < 0)
+				threadRecording = new pthread_t;
+				if (pthread_create (threadRecording, NULL, recording_thread, NULL) < 0)
 				{
-					cerr <<"pthread_create error for thread " << endl;
+					LOGGER_ERROR("pthread_create error for thread ");
 					break;
 				}
 			}
 		}
 		if(ch == 'p')
 		{
-			cout << "Stopping capture thread"<<endl;
+		    LOGGER_DEBUG("Stopping capture thread");
+
 			bRecording = false;
 			if(threadRecording != NULL)
-				pthread_join (threadRecording, NULL);
+            {
+                pthread_join (*threadRecording, NULL);
+				delete threadRecording;
+            }
 			threadRecording = NULL;
 		}
 		if(ch == 'q')
 		{
-			cout << "Quit"<<endl;
+			LOGGER_DEBUG("Quit");
 			bRecording = false;
 			break;
 		}
 		usleep(100);
 	}
-	cout << "Exiting, killing threads "<<endl;
+	LOGGER_DEBUG("Exiting, killing threads");
 	if(threadRecording != NULL)
 	{
-		cout << "Waiting for the thread to end "<<endl;
-		pthread_join (threadRecording, NULL);
+		LOGGER_DEBUG("Waiting for the thread to end ");
+		pthread_join (*threadRecording, NULL);
+		delete threadRecording;
 	}
 	else
-		cout << "Thread already dead skipping"<<endl;
+		LOGGER_DEBUG("Thread already dead skipping");
 
 	//pthread_exit(NULL);
 	return EXIT_SUCCESS;

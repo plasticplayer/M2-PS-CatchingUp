@@ -175,7 +175,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    state->wantRAW = 0;
    state->filename = NULL;
    state->verbose = 0;
-   state->thumbnailConfig.enable = 1;
+   state->thumbnailConfig.enable = 0;
    state->thumbnailConfig.width = 64;
    state->thumbnailConfig.height = 48;
    state->thumbnailConfig.quality = 35;
@@ -627,7 +627,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	  cam_config.stills_capture_circular_buffer_height =0;
 	  cam_config.fast_preview_resume =0;
 	  cam_config.use_stc_timestamp = 1; // MMAL_PARAM_TIMESTAMP_MODE_RESET_ST;
-	  
+
       mmal_port_parameter_set(camera->control, &cam_config.hdr);
    }
 
