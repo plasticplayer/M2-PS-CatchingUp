@@ -8,8 +8,10 @@ BINDIR=bin
  
 INCLUDE_DIRS = -I/opt/vc/include -I/opt/vc/include/interface/vcos/ -I/opt/vc/include/interface/vcos/pthreads -I/opt/vc/include/interface/vmcs_host/linux -I/opt/vc/include/interface/vmcs_host -I/opt/vc/include/interface/vchi -I/usr/include/SDL 
 
+GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+
 # Les différentes options de compilations, soyons strictes !
-CFLAGS= -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT
+CFLAGS= -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"
 # Les différents FrameWorks et bibliothèques pour le linkage
 GLLIBS = -lm -lpthread -L/opt/vc/lib -lmmal_core -lmmal_util -lmmal_vc_client -lvcos -lbcm_host -lGLESv2 -lEGL
 

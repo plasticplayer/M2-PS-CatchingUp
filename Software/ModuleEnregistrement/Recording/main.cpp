@@ -14,6 +14,10 @@
 #define APP_NAME "CatchingUpRecorder"
 #define APP_VERSION 0.1
 
+#ifdef GIT_VERSION
+#define APP_VERSION GIT_VERSION
+#endif // GIT_VERSION
+
 #define DEBUG_LEVEL
 
 
