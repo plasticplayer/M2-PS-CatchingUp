@@ -73,7 +73,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RaspiPreview.h"
 #include "RaspiCLI.h"
 //#include "RaspiStill.h"
-
 //#include <semaphore.h>
 
 /// Camera number to use - we only have one camera, indexed from 0.
@@ -96,6 +95,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_EXIF_PAYLOAD_LENGTH 128
 #ifdef __cplusplus
 extern "C" {
+#include <string.h>
 #endif
 int mmal_status_to_int(MMAL_STATUS_T status);
 
@@ -137,6 +137,9 @@ typedef struct
    FILE *file_handle;                   /// File handle to write buffer data to.
    VCOS_SEMAPHORE_T complete_semaphore; /// semaphore which is posted when we reach end of frame (indicates end of capture or fault)
    RASPISTILL_STATE *pstate;            /// pointer to our state in case required in callback
+   uint8_t bMemOutput;
+   uint8_t ** pBuffer;
+   int * pBufferSize;
 } PORT_USERDATA;
 
 
@@ -171,39 +174,8 @@ typedef struct
 #define CommandExifTag      11
 #define CommandTimelapse    12
 
-static COMMAND_LIST cmdline_commands[] =
-{
-   { CommandHelp,    (const char *)"-help",       (const char * )"?",  (const char * )"This help information", 0 },
-   { CommandWidth,   (const char * )"-width",      (const char * )"w",  (const char * )"Set image width <size>", 1 },
-   { CommandHeight,  (const char * )"-height",     (const char * )"h",  (const char * )"Set image height <size>", 1 },
-   { CommandQuality, (const char * )"-quality",    (const char * )"q",  (const char * )"Set jpeg quality <0 to 100>", 1 },
-   { CommandRaw,     (const char * )"-raw",        (const char * )"r",  (const char * )"Add raw bayer data to jpeg metadata", 0 },
-   { CommandOutput,  (const char * )"-output",     (const char * )"o",  (const char * )"Output filename <filename> (to write to stdout, use '-o -'). If not specified, no file is saved", 1 },
-   { CommandVerbose, (const char * )"-verbose",    (const char * )"v",  (const char * )"Output verbose information during run", 0 },
-   { CommandTimeout, (const char * )"-timeout",    (const char * )"t",  (const char * )"Time (in ms) before takes picture and shuts down (if not specified, set to 5s)", 1 },
-   { CommandThumbnail,(const char * )"-thumb",     (const char * )"th", (const char * )"Set thumbnail parameters (x:y:quality)", 1},
-   { CommandDemoMode,(const char * )"-demo",       (const char * )"d",  (const char * )"Run a demo mode (cycle through range of camera options, no capture)", 0},
-   { CommandEncoding,(const char * )"-encoding",   (const char * )"e",  (const char * )"Encoding to use for output file (jpg, bmp, gif, png)", 1},
-   { CommandExifTag, (const char * )"-exif",       (const char * )"x",  (const char * )"EXIF tag to apply to captures (format as 'key=value')", 1},
-   { CommandTimelapse,(const char * )"-timelapse", (const char * )"tl", (const char * )"Timelapse mode. Takes a picture every <t>ms", 1}
 
-};
 
-static int cmdline_commands_size = sizeof(cmdline_commands) / sizeof(cmdline_commands[0]);
-
-static struct
-{
-   const char *format;
-   MMAL_FOURCC_T encoding;
-} encoding_xref[] =
-{
-   {(const char *)"jpg", MMAL_ENCODING_JPEG},
-   {(const char *)"bmp", MMAL_ENCODING_BMP},
-   {(const char *)"gif", MMAL_ENCODING_GIF},
-   {(const char *)"png", MMAL_ENCODING_PNG}
-};
-
-static int encoding_xref_size = sizeof(encoding_xref) / sizeof(encoding_xref[0]);
 #ifdef __cplusplus
 }
 #endif
