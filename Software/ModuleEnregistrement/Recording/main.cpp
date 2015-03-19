@@ -19,13 +19,18 @@ using namespace std;
 bool bRecording = true;
 void takeSnapshoot()
 {
+    if(StillCamera::isInUse())
+    {
+        LOGGER_WARN("Can't create the camera it's already in use !");
+        return;
+    }
 	RASPISTILL_STATE state;
 	default_status(&state);
 	state.timeout = 0;                  /// Time between snapshoots, in ms
 	//state.filename = (char*) "test_";
 	state.verbose = 0;
-	state.width = 400;                          /// Requested width of image
-	state.height = 300;                         /// requested height of image
+	//state.width = 400;                          /// Requested width of image
+	//state.height = 300;                         /// requested height of image
 	state.preview_parameters.wantPreview=0;
 
 	StillCamera cam(state);
@@ -39,8 +44,6 @@ void takeSnapshoot()
 		ofstream myfile("ahhah.jpeg");
 		for(int i = 0 ; i < sizeBuff; i++)
 			myfile << (char)(buff[i]);
-
-
 		myfile.close();
 	}
 	cam.destroy();
