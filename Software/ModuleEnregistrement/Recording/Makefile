@@ -32,19 +32,19 @@ app: $(OBJ) $(OBJCPP)
  
 # Création des différents *.o à partir des *.c
 $(LIBDIR)/%.o: $(SRCDIR)/%.c  
-	$(CC) -o $@ -c $< $(CFLAGS) 
+	@$(CC) -o $@ -c $< $(CFLAGS) 
  
 # Création des différents *.o à partir des *.cpp
 $(LIBDIR)/%.o: $(SRCDIR)/%.cpp 
-	$(CPP) -o $@ -c $< $(CFLAGS) 
+	@$(CPP) -o $@ -c $< $(CFLAGS) 
  
 # Nettoyage des objets => Tout sera recompiler !
 clean:
-	-@rm $(LIBDIR)/*.o
+	-@rm -f $(LIBDIR)/*.o
  
 # Nettoyage complet => clean + effacement du l'exécutable
 Clean: clean
-	-@rm $(BINDIR)/*
+	-@rm -f $(BINDIR)/*
 
 cpConf:
 	@for file in config_*; do \
