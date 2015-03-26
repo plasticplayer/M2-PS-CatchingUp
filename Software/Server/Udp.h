@@ -18,8 +18,11 @@ class Udp  {
 public:
     Udp( int port );
     void listenner();
+
+    bool sendFrame( void* so, BYTE* data, int size );
 protected:
 private:
+    static BYTE* _IPSrv;
     int _Port ;
 };
 

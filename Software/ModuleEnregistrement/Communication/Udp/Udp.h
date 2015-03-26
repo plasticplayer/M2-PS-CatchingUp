@@ -13,7 +13,7 @@
 #include "Communication.h"
 
 typedef struct InfoTCP{
-    char* ipAddress;
+    char ipAddress[20];
     int   port;
 }InfoTCP;
 
@@ -25,12 +25,14 @@ public:
     Udp( int port );
     Udp( );
 
-    void listenner();
-
     InfoTCP* getInfoSrv( int port );
-
+	
 protected:
 private:
+	static Udp *_udp;
+	static void ansInfoSrv ( BYTE data[], int size );
+	void send ( BYTE* data, int size, char*ipDest );
+	
     int _Port ;
 };
 

@@ -51,7 +51,9 @@ enum HEADER_Protocol {
     /// ACK
     ACK = 0x0F,
 
-    GET_MAC_ADDR = 0x41
+    GET_MAC_ADDR = 0x41,
+    GET_INFO_SRV = 0x42,
+    ACK_UDP = 0x4F
 };
 
 
@@ -70,7 +72,7 @@ class Communication {
 
     void sendAck( HEADER_Protocol header );
     int encodeData( BYTE* dataIn, BYTE** dataOut, int sizeDataIn );
-    void setFunction( void (*FuncType)( BYTE data[], int size) , int ida);
+    void setFunction( FuncType f , int ida);
     void sendBuffer( HEADER_Protocol header, BYTE* data, int length, bool needAck, int Retry );
     list<Frame> _FrameToSend;
     list<Frame> _AckToSend;
@@ -82,12 +84,6 @@ protected:
     BYTE _DecodeDatas[1024], _Start, _Stop, _Escape;
     int _PosDecodeData;
     time_t _LastFrameRecieve;
-
-
-
-
-
-
 };
 
 

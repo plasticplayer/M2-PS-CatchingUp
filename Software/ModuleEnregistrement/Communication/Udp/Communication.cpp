@@ -97,8 +97,8 @@ void Communication::recieveData( BYTE* data, int size ){
     }
 }
 
-void Communication::setFunction( void (*FuncType)( BYTE data[], int size) , int ida){
-    _PtrFunctions[ida] = FuncType;
+void Communication::setFunction( FuncType f , int ida){
+    _PtrFunctions[ida] = f;
 }
 
 int Communication::encodeData( BYTE* dataIn, BYTE** dataOut, int sizeDataIn ){

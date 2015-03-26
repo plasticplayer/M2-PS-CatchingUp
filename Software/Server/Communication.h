@@ -70,7 +70,7 @@ class Communication {
 
     void sendAck( HEADER_Protocol header );
     int encodeData( BYTE* dataIn, BYTE** dataOut, int sizeDataIn );
-    void setFunction( FuncType f , int ida);
+    void setFunction( FuncType f, int ida);
     void sendBuffer( HEADER_Protocol header, BYTE* data, int length, bool needAck, int Retry );
     list<Frame> _FrameToSend;
     list<Frame> _AckToSend;
