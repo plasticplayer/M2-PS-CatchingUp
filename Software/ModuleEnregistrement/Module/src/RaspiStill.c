@@ -1047,21 +1047,6 @@ error:
 		mmal_port_disable(port);
 }
 
-/**
- * Handler for sigint signals
- *
- * @param signal_number ID of incoming signal.
- *
- */
-/*static*/ void signal_handler(int signal_number)
-{
-	// Going to abort on all signals
-	vcos_log_error("Aborting program\n");
-
-	// Need to close any open stuff...
-
-	exit(255);
-}
 
 
 

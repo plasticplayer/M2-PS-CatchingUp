@@ -116,14 +116,17 @@ void INIReader::writeIniFile(const char* filename){
                 char *S = new char[config.length() + 1];
                 std::strcpy(S,config.c_str());
                 fprintf(f, "[%s]\n", S);
+                free(S);
             }
             std::string param = name.substr(pos+1, name.length() - pos - 1 );
             char *S = new char[param.length() + 1];
             std::strcpy(S,param.c_str());
             fprintf(f, "%s=", S);
+            free(S);
             S = new char[it->second.length() + 1];
             std::strcpy(S,it->second.c_str());
             fprintf(f, "%s\n", S);
+            free(S);
         }
     }
     fclose(f);

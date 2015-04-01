@@ -77,7 +77,7 @@ void Nrf24::updateAddr( uint64_t rx, uint64_t tx, bool writeToFile ){
 	        //cout << "Erreur lecture fichier INI"<<endl;
 	        return;
 	    }
-	    char res[10];
+	    char res[20];
 	    sprintf(res,"0x%02X%02X%02X%02X",(uint8_t)(((rx >> 24) & 0xFF)) , (uint8_t)((rx >> 16) & 0xFF ),(uint8_t)((rx >> 8) & 0xFF) ,(uint8_t)(rx & 0xFF));
 	    reader.updateValue("config","client", res);
 	    sprintf(res,"0x%02X%02X%02X%02X",(uint8_t)(((tx >> 24) & 0xFF)) , (uint8_t)((tx >> 16) & 0xFF ),(uint8_t)((tx >> 8) & 0xFF) ,(uint8_t)(tx & 0xFF));
@@ -102,6 +102,7 @@ void* Nrf24::getData( void * r ){
     RF24 *radio = nrf->_Radio;
 
     char *BUFF = NULL;
+    LOGGER_INFO("Starting NRF thread !");
 
     while ( true ){
 		if ( nrf->_UpdateAddr == true ){
@@ -136,7 +137,7 @@ void* Nrf24::getData( void * r ){
             tmp[0] = '\0';
             for(int i = 0; i < payloadSize; i++)
                 sprintf(tmp,"%s %02X",tmp, BUFF[i]);
-            LOGGER_VERB("Rec " << tmp);
+            LOGGER_VERB("RF<-- " << tmp);
 
             nrf->recieveData( (BYTE *) BUFF,payloadSize );
         }
@@ -154,7 +155,7 @@ void* Nrf24::getData( void * r ){
                 tmp[0] = '\0';
                 for(int i = 0; i < f.size; i++)
                     sprintf(tmp,"%s %02X",tmp, f.data[i]);
-                LOGGER_VERB("Sec " << tmp);
+                LOGGER_VERB("RF--> " << tmp);
 
 				radio->write( (f.data), f.size );
                 radio->startListening();
@@ -170,7 +171,7 @@ void* Nrf24::getData( void * r ){
                 tmp[0] = '\0';
                 for(int i = 0; i < f.size; i++)
                     sprintf(tmp,"%s %02X",tmp, f.data[i]);
-                LOGGER_VERB("Sending " << tmp);
+                LOGGER_VERB("RF--> " << tmp);
 
 				radio->write( (f.data), f.size );
 

@@ -158,7 +158,7 @@ typedef struct
 /*static*/ void add_exif_tags(RASPISTILL_STATE *state);
 /*static*/ MMAL_STATUS_T connect_ports(MMAL_PORT_T *output_port, MMAL_PORT_T *input_port, MMAL_CONNECTION_T **connection);
 /*static*/ void check_disable_port(MMAL_PORT_T *port);
-/*static*/ void signal_handler(int signal_number);
+;
 /// Comamnd ID's and Structure defining our command line options
 #define CommandHelp         0
 #define CommandWidth        1

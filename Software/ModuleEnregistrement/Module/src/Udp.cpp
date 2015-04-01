@@ -49,10 +49,10 @@ void Udp::ansInfoSrv ( BYTE data[], int size )
 	//for (int i = 0; i < size ; i++ )
 	//{
 	//	printf(" %02x", data[i]);
-		//fflush(stdout);
+	//fflush(stdout);
 	//}
 
-	int sizeData = _udp->encodeData( data , &datas, sizeof( data ) );
+	//int sizeData = _udp->encodeData( data , &datas, sizeof( data ) );
 
 
 
@@ -82,13 +82,13 @@ void Udp::send ( BYTE* data, int size, char*ipDest )
 
 	BYTE* datas = NULL;
 
-	for (int i = 0; i < size ; i++ )
-	{
-		printf(" %02x", data[i]);
-		fflush(stdout);
-	}
-
 	int sizeData = encodeData( (BYTE*) data , &datas, size );
+
+	char tmp[250];
+	tmp[0] = '\0';
+	for(int i = 0; i < size; i++)
+		sprintf(tmp,"%s %02X",tmp, datas[i]);
+	LOGGER_VERB("UDP--> " << tmp);
 
 	/*// Send the word to the server
 	if (sendto(sock, (char*) datas, sizeData, 0, (struct sockaddr *) &echoserver, sizeof(echoserver)) != sizeData) {
@@ -130,24 +130,24 @@ Udp::Udp( string iface , int port ) : Communication(0x10, 0x22, 0x20 )
 	_Port = port;
 	_interface = iface;
 	setFunction( (FuncType) &ansInfoSrv, (int)GET_INFO_SRV );
-    _TcpInfo = new InfoTCP();
-    _udp = this;
+	_TcpInfo = new InfoTCP();
+	_udp = this;
 }
 Udp::Udp( int port ) : Communication(0x10, 0x22, 0x20 )
 {
 	_Port = port;
 	_interface = "eth0";
 	setFunction( (FuncType) &ansInfoSrv, (int)GET_INFO_SRV );
-    _TcpInfo = new InfoTCP();
-    _udp = this;
+	_TcpInfo = new InfoTCP();
+	_udp = this;
 }
 Udp::Udp( ) : Communication(0x10, 0x22, 0x20 )
 {
 	_Port = 1902;
 	_interface = "eth0";
 	setFunction( (FuncType) &ansInfoSrv , (int)GET_INFO_SRV );
-    _TcpInfo = new InfoTCP();
-    _udp = this;
+	_TcpInfo = new InfoTCP();
+	_udp = this;
 }
 
 
@@ -171,7 +171,7 @@ InfoTCP* Udp::getInfoSrv()
 		return NULL;
 	}
 
-    LOGGER_INFO("Interface " << _interface << " has mac : "<< (mac+1));
+	LOGGER_INFO("Interface " << _interface << " has mac : "<< (mac+1));
 	BYTE* data = NULL;
 
 	int sizeData = encodeData( (BYTE*) mac , &data, sizeof(mac) );
@@ -220,7 +220,11 @@ InfoTCP* Udp::getInfoSrv()
 			break;
 
 		LOGGER_VERB("Sending UDP Brodcast");
-
+		char tmp[250];
+		tmp[0] = '\0';
+		for(int i = 0; i < sizeData; i++)
+			sprintf(tmp,"%s %02X",tmp, data[i]);
+		LOGGER_VERB("UDP--> " << tmp);
 		/* Send the word to the server */
 		if (sendto(sock, (char*) data, sizeData, 0, (struct sockaddr *) &echoserver, sizeof(echoserver)) != sizeData)
 		{
@@ -235,6 +239,11 @@ InfoTCP* Udp::getInfoSrv()
 		if ( res > 0 )
 		{
 			LOGGER_VERB("Get Data From: " << inet_ntoa(echoclient.sin_addr));
+			char tmp[250];
+			tmp[0] = '\0';
+			for(int i = 0; i < res; i++)
+				sprintf(tmp,"%s %02X",tmp, buffer[i]);
+			LOGGER_VERB("UDP<-- " << tmp);
 			recieveData( (BYTE*) buffer , res );
 			strcpy(_TcpInfo->ipAddress, inet_ntoa(echoclient.sin_addr)) ;
 		}

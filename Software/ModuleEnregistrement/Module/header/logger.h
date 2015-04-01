@@ -23,6 +23,7 @@ public:
     // start/stop logging
     // - messages with priority >= minPriority will be written in log
     // - set logFile = "" to write to standard output
+    static void Start(Priority minPriority, const string& logFile,bool outputBoth);
     static void Start(Priority minPriority, const string& logFile);
     static void Stop();
 
@@ -40,6 +41,7 @@ private:
     bool        active;
     ofstream    fileStream;
     Priority    minPriority;
+    bool        outputBoth;
 
     // names describing the items in enum Priority
     static const string PRIORITY_NAMES[];

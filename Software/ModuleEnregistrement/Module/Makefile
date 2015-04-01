@@ -1,8 +1,8 @@
 CC=gcc
 CPP=g++
 
-SRCDIR=./
-HEADDIR=./
+SRCDIR=src
+HEADDIR=header
 LIBDIR=obj
 BINDIR=bin
  
@@ -11,7 +11,7 @@ INCLUDE_DIRS = -I/opt/vc/include -I/opt/vc/include/interface/vcos/ -I/opt/vc/inc
 # GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
 
 # Les différentes options de compilations, soyons strictes !
-CFLAGS= -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"
+CFLAGS= -O2 -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"
 # Les différents FrameWorks et bibliothèques pour le linkage
 GLLIBS = -lm -lpthread -L/opt/vc/lib -lmmal_core -lmmal_util -lmmal_vc_client -lvcos -lbcm_host -lGLESv2 -lEGL
 
@@ -37,7 +37,7 @@ $(LIBDIR)/%.o: $(SRCDIR)/%.c
 # Création des différents *.o à partir des *.cpp
 $(LIBDIR)/%.o: $(SRCDIR)/%.cpp 
 	$(CPP) -o $@ -c $< $(CFLAGS) 
- 
+
 # Nettoyage des objets => Tout sera recompiler !
 clean:
 	-@rm -f $(LIBDIR)/*.o
@@ -57,3 +57,5 @@ cppCheck:
 dir:
 	@mkdir -p $(LIBDIR)
 	@mkdir -p $(BINDIR)
+	@mkdir -p $(SRCDIR)
+	@mkdir -p $(HEADDIR)

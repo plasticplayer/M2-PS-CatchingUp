@@ -21,7 +21,7 @@ using namespace std;
 
 const string Logger::PRIORITY_NAMES[] =
 {
-    "VERBOSE",
+	"VERBOSE",
 	"DEBUG  ",
 	"CONFIG ",
 	"INFO   ",
@@ -34,9 +34,22 @@ Logger Logger::instance;
 
 Logger::Logger() : active(false) {}
 
+void Logger::Start(Priority minPriority, const string& logFile,bool outputBoth)
+{
+    instance.active = true;
+	instance.outputBoth = outputBoth;
+	instance.minPriority = minPriority;
+	if (logFile.compare("") != 0)
+	{
+		instance.fileStream.open(logFile.c_str());
+	}
+	LOGGER_INFO("Starting logger in "<< PRIORITY_NAMES[minPriority] << " mode !");
+
+}
 void Logger::Start(Priority minPriority, const string& logFile)
 {
 	instance.active = true;
+	instance.outputBoth = false;
 	instance.minPriority = minPriority;
 	if (logFile.compare("") != 0)
 	{
@@ -76,6 +89,8 @@ void Logger::Write(Priority priority, const string& message)
 		ostream& stream
 			= instance.fileStream.is_open() ? instance.fileStream : std::cout;
 
+
+
 		stream  << "[" << PRIORITY_NAMES[priority] <<"]"
 				<< "[" <<  buf <<"]";
 
@@ -85,6 +100,20 @@ void Logger::Write(Priority priority, const string& message)
 		stream << " : "
 			   << message
 			   << endl;
+
+		if(instance.outputBoth && instance.fileStream.is_open())
+		{
+
+			std::cout  << "[" << PRIORITY_NAMES[priority] <<"]"
+					<< "[" <<  buf <<"]";
+
+			if(instance.minPriority <= DEBUG)
+				std::cout  << "[" << pthread_self() << "]";
+
+			std::cout << " : "
+				   << message
+				   << endl;
+		}
 
 	}
 }
