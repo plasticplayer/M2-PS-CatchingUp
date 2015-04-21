@@ -24,6 +24,8 @@
 
 using namespace std;
 
+#define MAX_SIZE_UDP 1024
+
 #define BUFFSIZE 128
 #define MAC_STRING_LENGTH 13
 
@@ -35,28 +37,14 @@ void Udp::ansInfoSrv ( BYTE data[], int size )
 {
 	if ( size != 2 )
 		return;
-
-	_TcpInfo->port = data[0]<<8 | data[1] ;
-
-	//BYTE *ans = ( BYTE*) malloc( sizeof( BYTE ) * 2);
+		
+	_TcpInfo.port = data[0]<<8 | data[1] ;
+	
 	BYTE ans[2];
 	ans[0] = ACK_UDP;
 	ans[1] = GET_INFO_SRV;
-
-
-	BYTE* datas = NULL;
-
-	//for (int i = 0; i < size ; i++ )
-	//{
-	//	printf(" %02x", data[i]);
-	//fflush(stdout);
-	//}
-
-	//int sizeData = _udp->encodeData( data , &datas, sizeof( data ) );
-
-
-
-	//_udp->send( ans, 2 , _TcpInfo.ipAddress);
+	
+	_udp->send(  ans, 2 , _TcpInfo.ipAddress);
 }
 
 void Udp::send ( BYTE* data, int size, char*ipDest )
@@ -84,20 +72,75 @@ void Udp::send ( BYTE* data, int size, char*ipDest )
 
 	int sizeData = encodeData( (BYTE*) data , &datas, size );
 
-	char tmp[250];
+	/*char tmp[250];
 	tmp[0] = '\0';
 	for(int i = 0; i < size; i++)
 		sprintf(tmp,"%s %02X",tmp, datas[i]);
-	LOGGER_VERB("UDP--> " << tmp);
 
-	/*// Send the word to the server
+	LOGGER_VERB("UDP--> " << tmp);*/
+
+	// Send the word to the server
 	if (sendto(sock, (char*) datas, sizeData, 0, (struct sockaddr *) &echoserver, sizeof(echoserver)) != sizeData) {
 		cout << "Mismatch in number of sent bytes" << endl;
 	}
 
 	free(datas);
-	close(sock);*/
+	close(sock);
 }
+
+void Udp::sendImage(){
+	if ( _TcpInfo.port == -1 ){
+		return;
+	}
+	
+	streampos size;
+	char * memblock;
+
+	ifstream file ("img.jpg", ios::in|ios::binary|ios::ate);
+
+	if (file.is_open())
+	{
+		size = file.tellg();
+		memblock = new char [size];
+		file.seekg (0, ios::beg);
+		file.read (memblock, size);
+		file.close();
+		cout << "Image load" << endl;
+		
+		int nbParts = (size)/(MAX_SIZE_UDP); 
+		if ( (size % MAX_SIZE_UDP) != 0) nbParts++;
+		
+		cout << "Number of parts: " << nbParts << endl;
+		// Send image size
+		BYTE datas[ (MAX_SIZE_UDP+3) ];
+		datas[0] = SEND_IMAGE_INFO;
+		datas[1] = (nbParts >> 8)&0xFF;
+		datas[2] = nbParts & 0xFF;
+		send(datas,3,_TcpInfo.ipAddress);	
+		
+		datas[0] = SEND_IMAGE;
+
+		for (int i = 0; i < nbParts; i++){
+			datas[1] = (i >> 8)&0xFF;
+			datas[2] = i & 0xFF;
+
+			if ( i != ( nbParts-1) ){
+				memcpy(datas+3,memblock+(i*MAX_SIZE_UDP),MAX_SIZE_UDP);
+				send(datas,MAX_SIZE_UDP+3,_TcpInfo.ipAddress);	
+			}
+			else{
+				memset(datas+3,0,MAX_SIZE_UDP);
+				int s = (int) size;
+				s -= (i*MAX_SIZE_UDP);
+				memcpy(datas+3,memblock+(i*MAX_SIZE_UDP),s);
+				send(datas,s+3,_TcpInfo.ipAddress);	
+			}
+		}	
+		delete[] memblock;
+	}
+	else LOGGER_VERB("Unable to open file »);
+}
+
 
 
 int getMac(const char *iface, char *dest)

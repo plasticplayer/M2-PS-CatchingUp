@@ -7,7 +7,8 @@
 #include <unistd.h>
 
 
-#include "Udp.h"
+#include "../header/Udp.h"
+#include "../header/Tcp.h"
 
 #define BUFFSIZE 255
 
@@ -28,12 +29,19 @@ using namespace std;
 int main(int argc, char *argv[]) {
 	
 	Udp *udp = new Udp( 1902 );
+	
 
 	InfoTCP *info = udp->getInfoSrv( 1902 );
 	
 	if ( info != NULL ){
 		cout << "Info SRV: " << info->ipAddress << ":" << info->port << endl;
+		cout << "Try TCP connexion" << endl;
+
+		Tcp *tcp = new Tcp( info );
+		tcp->start();
+		cout << "Sending image files" << endl;
+		udp->sendImage();
 	}
 	else cout << "Nothing :(" << endl;
-
+	while ( true ) usleep(100);
 }

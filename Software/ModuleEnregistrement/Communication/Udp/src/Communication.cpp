@@ -5,8 +5,8 @@
 //  Created by maxime max on 28/01/2015.
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
-
-#include "Communication.h"
+#include "../header/Config.h"
+#include "../header/Communication.h"
 #include <stdlib.h>
 #include <iostream>
 #include <stdio.h>
@@ -51,7 +51,7 @@ void Communication::recieveData( BYTE* data, int size ){
                 // Debut de la trame
                 if ( _StartDetected ){
                     // Ancienne trame non complété
-                    cout << "Last frame not completed " << endl;
+                    LOGGER_WARN("Last frame not completed");
                 }
                 memset(this->_DecodeDatas,0, BUFFER_SIZE);
                 this->_PosDecodeData = 0;
@@ -66,12 +66,12 @@ void Communication::recieveData( BYTE* data, int size ){
             }
             else{
                 if ( _StartDetected ){
-                    // Fin de la trame
-                    cout << "Get Frame: " ;
-                    for ( int i =0; i < this->_PosDecodeData ; i++ )
-                        printf("%02x ", this->_DecodeDatas[i] );
-                    cout << endl;
 
+                    char tmp[250];
+                    tmp[0] = '\0';
+                    for(int i = 0; i < this->_PosDecodeData; i++)
+                        sprintf(tmp,"%s %02X",tmp, this->_DecodeDatas[i]);
+                    LOGGER_VERB("Get Frame: " << tmp);
 
                     if ( this->_PosDecodeData > 0 && this->_PtrFunctions[this->_DecodeDatas[0]] != NULL ){
                         unsigned char *recieveData = ( unsigned char * ) malloc ( sizeof( unsigned char) * this->_PosDecodeData -1 );
@@ -80,9 +80,8 @@ void Communication::recieveData( BYTE* data, int size ){
                         free( recieveData );
                     }
                     else{
-                        cout << "No function found" << endl;
+                            LOGGER_WARN("No function found for frame " << (int)this->_DecodeDatas[0]);
                     }
-
                     _StartDetected = false;
                 }
             }
@@ -130,12 +129,12 @@ int Communication::encodeData( BYTE* dataIn, BYTE** dataOut, int sizeDataIn ){
     return pos;
 }
 
-void Communication::sendAck( HEADER_Protocol head ){
+void Communication::sendAck( HEADER_Protocol header ){
     Frame *f = ( Frame *) malloc(sizeof(Frame));
     f->header = ACK;
     f->needAck = false;
     f->data = NULL;
-    BYTE data[] = {ACK, (BYTE)head };
+    BYTE data[] = {ACK,(BYTE)header};
     f->size = encodeData(data ,&(f->data),2);
     f->lastSend = 0;
     f->maxRetry = 0;

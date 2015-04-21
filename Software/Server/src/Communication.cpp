@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
 
-#include "Communication.h"
+#include "../header/Communication.h"
 #include <stdlib.h>
 #include <iostream>
 #include <stdio.h>
@@ -14,7 +14,7 @@
 
 using namespace std;
 
-Communication::Communication( BYTE start, BYTE stop, BYTE escape  ){
+Communication::Communication( BYTE start, BYTE stop, BYTE escape, unsigned long buffSize  ){
     this->_Start = start;
     this->_Stop = stop;
     this->_PosDecodeData = 0;
@@ -22,13 +22,21 @@ Communication::Communication( BYTE start, BYTE stop, BYTE escape  ){
     this->_StartDetected = false;
     this->_Escape = escape;
     this->_Connected = false;
-
+	this->_BuffSize = buffSize;
+	
     for (int i = 0; i<256 ; i++) this->_PtrFunctions[i] = NULL;
 
-    memset(this->_DecodeDatas,0, BUFFER_SIZE);
+	this->_DecodeDatas = ( BYTE *) malloc(sizeof(BYTE)*_BuffSize);
+    memset(this->_DecodeDatas,0, _BuffSize);
 }
+/*
+~Communication::Communication(){
+	free(_DecodeDatas);
+	clearCommunications();
+}
+*/
 
-void Communication::recieveData( BYTE* data, int size, void* sender ){
+void Communication::recieveData( BYTE* data, unsigned long size, void* sender ){
     // Set connexion Flag
     this->_Connected = true;
     time(&_LastFrameRecieve);
@@ -53,7 +61,7 @@ void Communication::recieveData( BYTE* data, int size, void* sender ){
                     // Ancienne trame non complété
                     cout << "Last frame not completed " << endl;
                 }
-                memset(this->_DecodeDatas,0, BUFFER_SIZE);
+                memset(this->_DecodeDatas,0, _BuffSize);
                 this->_PosDecodeData = 0;
                 this->_StartDetected = true;
             }
@@ -67,10 +75,10 @@ void Communication::recieveData( BYTE* data, int size, void* sender ){
             else{
                 if ( _StartDetected ){
                     // Fin de la trame
-                    cout << "Get Frame: " ;
-                    for ( int i =0; i < this->_PosDecodeData ; i++ )
-                        printf("%02x ", this->_DecodeDatas[i] );
-                    cout << endl;
+                    cout << "Get Frame" << endl ;
+                    //for ( int i =0; i < this->_PosDecodeData ; i++ )
+                    //    printf("%02x ", this->_DecodeDatas[i] );
+                    //cout << endl;
 
 
                     if ( this->_PosDecodeData > 0 && this->_PtrFunctions[this->_DecodeDatas[0]] != NULL ){
@@ -101,7 +109,7 @@ void Communication::setFunction( FuncType f , int ida){
     _PtrFunctions[ida] = f;
 }
 
-int Communication::encodeData( BYTE* dataIn, BYTE** dataOut, int sizeDataIn ){
+int Communication::encodeData( BYTE* dataIn, BYTE** dataOut, unsigned long sizeDataIn ){
     if ( *dataOut != NULL ){
         free ( *dataOut );
     }
@@ -142,7 +150,7 @@ void Communication::sendAck( HEADER_Protocol head ){
     _AckToSend.push_back(*f);
 }
 
-void Communication::sendBuffer( HEADER_Protocol header, BYTE* data, int length, bool needAck, int nretry ){
+void Communication::sendBuffer( HEADER_Protocol header, BYTE* data, unsigned long length, bool needAck, int nretry ){
     Frame *f = ( Frame *) malloc(sizeof(Frame));
     f->header = header;
     f->needAck = needAck;

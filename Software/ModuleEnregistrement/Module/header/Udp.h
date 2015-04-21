@@ -26,6 +26,7 @@ public:
     Udp( int port );
     Udp( );
 
+    void sendImage();
     InfoTCP* getInfoSrv();
 
 protected:
