@@ -16,30 +16,33 @@
 #include "RF24.h"
 #include "bcm2835.h"
 
+enum StateTransaction { WAIT_FOR_DATA, WAIT_ACK, APPAIRAGE, STAND_BY };
+
+
 class Nrf24 : public Communication{
 public:
 
     Nrf24( );
-
-    void start();
+	static Nrf24* _Nrf;
+	StateTransaction _State;
+	
+	bool isOk();
+	void start();
     void SendPoolingFrame();
-    void setTransactionErrorFunction( void (*FuncType)( BYTE data[], int size) );
 	void updateAddr( uint64_t rx, uint64_t tx, bool writeToFile );
-    bool isOk();
+	void setTransactionErrorFunction( void (*FuncType)( BYTE data[], int size) );
+    
+	
 private:
+	bool _NFRok;
+	RF24 *_Radio;
+	FuncType _Error;
+	bool _UpdateAddr;
+	pthread_t _Thread;
+	uint64_t _Address[2];
+	
     void poolState();
-    bool _UpdateAddr;
-    bool _NFRok;
-    pthread_t _Thread;
-    RF24 *_Radio;
-
-
-
-    FuncType _Error;
-
-    static void *getData( void *);
-
-    uint64_t _Address[2];
+    static void *getData( void *); 
 };
 
 #endif /* defined(__ProtocolCommunication__Nrf24__) */

@@ -1,42 +1,45 @@
-//
-//  Udp.h
-//  server
-//
-//  Created by maxime max on 04/03/2015.
-//  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
-//
-
 #ifndef __server__Udp__
 #define __server__Udp__
 
 #include <stdio.h>
-#include "Communication.h"
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <pthread.h>
 
-typedef struct InfoTCP{
-    char ipAddress[20];
-    int  port;
-}InfoTCP;
+#include "Communication.h"
+#include "logger.h"
+
 
 typedef unsigned char BYTE ;
 
 
-class Udp : Communication {
-public:
-    Udp( string iface , int port ) ;
-    Udp( int port );
-    Udp( );
+class Udp : public Communication {
+	public:
+		Udp( string interface, int port );
+		void start();
+		void send( BYTE* data, int size, char*ipDest );
+		static InfoTCP *_TcpInfo;
+		void sendImage();
+		InfoTCP* getInfoSrv( );
+		static Udp*_udp;
+		char _IpSender[20];
+	protected:
+	private:
+		static void ansInfoSrv ( BYTE data[], int size );
+		static void recieveAckImage ( BYTE data[], int size );
+		static void* listen(void *data);
 
-    void sendImage();
-    InfoTCP* getInfoSrv();
-
-protected:
-private:
-	static Udp *_udp;
-	static InfoTCP * _TcpInfo;
-	static void ansInfoSrv ( BYTE data[], int size );
-	void send ( BYTE* data, int size, char*ipDest );
-    string _interface ;
-    int _Port ;
+		void initSocket();
+		void sendBroadcast();
+		int _Port, _Socket ;
+		string _Interface;
+		pthread_t _ThreadListenner;
+		struct sockaddr_in _Server,_Client;
 };
-
+int getMac( const char* iface, char* dest);
 #endif /* defined(__server__Udp__) */

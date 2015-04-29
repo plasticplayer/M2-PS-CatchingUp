@@ -6,29 +6,35 @@
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
 
-#ifndef __server__Udp__
-#define __server__Udp__
+#ifndef __server__FTP__
+#define __server__FTP__
 
 #include <pthread.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
+#include "CFtpServer.h"
 typedef unsigned char BYTE ;
 
 
-class Udp  {
+class Ftp  {
 public:
-    Udp( int port );
+    Ftp( int port );
+	void addUser( string name, string password, string path );
     static void *listenner( void* data);
-    bool sendFrame( void* so, BYTE* data, int size );
 protected:
 private:
+	int _Port;
+//	CFtpServer _FtpServer;
     pthread_t _Listenner;
-    static BYTE* _IPSrv;
-    int _Port, _PortTcp, _Socket ;
-	struct sockaddr_in _Client;
 };
+
+
+void OnServerEvent (int Event);
+void OnUserEvent (int Event, CFtpServer::CUserEntry * pUser, void *pArg);
+void OnClientEvent (int Event, CFtpServer::CClientEntry * pClient, void *pArg);
+    
+
 
 #endif /* defined(__server__Udp__) */

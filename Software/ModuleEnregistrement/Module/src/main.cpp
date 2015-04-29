@@ -1,4 +1,3 @@
-//
 //  main.cpp
 //  ProtocolCommunication
 //
@@ -6,14 +5,18 @@
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
 
+
+//#define EXIT_ON_ERROR 1
+//#define ENABLE_CAMERA 1
+#define ENABLE_COMM 1
+
 #include "Config.h"
 
 #include "INIReader.h"
 #include "Nrf24.h"
 #include "Communication.h"
-#include "CallBack.h"
+#include "Linker.h"
 #include "StillCamera.h"
-#include "Udp.h"
 
 #include <getopt.h>
 
@@ -133,28 +136,51 @@ int main(int argc, char * argv[])
 	{
 		LOGGER_ERROR("Cannot load configuration form the .ini file ");
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		#ifdef EXIT_ON_ERROR
+		return -1;
+		#endif
 	}
 	else
 		LOGGER_DEBUG("Loading configuration OK");
 
-
-	LOGGER_DEBUG("Starting NRF4 test");
+	
+	LOGGER_DEBUG("Init Recording");
+	if ( !initRecording() ){
+		LOGGER_INFO("Can't init Recordings !");
+	}
+	else
+		LOGGER_DEBUG("Recording OK");
+	
+	LOGGER_DEBUG("Starting Ftp test");
+	if ( !ftpCheck() ){
+		LOGGER_INFO("Can't init Ftp !");
+	}
+	else{
+		LOGGER_DEBUG("Ftp OK");
+		ftpSenderStart();
+	}
+	
+	#ifdef ENABLE_COMM
+	/*LOGGER_DEBUG("Starting NRF4 test");
 	if(!startNRF24Communication(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start NRF24 ");
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		#ifdef EXIT_ON_ERROR
+		return -1;
+		#endif
 	}
 	else
 		LOGGER_DEBUG("NRF24 OK");
-
+	*/
 	LOGGER_DEBUG("Starting UDP test");
 	if(!startUDPCommunication(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start UDP communication ");
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		#ifdef EXIT_ON_ERROR
+		return -1;
+		#endif
 	}
 	else
 		LOGGER_DEBUG("UDP OK");
@@ -164,44 +190,53 @@ int main(int argc, char * argv[])
 	{
 		LOGGER_ERROR("Cannot start TCP communication ");
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		#ifdef EXIT_ON_ERROR
+		return -1;
+		#endif
 	}
-	else
+	else{
 		LOGGER_DEBUG("TCP OK");
 
+	}
+	#endif
+	
+	#ifdef ENABLE_CAMERA
 	LOGGER_DEBUG("Starting Camera test");
 	if(!startCAM(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start Raspberry Camera ");
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		#ifdef EXIT_ON_ERROR
+		return -1;
+		#endif
 	}
 	else
 		LOGGER_DEBUG("Camera OK");
-
+	
 	LOGGER_DEBUG("Starting webCam test");
 	if(!startWebCam(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start Webcam ");
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		#ifdef EXIT_ON_ERROR
+		return -1;
+		#endif
 	}
 	else
 		LOGGER_DEBUG("WebCam OK");
-
-	LOGGER_INFO("Program started succesfully !");
+	#endif
 
 	while ( char c = getchar() )
 	{
-		if(c == 'a' )
-		{
-			appairage();
-			fflush(stdin);
+		switch ( c ){
+			case 'a':
+				LOGGER_INFO("Force NRF paring");
+				ParringNrf();
+				break;
+			case 'q':
+				break;
 		}
-		if(c == 'q' )
-		{
-			break;
-		}
+		fflush(stdin);
 	}
 	return EXIT_SUCCESS;
 }
@@ -251,24 +286,18 @@ bool startNRF24Communication(applicationConfiguration& conf)
 	}
 
 	nrfCom->updateAddr(conf.NRF24_ClientId, conf.NRF24_ServerId,  false );
+	initNrfCallBacks();
 	nrfCom->start();
-	setComm( nrfCom );
 
-	nrfCom->setFunction(&getAck,ACK);
-	nrfCom->setFunction(&authentificationRequest, AUTH_ASK);
-	nrfCom->setFunction(&statusRequest, STATUS_ASK);
-	nrfCom->setFunction(&statusAns, STATUS_ANS);
-	nrfCom->setFunction(&ControlRequest, ACTIVATE_RECORDING);
-	nrfCom->setFunction(&AppariagePoolingStep1, POOL_PARK_ADDR_ANS);
-	nrfCom->setFunction(&AppariageValidConfig, POOL_VALIDATE_CONFIG);
-	nrfCom->setTransactionErrorFunction(&transactionError);
 	return true;
 }
 
 bool startUDPCommunication(applicationConfiguration& conf)
 {
 	Udp *udp = new Udp( conf.UDP_interface ,conf.UDP_serverPort );
-
+	initUdpCallBacks();
+	udp->start();
+	
 	LOGGER_INFO("Trying to find a server on port " << conf.UDP_serverPort );
 	InfoTCP *info = udp->getInfoSrv();
 
@@ -286,6 +315,13 @@ bool startUDPCommunication(applicationConfiguration& conf)
 
 bool startTCPCommunication(applicationConfiguration& conf)
 {
+	if ( Udp::_TcpInfo == NULL || Udp::_TcpInfo->port == -1 )
+		return false;
+		
+	Tcp* tcp = new Tcp(Udp::_TcpInfo);
+	initTcpCallBacks();
+	tcp->start();
+	
 	return true;
 }
 
@@ -299,7 +335,7 @@ bool startCAM(applicationConfiguration& conf)
 	bool resultTest = true;
 	RASPISTILL_STATE state;
 	default_status(&state);
-	state.timeout = 0;                  /// Time between snapshoots, in ms
+	state.timeout = 0;                  /// Time between snapshots, in ms
 	state.verbose = 0;
 	state.width = 400;                          /// Requested width of image
 	state.height = 300;                         /// requested height of image
@@ -374,7 +410,7 @@ bool parseCommandLine(int argc, char * argv[], applicationConfiguration& conf)
 	}
 	if (optind < argc)
 	{
-		printf("Argument inconnus : \n");
+		printf("Argument unknown : \n");
 		while (optind < argc)
 			printf("%s \n",argv[optind++]);
 	}

@@ -22,19 +22,20 @@ using namespace std;
 
 class Tcp  {
 	public:
-		Tcp( int socket);
-
-		void send();
+		Tcp( int socket, void* recorder );
+		int getSocket();
+		void sendTcp( BYTE* data, int size, bool needAck);
 		void start();
 		//void stop();
+		void sendAck( BYTE* Command);
+		Communication *_Communication;
 	protected:
 
 	private:
+		static void* sends( void *);
 		static void* listen( void *);
-		pthread_t _Listenner;
-		Communication *_Communication;
+		pthread_t _Listenner, _Sender;
+		void *_Recorder;	
 		int _Socket ;
 };
-//#else
-//class Tcp;
 #endif /* defined( __TCP__ ) */

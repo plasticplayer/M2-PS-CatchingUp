@@ -41,7 +41,7 @@ void Communication::recieveData( BYTE* data, unsigned long size, void* sender ){
     this->_Connected = true;
     time(&_LastFrameRecieve);
 
-    for (int i = 0; i < size; i++ ){
+    for ( unsigned long  i = 0; i < size; i++ ){
 
         if ( data[i] == this->_Escape ){
             if ( this->_Escaped ){
@@ -88,7 +88,7 @@ void Communication::recieveData( BYTE* data, unsigned long size, void* sender ){
                         free( recieveData );
                     }
                     else{
-                        cout << "No function found" << endl;
+                        cout << "No function found: " << this->_DecodeDatas[0]  << endl;
                     }
 
                     _StartDetected = false;
@@ -114,8 +114,8 @@ int Communication::encodeData( BYTE* dataIn, BYTE** dataOut, unsigned long sizeD
         free ( *dataOut );
     }
 
-    int length = 0, i, pos = 1 ;
-
+    int length = 0, pos = 1 ;
+    unsigned long i;
     for ( i = 0; i < sizeDataIn; i++ ){
         if ( dataIn[i] == this->_Start || dataIn[i] == this->_Stop || dataIn[i] == this->_Escape )
             length+=2;

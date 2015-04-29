@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include "../header/Udp.h"
+#include "../header/Config.h"
 #include "../header/Recorder.h"
 
 #define BUFFSIZE 2000
@@ -39,30 +40,28 @@ using namespace std;
 
 Udp::Udp( int port) {
 	_Port = port;
+	pthread_create(&_Listenner, NULL, &listenner, ( void * ) this );
 }
-
 
 
 bool Udp::sendFrame( void* so, BYTE* data, int size ){
 	struct sockaddr_in *des  = (struct sockaddr_in *) so;
-	//char* ip = inet_ntoa( des->sin_addr );
-
-	cout << "Write:";
-	//for ( int i = 0; i < size; i++ ) printf(" %02x", data[i] );
-	//cout << " ==> " << ip << ":" << endl;
-
-
+	/*
+	   char* ip = inet_ntoa( des->sin_addr );
+	   cout << "Write:";
+	   for ( int i = 0; i < size; i++ ) printf(" %02x", data[i] );
+	   cout << " ==> " << ip << ":" << endl;
+	 */
 	int v = sendto( _Socket , data, size, 0, (struct sockaddr *) des, sizeof( struct sockaddr ));
-	//int v = sendto( _Socket , data, size, 0, (struct sockaddr *) &_Client, sizeof( struct sockaddr ));
 
 	return ( v == size );
 }
 
 
-void Udp::listenner(){
-
-
-//	int sock;
+void* Udp::listenner( void *data){
+	Udp* udp = (Udp*) data;
+	LOGGER_DEBUG("Udp Load Server: " << udp->_Port);
+	//	int sock;
 	struct sockaddr_in echoserver;
 	struct sockaddr_in echoclient;
 	char *buffer = ( char *) malloc( sizeof(char) * BUFFSIZE) ;
@@ -71,49 +70,53 @@ void Udp::listenner(){
 
 
 
-	if ((_Socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		cout << "Failed to create socket" << endl;
-		return;
+	if ((udp->_Socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+		LOGGER_ERROR("Udp : Failed to create socket");
+		return NULL;
 	}
 
 
-	// Ecoute sur le port 1902
 	memset(&echoserver, 0, sizeof(echoserver));
-	memset(&_Client, 0, sizeof(_Client));
+	memset(&(udp->_Client), 0, sizeof(udp->_Client));
 	echoserver.sin_family = AF_INET;
 	echoserver.sin_addr.s_addr = htonl(INADDR_ANY);
-	echoserver.sin_port = htons( _Port );
+	echoserver.sin_port = htons( udp->_Port );
 	serverlen = sizeof(echoserver);
 
-	bind(_Socket, (struct sockaddr *) &echoserver, serverlen);
+	bind(udp->_Socket, (struct sockaddr *) &echoserver, serverlen);
 
-	
+	char tmp[250];	
 	char ipClient[20];
-	while (1) {
+	LOGGER_DEBUG( "Udp : Listenner Ok " );
+	usleep( 100 );
+	while ( true ) {
 		clientlen = sizeof(echoclient);
 
-		if ( (received = recvfrom(_Socket, buffer, BUFFSIZE, 0, (struct sockaddr *) &echoclient, (socklen_t*) &clientlen)) < 0)  {
-			cout << "Failed to receive message" << endl;
+		if ( (received = recvfrom(udp->_Socket, buffer, BUFFSIZE, 0, (struct sockaddr *) &echoclient, (socklen_t*) &clientlen)) < 0)  {
+			LOGGER_ERROR("Udp : Failed to receive message");
 			continue;
 		}
-		
+
 		strcpy(ipClient,inet_ntoa(echoclient.sin_addr));
-		
-		printf( "Udp: Client connected: %s: Data(%i) ==>  ", ipClient, received);
+
+		memset(tmp,0,sizeof(tmp));
+		//for(int i = 0; i <  ( received > 10 ) ? 10 : received ; i++) sprintf(tmp,"%s %02X",tmp, buffer[i]);
+
+		//printf( "Udp: %s:%s \n", ipClient,tmp);
 
 		Recorder *r = Recorder::findRecorderByIp(ipClient);
 
 		if ( r == NULL ){
-			r = new Recorder(this, ipClient);
+			r = new Recorder(udp, ipClient);
 		}
 
 		r->setUdpSocket( (void*) &echoclient, sizeof(echoclient) );
-		
+
 		r->getFrameUdp((BYTE*)buffer, received);
 	}
 
 	free( buffer );
-	return;
+	return NULL;
 }
 
 

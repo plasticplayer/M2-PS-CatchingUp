@@ -17,9 +17,13 @@
 
 using namespace std;
 
+Nrf24 *Nrf24::_Nrf = NULL;
+
 Nrf24::Nrf24( ) : Communication( 0x10,0x22,0x20 ){
 	_UpdateAddr = false;
-
+	_State = WAIT_FOR_DATA;
+	
+	_Nrf = this;
     _Error = NULL;
     _NFRok = false;
 
