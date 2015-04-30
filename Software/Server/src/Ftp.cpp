@@ -21,9 +21,10 @@
 
 using namespace std;
 
-CFtpServer _FtpServer;
+//CFtpServer Ftp::_FtpServer;
 
 Ftp::Ftp( int port) {
+	
 	_Port = port;
 
 	_FtpServer.SetServerCallback (OnServerEvent);
@@ -38,36 +39,38 @@ Ftp::Ftp( int port) {
 	//FtpServer.SetCheckPassDelay( 500 ); 	// milliseconds. Bruteforcing protection.
 
 
-
+	addUser( "test","pass","/tmp");
 	pthread_create(&_Listenner, NULL, &listenner, ( void * ) this );
 }
 
 void Ftp::addUser( string name, string password, string path ){
+	cout << " Try Add User" << endl;
 	CFtpServer::CUserEntry * pUser =
 	_FtpServer.AddUser (name.c_str() , password.c_str() , path.c_str() );
-
+	
 	if ( pUser ){
-		pUser->SetPrivileges (/*CFtpServer::READFILE |*/ CFtpServer::WRITEFILE 
-				/*CFtpServer::LIST | CFtpServer::DELETEFILE |
-				  CFtpServer::CREATEDIR | CFtpServer::DELETEDIR*/);
+		pUser->SetPrivileges (CFtpServer::READFILE | CFtpServer::WRITEFILE 
+				  | CFtpServer::LIST | CFtpServer::DELETEFILE |
+				  CFtpServer::CREATEDIR | CFtpServer::DELETEDIR) ;
 	}
+	else cout << "addUser failed " << endl;
 }
 
 void* Ftp::listenner( void *data){
 	Ftp* ftp = (Ftp*) data;
 
-	if ( _FtpServer.StartListening ( INADDR_ANY, ftp->_Port ))
+	if ( ftp->_FtpServer.StartListening ( INADDR_ANY, ftp->_Port ))
 	{
 		LOGGER_INFO ("FTP : Server is listening on " << ftp->_Port );
 
-		if (_FtpServer.StartAccepting ()) {
+		if ( ftp->_FtpServer.StartAccepting ()) {
 			LOGGER_DEBUG ("FTP : Server successfuly started !");
 			for (;;)
 				sleep (1);
 		}
 		else
 			LOGGER_ERROR ("FTP : Unable to accept incoming connections");
-		_FtpServer.StopListening ();
+		ftp->_FtpServer.StopListening ();
 	}
 	else {
 		LOGGER_ERROR("FTP : Unable to listen");

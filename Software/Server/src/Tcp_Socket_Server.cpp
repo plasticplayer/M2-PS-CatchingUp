@@ -9,7 +9,7 @@
 #include "../header/Tcp_Socket_Server.h"
 #include "../header/Tcp.h"
 #include "../header/Config.h"
-
+#include "../header/define.h"
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>

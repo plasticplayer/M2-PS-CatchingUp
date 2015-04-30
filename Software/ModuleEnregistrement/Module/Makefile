@@ -11,7 +11,7 @@ INCLUDE_DIRS = -I/opt/vc/include -I/opt/vc/include/interface/vcos/ -I/opt/vc/inc
 # GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
 
 # Les différentes options de compilations, soyons strictes !
-CFLAGS= -O2 -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"
+CFLAGS= -O2 -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\" -march=armv7-a -g
 # Les différents FrameWorks et bibliothèques pour le linkage
 GLLIBS = -lm -lpthread -L/opt/vc/lib -lmmal_core -lmmal_util -lmmal_vc_client -lvcos -lbcm_host -lGLESv2 -lEGL
 
@@ -36,7 +36,7 @@ $(LIBDIR)/%.o: $(SRCDIR)/%.c
  
 # Création des différents *.o à partir des *.cpp
 $(LIBDIR)/%.o: $(SRCDIR)/%.cpp 
-	$(CPP) -o $@ -c $< $(CFLAGS) 
+	@$(CPP) -o $@ -c $< $(CFLAGS) 
 
 # Nettoyage des objets => Tout sera recompiler !
 clean:

@@ -1,3 +1,6 @@
+#ifndef __defines_application_Configuration_
+#define __defines_application_Configuration_
+
 #include <stdint.h>
 typedef struct applicationConfiguration
 {
@@ -11,4 +14,6 @@ typedef struct applicationConfiguration
 	int f_Verbose; // Used as bool
 } applicationConfiguration;
 
-static applicationConfiguration CurrentApplicationConfig;
+extern applicationConfiguration CurrentApplicationConfig;
+
+#endif

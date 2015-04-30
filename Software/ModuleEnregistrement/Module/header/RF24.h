@@ -21,7 +21,7 @@
 #define __RF24_H__
 
 #include "RF24_config.h"
-#include "./bcm2835.h"
+#include "bcm2835.h"
 
 
 /**

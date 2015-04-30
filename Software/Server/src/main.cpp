@@ -17,7 +17,6 @@
 #include "../header/Tcp_Socket_Server.h"
 #include "../header/CFtpServer.h"
 
-#pragma message ( "C Preprocessor got here!" )
 #include <getopt.h>
 #include <iostream>
 using namespace std;
@@ -36,6 +35,8 @@ typedef unsigned char BYTE ;
 Udp *_Udp = NULL;
 Ftp *_Ftp;
 Tcp_Socket_Server* _TcpSocketSrv = NULL;
+applicationConfiguration CurrentApplicationConfig;
+
 /**
   Structure defining the configuration of the application
  **/
@@ -61,21 +62,21 @@ int main(int argc, const char * argv[]) {
 	/* Do not edit this, edit the .ini file */
 	CurrentApplicationConfig.iniFileName  = FILE_INI;
 	CurrentApplicationConfig.f_Verbose = true;
-	CurrentApplicationConfig.f_Debug = true;
+	CurrentApplicationConfig.f_Debug = false;
 	CurrentApplicationConfig.TCP_serverPort = 1903;
 	CurrentApplicationConfig.UDP_serverPort = 1902;
 	CurrentApplicationConfig.FTP_serverPort = 1904;
-	CurrentApplicationConfig.FolderPath = "/Temp";
+	CurrentApplicationConfig.FolderPath = "/Tmp";
 	CurrentApplicationConfig.FTP_maxUpload = 10;
 	Logger::Priority loggerLevel = Logger::CONFIG;
 	if ( CurrentApplicationConfig.f_Verbose )
 		loggerLevel = Logger::VERB;
 	if ( CurrentApplicationConfig.f_Debug )
 		loggerLevel = Logger::DEBUG;
-	
+
 	LOGGER_START(loggerLevel,"log.log",true);
-	
-	
+
+
 	LOGGER_INFO("Start Server ");
 
 	/** Loading the configuration from the .ini file **/
@@ -90,7 +91,6 @@ int main(int argc, const char * argv[]) {
 	}
 	else
 		LOGGER_DEBUG("Loading configuration OK");
-
 	if ( !loadUdpServer( CurrentApplicationConfig.UDP_serverPort ) ){
 		LOGGER_ERROR("Cannot Start Udp Server");
 #ifdef EXIT_ON_ERROR
@@ -106,15 +106,15 @@ int main(int argc, const char * argv[]) {
 		return -1;
 #endif
 	}
-	
+
 	if ( !loadFtpServer( CurrentApplicationConfig.FTP_serverPort ) ){
 		LOGGER_ERROR("Cannot Start TCP Server");
-		#ifdef EXIT_ON_ERROR
+#ifdef EXIT_ON_ERROR
 		LOGGER_ERROR("Exiting");
 		return -1;
-		#endif
+#endif
 	}
-	
+
 	while ( true ){
 		sleep(60);
 	}

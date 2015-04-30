@@ -5,41 +5,42 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <pthread.h>
-
+#include <string.h>
 
 typedef unsigned char BYTE ;
-typedef struct RecordingFile { 
-	char* fileName;
-	int nameSize;
+class RecordingFile {
+public: 
+	string fileName;
+	string path;
+	string idRecording;
 	// uint64_t size; ??
 	uint64_t chks;
 	uint64_t idFile;
 	bool isInRecord;
 	bool isInUpload;
 	bool isUploaded;
-}RecordingFile;
+};
 
 class Recording {
 public:
    	Recording( uint64_t idRecording );
 	bool startRecord();
 	void stopRecord();
-	unsigned long countUnsendingFiles();
-
+	void addFile ( RecordingFile *f );
+	static RecordingFile* getNextFile();	
 	static bool loadRecordings();
-	static bool exportRecordings();
+	static uint64_t _FilesNotUpload;
 protected:
 
 
 private:
 	static list<Recording *> _Recordings;
-	
+	static void loadRecordingFolder( string folder, string fold );
 	list<RecordingFile *> _Files;
 	uint64_t _IdRecording; 
 	bool _isRecording;
+	bool _isFinished;
 	bool _isUploading;
-	unsigned long _FileNotUploadForRecord;
-	static unsigned long _FilesNotUpload;
 };
 
 #endif /* defined(__server__Tcp__) */

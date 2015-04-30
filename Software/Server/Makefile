@@ -28,7 +28,7 @@ all: dir app
  
 #Création de l'exécutable
 app: $(OBJ) $(OBJCPP)
-	@$(CPP) -o $(BINDIR)/$@ $^ $(CFLAGS) $(GLLIBS)
+	$(CPP) -o $(BINDIR)/$@ $^ $(CFLAGS) $(GLLIBS)
 	
  
 # Création des différents *.o à partir des *.c

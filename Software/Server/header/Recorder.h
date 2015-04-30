@@ -51,6 +51,7 @@ class Recorder{
 
 		/// Tcp Callbacks
 		static void REC_TO_SRV_ImagePart( BYTE* data, unsigned long size, void *sender );
+		static void REC_TO_SRV_createRecording( BYTE* data, unsigned long size, void *sender );
 		static void REC_TO_SRV_recordingEnd( BYTE* data, unsigned long size, void *sender );
 		static void REC_TO_SRV_getStatut( BYTE* data, unsigned long size, void *sender );
 		static void REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sender );

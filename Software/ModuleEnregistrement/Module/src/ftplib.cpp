@@ -1,5 +1,7 @@
 // enable > 2gb support (LFS)
 
+#include "Config.h"
+
 #ifndef NOLFS
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
@@ -299,7 +301,7 @@ int ftplib::writeline(char *buf, int len, ftphandle *nData)
 #endif
 				if (w != FTPLIB_BUFSIZ)
 				{
-					printf("write(1) returned %d, errno = %d\n", w, errno);
+					LOGGER_ERROR("write(1) returned "<< w <<", errno = "<< errno);
 					return(-1);
 				}
 				nb = 0;
@@ -318,7 +320,7 @@ int ftplib::writeline(char *buf, int len, ftphandle *nData)
 #endif	
 			if (w != FTPLIB_BUFSIZ)
 			{
-				printf("write(2) returned %d, errno = %d\n", w, errno);
+				LOGGER_ERROR("write(2) returned "<< w <<" errno = " << errno);
 				return(-1);
 			}
 			nb = 0;
@@ -336,7 +338,7 @@ int ftplib::writeline(char *buf, int len, ftphandle *nData)
 #endif
 		if (w != nb)
 		{
-			printf("write(3) returned %d, errno = %d\n", w, errno);
+		LOGGER_ERROR("write(3) returned "<< w <<", errno = "<< errno);
 			return(-1);
 		}
 	}
@@ -358,7 +360,6 @@ int ftplib::readresp(char c, ftphandle *nControl)
 		perror("Control socket read failed");
 		return 0;
 	}
-	
 	if (nControl->response[3] == '-')
 	{
 		strncpy(match,nControl->response,3);
@@ -401,7 +402,6 @@ int ftplib::Connect(const char *host)
 	int ret;
 	char *lhost;
 	char *pnum;
-	
 	mp_ftphandle->dir = FTPLIB_CONTROL;
 	mp_ftphandle->ctrl = NULL;
 	mp_ftphandle->xfered = 0;
@@ -484,7 +484,6 @@ int ftplib::Connect(const char *host)
 		mp_ftphandle->handle = 0;
 		return 0;
 	}
-
 	return 1;
 }
 

@@ -339,7 +339,7 @@
 
 // Physical addresses for various peripheral register sets
 /// Base Physical Address of the BCM 2835 peripheral registers
-#define BCM2835_PERI_BASE               0x20000000
+#define BCM2835_PERI_BASE               0x3F000000
 /// Base Physical Address of the System Timer registers
 #define BCM2835_ST_BASE			(BCM2835_PERI_BASE + 0x3000)
 /// Base Physical Address of the Pads registers

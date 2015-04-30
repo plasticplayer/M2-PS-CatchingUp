@@ -26,8 +26,8 @@ public:
 protected:
 private:
 	int _Port;
-//	CFtpServer _FtpServer;
-    pthread_t _Listenner;
+	CFtpServer _FtpServer;
+    	pthread_t _Listenner;
 };
 
 

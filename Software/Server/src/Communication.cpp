@@ -5,8 +5,8 @@
 //  Created by maxime max on 28/01/2015.
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
-
-#include "../header/Communication.h"
+#include "Config.h"
+#include "Communication.h"
 #include <stdlib.h>
 #include <iostream>
 #include <stdio.h>
@@ -75,20 +75,19 @@ void Communication::recieveData( BYTE* data, unsigned long size, void* sender ){
             else{
                 if ( _StartDetected ){
                     // Fin de la trame
-                    cout << "Get Frame" << endl ;
                     //for ( int i =0; i < this->_PosDecodeData ; i++ )
                     //    printf("%02x ", this->_DecodeDatas[i] );
                     //cout << endl;
 
 
                     if ( this->_PosDecodeData > 0 && this->_PtrFunctions[this->_DecodeDatas[0]] != NULL ){
-                        unsigned char *recieveData = ( unsigned char * ) malloc ( sizeof( unsigned char) * this->_PosDecodeData -1 );
+			unsigned char *recieveData = ( unsigned char * ) malloc ( sizeof( unsigned char) * this->_PosDecodeData -1 );
                         memcpy(recieveData, (this->_DecodeDatas+1), this->_PosDecodeData-1 );
                         this->_PtrFunctions[this->_DecodeDatas[0]](recieveData,this->_PosDecodeData-1,sender);
                         free( recieveData );
                     }
                     else{
-                        cout << "No function found: " << this->_DecodeDatas[0]  << endl;
+                        cout << "No function found: " << std::hex << ( int ) this->_DecodeDatas[0]  << endl;
                     }
 
                     _StartDetected = false;

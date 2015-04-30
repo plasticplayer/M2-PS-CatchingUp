@@ -11,7 +11,7 @@
 #define ENABLE_COMM 1
 
 #include "Config.h"
-
+#include "define.h"
 #include "INIReader.h"
 #include "Nrf24.h"
 #include "Communication.h"
@@ -27,6 +27,8 @@
 #define INI_CLIENT_ID               "client"
 #define INI_SERVER_UDP_PORT         "udpPort"
 #define INI_SERVER_UDP_INTERFACE    "iface"
+#define INI_SERVER_DATA_PATH	    "data_path"
+
 typedef unsigned char BYTE ;
 
 using namespace std;
@@ -34,9 +36,10 @@ using namespace std;
 /**
     Structure defining the configuration of the application
 **/
-typedef struct applicationConfiguration
+/*typedef struct applicationConfiguration
 {
 	string iniFileName;
+	string Data_path;
 	uint64_t NRF24_ServerId;
 	uint64_t NRF24_ClientId;
 	uint32_t UDP_serverPort;
@@ -44,7 +47,7 @@ typedef struct applicationConfiguration
 	int f_Debug; // Used as bool
 	int f_Verbose; // Used as bool
 } applicationConfiguration;
-
+*/
 
 
 
@@ -61,7 +64,8 @@ bool startCAM(applicationConfiguration& conf);
 bool startWebCam(applicationConfiguration& conf);
 
 /** Globoly available variables **/
-static applicationConfiguration CurrentApplicationConfig;
+//static
+applicationConfiguration CurrentApplicationConfig;
 static int CurrentIdRecording;
 
 /*** CODE ***/
@@ -86,7 +90,7 @@ int main(int argc, char * argv[])
 	CurrentApplicationConfig.f_Debug = false;
 	CurrentApplicationConfig.UDP_interface = "eth0";
 	CurrentApplicationConfig.UDP_serverPort = 1902;
-
+	CurrentApplicationConfig.Data_path	= "/tmp";
     CurrentIdRecording = 0;
 
      /** parsing Command line arguments **/
@@ -151,17 +155,9 @@ int main(int argc, char * argv[])
 	else
 		LOGGER_DEBUG("Recording OK");
 	
-	LOGGER_DEBUG("Starting Ftp test");
-	if ( !ftpCheck() ){
-		LOGGER_INFO("Can't init Ftp !");
-	}
-	else{
-		LOGGER_DEBUG("Ftp OK");
-		ftpSenderStart();
-	}
 	
 	#ifdef ENABLE_COMM
-	/*LOGGER_DEBUG("Starting NRF4 test");
+	LOGGER_DEBUG("Starting NRF24 test");
 	if(!startNRF24Communication(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start NRF24 ");
@@ -172,7 +168,7 @@ int main(int argc, char * argv[])
 	}
 	else
 		LOGGER_DEBUG("NRF24 OK");
-	*/
+	
 	LOGGER_DEBUG("Starting UDP test");
 	if(!startUDPCommunication(CurrentApplicationConfig))
 	{
@@ -185,6 +181,14 @@ int main(int argc, char * argv[])
 	else
 		LOGGER_DEBUG("UDP OK");
 
+	LOGGER_DEBUG("Starting Ftp test");
+	if ( !ftpCheck() ){
+		LOGGER_INFO("Can't init Ftp !");
+	}
+	else{
+		LOGGER_DEBUG("Ftp OK");
+		ftpSenderStart();
+	}
 	LOGGER_DEBUG("Starting TCP test");
 	if(!startTCPCommunication(CurrentApplicationConfig))
 	{
@@ -263,14 +267,19 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_UDP_INTERFACE,"eth0");
 	conf.UDP_interface = s;
 
+	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_DATA_PATH,"/tmp");
+	conf.Data_path = s;
+
 	LOGGER_CONFIG("Loading configuration from "<<conf.iniFileName);
 	LOGGER_CONFIG("=================START CONFIGURATION======================");
 	LOGGER_CONFIG("-------------NRF24 WIRELESS CONFIGURATION-----------------");
-	LOGGER_CONFIG("ID NRF24 RECORDER : \t0x" <<  std::uppercase <<std::hex << conf.NRF24_ServerId );
-	LOGGER_CONFIG("ID NRF24 CONTROL : \t0x"  << std::uppercase << std::hex << conf.NRF24_ClientId );
+	LOGGER_CONFIG("ID NRF24 RECORDER   : \t0x" <<  std::uppercase <<std::hex << conf.NRF24_ServerId );
+	LOGGER_CONFIG("ID NRF24 CONTROL    : \t0x"  << std::uppercase << std::hex << conf.NRF24_ClientId );
 	LOGGER_CONFIG("-------------    NETWORK CONFIGURATION   -----------------");
-	LOGGER_CONFIG("NETWORK INTERFACE : \t "<< conf.UDP_interface);
-	LOGGER_CONFIG("SERVER UDP PORT : \t" << conf.UDP_serverPort );
+	LOGGER_CONFIG("NETWORK INTERFACE   : \t "<< conf.UDP_interface);
+	LOGGER_CONFIG("SERVER UDP PORT     : \t" << conf.UDP_serverPort );
+	LOGGER_CONFIG("-------------     MEDIA CONFIGURATION    -----------------");
+	LOGGER_CONFIG("PATH                : \t "<< conf.Data_path);
 	LOGGER_CONFIG("===================END CONFIGURATION======================");
 
 	return true;
@@ -284,9 +293,11 @@ bool startNRF24Communication(applicationConfiguration& conf)
 		LOGGER_ERROR("Error NRF24 not available !");
 		return false;
 	}
-
+	LOGGER_VERB("NRF24 Connection OK");
+	LOGGER_VERB("NRF24 Updating Adresses");
 	nrfCom->updateAddr(conf.NRF24_ClientId, conf.NRF24_ServerId,  false );
 	initNrfCallBacks();
+	LOGGER_VERB("NRF24 Starting listenning thread");
 	nrfCom->start();
 
 	return true;

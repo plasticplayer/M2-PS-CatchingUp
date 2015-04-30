@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "../header/Nrf24.h"
 #include "../header/define.h"
@@ -21,11 +22,12 @@ typedef unsigned char BYTE ;
 
 /******** -------------------------- 	Functions -------------------------- ********/
 bool stopRecording();
+bool ftpSendFile();
 void* ftpSenderThread( void* data );
-void startRecording( unit64_t idRecording );
-void REC_TO_SRV_ParringStatus( bool succes )
+bool startRecording( uint64_t idRecording );
+void REC_TO_SRV_ParringStatus( bool succes );
 void REC_TO_SRV_IdRecording();
-void REC_TO_SRV_RECORDING_END(unit64_t idRecording);
+void REC_TO_SRV_RECORDING_END(uint64_t idRecording);
 void REC_TO_SRV_AckImage();
 void REC_TO_SRV_Image( BYTE idCam );
 bool getImageFromCam ( BYTE idCam );
@@ -69,7 +71,7 @@ BYTE _StateRaspberry = 0x00;
 // Network
 InfoTCP *_TcpInfo;
 BYTE idGenerate[2];
-uint64_t addressGenerate[2];
+uint64_t addressGenerate[] { 0x012345,0x123456  };
 
 
 // Image
@@ -81,9 +83,15 @@ uint64_t _IdUserRecorder = 0x00;
 uint64_t _IdRecording = 0x00;
 
 /// FTP
+string _FtpUser = "test";
+string _FtpPassword = "pass";
+string _FtpHost = "192.168.43.90:1919";
+bool _isSending = false;
 ftplib *_Ftp = new ftplib();
 uint16_t _FtpPort = 1904;
 pthread_t _FtpThread;
+RecordingFile *fileInUpload = NULL;
+
 
 /******** -------------------------- 	Initialisation -------------------------- ********/
 /** initRecording
@@ -286,6 +294,7 @@ void REC_TO_SRV_StorageAsk( unsigned long fileInQueue ) {
 	for ( int i = 0; i < size; i++ ){
 		res[i+1] = ( fileInQueue >> (8*(size-i-1))) & 0xFF ;
 	}
+	LOGGER_VERB("Send Storage Ask : " << fileInQueue );
 	Tcp::_tcp->sendData(res,size+1,false);
 }
 
@@ -312,6 +321,7 @@ void REC_TO_SRV_EndFileTransfert( uint64_t chksum, char* fileName, BYTE nameLeng
  * Send to Server Tag Id to validate Card
  **/
 void REC_TO_SRV_Authenification( uint64_t idTag ){
+	LOGGER_VERB("Send to SRV authentification Request ");
 	BYTE res[] = {
 		SEND_AUTHENTIICATION_REQUEST_TCP,
 		(uint8_t) (( idTag >> 56  )& 0xFF),
@@ -330,6 +340,7 @@ void REC_TO_SRV_Authenification( uint64_t idTag ){
  * Send to Act Authentication answer
  **/
 void REC_TO_ACT_AuthenificationAns( bool authorisation ){
+	LOGGER_VERB("Ans Anthentification to NRF : " << authorisation );
 	BYTE answer[] = { AUTH_ANS, ( authorisation )?(uint8_t)0x01:(uint8_t)0x00 } ;
 	Nrf24::_Nrf->sendBuffer(AUTH_ANS,answer,2,false, 0);
 }
@@ -345,7 +356,7 @@ void REC_TO_SRV_IdRecording(){
 /** REC_TO_SRV_RECORDING_END
  * Send To SRV the end OF Records
  **/
-void REC_TO_SRV_RECORDING_END(unit64_t idRecording){
+void REC_TO_SRV_RECORDING_END(uint64_t idRecording){
 	BYTE res[] = {
 		SEND_RecordingEnd,
 		(uint8_t) (( idRecording >> 56  )& 0xFF),
@@ -364,7 +375,7 @@ void REC_TO_SRV_RECORDING_END(unit64_t idRecording){
  * Send To SRV the state of Parring
  **/
 void REC_TO_SRV_ParringStatus( bool succes ){
-	BYTE res[] = { ANS_PARIRING , ( succes ) ? 0x01 : 0x00 } ;
+	BYTE res[] = { ANS_PARIRING , ( succes == true ) ?(BYTE) 0x01 :(BYTE) 0x00 } ;
 	Tcp::_tcp->sendData(res, 2 ,true);
 }
 
@@ -539,7 +550,8 @@ void SRV_TO_REC_InfoSrvAns ( BYTE data[], int size ){
 	sprintf( _TcpInfo->ipAddress ,"%s",Udp::_udp->_IpSender);
 	_TcpInfo->port = data[0]<<8 | data[1] ;
 	_FtpPort = data[2]<<8 | data[3] ;
-	
+
+	LOGGER_DEBUG( "Detect : Udp Port: " << _TcpInfo << " FTP: " << _FtpPort ) ; 	
 	
 	BYTE ans[2];
 	ans[0] = ACK_UDP;
@@ -595,8 +607,8 @@ void SRV_TO_REC_ParringAsk( BYTE* data, unsigned long size ){
 		return;
 
 	// TODO: UPDATE NRF STATUT
-	addressGenerate[0] = (uint64_t) data[0] << 24) |  (uint64_t) data[1] << 16 | (uint64_t) data[2] << 8 | (uint64_t) data[3]; 
-	addressGenerate[1] = (uint64_t) data[4] << 24) |  (uint64_t) data[5] << 16 | (uint64_t) data[6] << 8 | (uint64_t) data[7]; 
+	addressGenerate[0] = (uint64_t) (data[0] << 24) |  (uint64_t) data[1] << 16 | (uint64_t) data[2] << 8 | (uint64_t) data[3]; 
+	addressGenerate[1] = (uint64_t) (data[4] << 24) |  (uint64_t) data[5] << 16 | (uint64_t) data[6] << 8 | (uint64_t) data[7]; 
 
 	REC_TO_SRV_TcpAck( ASK_PARIRING );
 	ParringNrf();
@@ -642,12 +654,14 @@ void SRV_TO_REC_StatutRequest( BYTE* data, unsigned long size ){
  * 	CallBack from Server to validate if this module can send a file in FTP
  **/
 void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size ){
+	LOGGER_VERB("Get Storage Ans");
 	if ( size != 1 ) // Can't has no data
 		return;
 
 	if ( data[0] == 0x01 ){
 		// TODO : Upload One File
 		LOGGER_DEBUG ( "Can upload one file" ) ;
+		ftpSendFile();
 	}
 	REC_TO_SRV_TcpAck(GET_STORAGE_ANS);
 }
@@ -658,16 +672,23 @@ void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size ){
 void SRV_TO_REC_FileTransfertAck( BYTE* data, unsigned long size ){
 	if ( size != 1 )  // Can't has no data
 		return;
-
+	
+	if ( !fileInUpload || fileInUpload->isInUpload ){
+		// EROR No file Was Send
+		return;
+	}
+	
 	if ( data[0] == 0x01 ){
 		// TODO : Upload OK :: DELETE FILE FROM RPI
 		LOGGER_INFO ( "File Upload OK" ) ;
+		fileInUpload->isUploaded = true;
 	}
 	else{
 		// TODO : RESEND FILE
 		LOGGER_ERROR( "Error during File Transfer ");
 	}
 	REC_TO_SRV_TcpAck(ACK_FILE_SEND_TCP);
+	fileInUpload = NULL;
 }
 
 /** SRV_TO_REC_GetIdRecording
@@ -677,8 +698,9 @@ void SRV_TO_REC_GetIdRecording( BYTE* data, unsigned long size){
 	if ( size != 8 )
 		return;
 		
-	uint64_t idRecording = 	data[0] << 56 | data[1] << 48 | data[2] << 40 | data[3] << 32 |
-							data[4] << 24 | data[5] << 16 | data[6] << 8  | data[7];
+	uint64_t idRecording = 	(uint64_t) data[0] << 56 | (uint64_t) data[1] << 48 | (uint64_t) data[2] << 40 |(uint64_t)
+				 data[3] << 32 |( uint64_t) data[4] << 24 | (uint64_t)  data[5] << 16 |(uint64_t) data[6] << 8 |
+				 (uint64_t)  data[7];
 	startRecording( idRecording );
 }
 
@@ -687,14 +709,21 @@ void SRV_TO_REC_GetIdRecording( BYTE* data, unsigned long size){
 
 
 /******** -------------------------- 	Recordings Functions -------------------------- ********/
-bool startRecording( unit64_t idRecording ){
-	isRecording = true;
+bool startRecording( uint64_t idRecording ){
+	_CurrentRecording = new Recording( idRecording );
+	isRecording = _CurrentRecording->startRecord();
 	_IdRecording = idRecording;
+	// TODO : ACTIVATE CAMERAS
+	return isRecording;
 }
 
 bool stopRecording(){
+	_CurrentRecording->stopRecord();
+	_CurrentRecording = NULL;
 	REC_TO_SRV_RECORDING_END( _IdRecording );
 	isRecording = false;
+	// TODO : DESACTIVATE CAMERA
+	return true;
 }
 
 /******** -------------------------- 	Camera Functions -------------------------- ********/
@@ -729,12 +758,12 @@ bool getImageFromCam ( BYTE idCam ){
 
 /******** -------------------------- 	FTP Functions -------------------------- ********/
 bool ftpCheck( ){
-	if ( _Ftp->Connect(_FtpHost) ){
-		LOGGER_ERROR("Failed to FTP Connect. Host error");
+	if ( !_Ftp->Connect(_FtpHost.c_str() )){
+		LOGGER_ERROR("Failed to FTP Connect. Host error: " << _FtpHost.c_str()  );
 		return false;
 	}
 	
-	if ( _Ftp->Login(_FtpUser, _FtpPassword) ){
+	if ( !_Ftp->Login(_FtpUser.c_str(), _FtpPassword.c_str()) ){
 		LOGGER_ERROR("Failed to FTP Connect. User/Password error");
 		return false;
 	}
@@ -748,28 +777,52 @@ void ftpSenderStart(){
 	pthread_create( &_FtpThread , NULL ,  &ftpSenderThread , NULL );
 }
 
-bool ftpSendFile( char* fileName, uint64_t idRecording ){
-	if ( _Ftp->Connect(_FtpHost << ":" << _FtpPort) ){
+bool ftpSendFile( ){
+	if ( fileInUpload != NULL )
+		return false;
+	
+	fileInUpload = Recording::getNextFile();
+	
+	if ( fileInUpload == NULL ) 
+		return true;
+
+	_isSending = true;
+	fileInUpload->isInUpload = true;
+	LOGGER_DEBUG( "Send File : " << fileInUpload->fileName );
+	
+	if ( !_Ftp->Connect( _FtpHost.c_str() ) ){
 		LOGGER_ERROR("Failed to FTP Connect. Host error");
 		return false;
 	}
 	
-	if ( _Ftp->Login(_FtpUser, _FtpPassword) ){
+	if ( !_Ftp->Login(_FtpUser.c_str() , _FtpPassword.c_str() ) ){
 		LOGGER_ERROR("Failed to FTP Connect. User/Password error");
 		return false;
 	}
+
 	_Ftp->SetConnmode(ftplib::pasv);
-	int uploadRes = _Ftp->Put( fileName , "/idRecording", ftplib::image );
+	int uploadRes = _Ftp->Put( fileInUpload->path.c_str() , (SSTR ( "/" << fileInUpload->idRecording << "/"  << fileInUpload->fileName )).c_str(), ftplib::image );
+	fileInUpload->isInUpload = false;
 	_Ftp->Quit();
+	_isSending = false;
 	return ( uploadRes == 0x01 );
 }
 
 void* ftpSenderThread( void* data ){
-	LOGGER_DEBUG("Ftp Client Start");
-	/*while ( true ){
-		if ( isRecording ){
-			sleep(120);
+	LOGGER_DEBUG("Ftp Client Start : Start Sender Thread ");
+	sleep(15);
+	while ( true ){
+		if ( _isSending ) {
+			sleep(60);
+			continue;
 		}
-		else sleep(60);
-	}*/
+
+		if ( isRecording ){
+			sleep(150);
+		}
+		LOGGER_VERB("SEND TCP REQUEST");	
+		REC_TO_SRV_StorageAsk( Recording:: _FilesNotUpload );
+		sleep(90);
+	}
+	return NULL;
 }

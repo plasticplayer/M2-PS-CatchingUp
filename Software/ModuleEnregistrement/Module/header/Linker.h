@@ -8,9 +8,9 @@
 #include "Tcp.h"
 
 
-char* _FtpHost = "localhost";
-char* _FtpUser = "test";
-char* _FtpPassword = "pass";
+
+
+
 
 
 bool initRecording();

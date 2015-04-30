@@ -62,6 +62,7 @@ void* Tcp::listen ( void * data ){
 }
 
 void Tcp::sendData( BYTE* data, int size , bool needAck ){
+	LOGGER_VERB("TCP -> " << size );
 	// Send Frames
 	BYTE* Datas = NULL;
 	int res = encodeData(data,&Datas,(unsigned long)size);

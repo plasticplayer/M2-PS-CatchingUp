@@ -2751,6 +2751,7 @@ CFtpServer::CClientEntry::StoreThread (void *pvParam)
 
     if (hFile >= 0)
     {
+	cout << "Ftp: hFile >=0 : ok " << endl;
         if ((pTransfer->RestartAt > 0
                 && lseek (hFile, pTransfer->RestartAt, SEEK_SET) != -1)
                 || pTransfer->RestartAt == 0)
