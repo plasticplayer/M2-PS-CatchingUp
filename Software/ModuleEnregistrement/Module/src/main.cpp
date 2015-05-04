@@ -425,8 +425,8 @@ bool startCAM(applicationConfiguration& conf)
 	default_status(&state);
 	state.timeout = 0;                  /// Time between snapshots, in ms
 	state.verbose = 0;
-	state.width = 400;                          /// Requested width of image
-	state.height = 300;                         /// requested height of image
+	state.width = conf.camera.width;                          /// Requested width of image
+	state.height = conf.camera.height;                         /// requested height of image
 	state.preview_parameters.wantPreview=0;
 
 	StillCamera cam(state);
@@ -439,7 +439,7 @@ bool startCAM(applicationConfiguration& conf)
 	}
 	else
 		resultTest = false;
-	cam.destroy();
+	//cam.destroy();
 	free (buff);
 	return resultTest;
 }
@@ -457,8 +457,8 @@ bool startWebCam(applicationConfiguration& conf)
 	if(!Webcam::isInUse())
 	{
 		Webcam * cam = new Webcam(conf.webcam.device,conf.webcam.width, conf.webcam.height,conf.webcam.fps);
-		if((resultTest = cam->testWebcam()))
-			cam->startRecording(CurrentApplicationConfig.Data_path);
+		resultTest = cam->testWebcam();
+//			cam->startRecording(CurrentApplicationConfig.Data_path);
 	}
 
 

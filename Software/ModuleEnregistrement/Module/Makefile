@@ -5,6 +5,7 @@ SRCDIR=src
 HEADDIR=header
 LIBDIR=obj
 BINDIR=bin
+DEPDIR=depend
  
 INCLUDE_DIRS = -I/opt/vc/src/hello_pi/libs/ilclient -I/opt/vc/include -I/opt/vc/include/interface/vcos/ -I/opt/vc/include/interface/vcos/pthreads -I/opt/vc/include/interface/vmcs_host/linux -I/opt/vc/include/interface/vmcs_host -I/opt/vc/include/interface/vchi -I/usr/include/SDL 
 
@@ -23,26 +24,37 @@ OBJ= $(SRC:$(SRCDIR)/%.c=$(LIBDIR)/%.o)
 # Où trouver les différents sources *.cpp qu'il faudra compiler pour créer les objets correspondants
 SRCPP= $(wildcard $(SRCDIR)/*.cpp)
 OBJCPP= $(SRCPP:$(SRCDIR)/%.cpp=$(LIBDIR)/%.o)
- 
+
+DEPLIST= $(wildcard $(DEPDIR)/*.depend)
+
 all: dir app cpConf
  
 #Création de l'exécutable
 app: $(OBJ) $(OBJCPP)
+	@echo "-- Linking App"
 	@$(CPP) -o $(BINDIR)/$@ $^ $(CFLAGS) $(GLLIBS)
-	
+	@echo "-- End"	
  
 # Création des différents *.o à partir des *.c
-$(LIBDIR)/%.o: $(SRCDIR)/%.c  
+$(LIBDIR)/%.o: $(SRCDIR)/%.c
+	@echo "-- Compiling $<"  
 	@$(CC) -o $@ -c $< $(CFLAGS) 
- 
+	@echo "-- Generating Dependecies for $<"
+	@$(CC) $(CFLAGS) -MT '$@' -MM $< > $(DEPDIR)/$(notdir $<).depend
+
+
 # Création des différents *.o à partir des *.cpp
-$(LIBDIR)/%.o: $(SRCDIR)/%.cpp 
-	@$(CPP) -o $@ -c $< $(CFLAGS) 
+$(LIBDIR)/%.o: $(SRCDIR)/%.cpp
+	@echo "-- Compiling $<" 
+	@$(CPP) -o $@ -c $< $(CFLAGS)
+	@echo "-- Generating Dependecies for $<"
+	@$(CPP) $(CFLAGS) -MT '$@' -MM $< > $(DEPDIR)/$(notdir $<).depend
+
 
 # Nettoyage des objets => Tout sera recompiler !
 clean:
 	-@rm -f $(LIBDIR)/*.o
- 
+	-@rm -f $(DEPDIR)/*.depend 
 # Nettoyage complet => clean + effacement du l'exécutable
 Clean: clean
 	-@rm -f $(BINDIR)/*
@@ -60,3 +72,7 @@ dir:
 	@mkdir -p $(BINDIR)
 	@mkdir -p $(SRCDIR)
 	@mkdir -p $(HEADDIR)
+	@mkdir -p $(DEPDIR)
+
+
+-include $(DEPLIST)
