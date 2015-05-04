@@ -9,7 +9,7 @@
 
 typedef unsigned char BYTE ;
 class RecordingFile {
-public: 
+public:
 	string fileName;
 	string path;
 	string idRecording;
@@ -27,17 +27,19 @@ public:
 	bool startRecord();
 	void stopRecord();
 	void addFile ( RecordingFile *f );
-	static RecordingFile* getNextFile();	
+	static RecordingFile* getNextFile();
 	static bool loadRecordings();
 	static uint64_t _FilesNotUpload;
+    string _folderRecording;
 protected:
 
 
 private:
 	static list<Recording *> _Recordings;
 	static void loadRecordingFolder( string folder, string fold );
+
 	list<RecordingFile *> _Files;
-	uint64_t _IdRecording; 
+	uint64_t _IdRecording;
 	bool _isRecording;
 	bool _isFinished;
 	bool _isUploading;

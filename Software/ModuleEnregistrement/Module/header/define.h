@@ -1,7 +1,22 @@
-#ifndef __define_applicationconfiguration
+#ifndef __define_applicatiR
 #define __define_applicationconfiguration
 #include <stdint.h>
 #include <string.h>
+
+struct _cameraConfiguration
+{
+	unsigned int width;
+	unsigned int height;
+	unsigned int delay;
+
+};
+struct _webcamConfiguration
+{
+    string device;
+	unsigned int width;
+	unsigned int height;
+	unsigned int fps;
+};
 
 typedef struct applicationConfiguration
 {
@@ -13,6 +28,8 @@ typedef struct applicationConfiguration
 	string UDP_interface;
 	int f_Debug; // Used as bool
 	int f_Verbose; // Used as bool
+	struct _cameraConfiguration camera;
+	struct _webcamConfiguration webcam;
 } applicationConfiguration;
 
 extern applicationConfiguration CurrentApplicationConfig;

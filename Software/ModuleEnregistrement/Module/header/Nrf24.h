@@ -25,14 +25,14 @@ public:
     Nrf24( );
 	static Nrf24* _Nrf;
 	StateTransaction _State;
-	
+
 	bool isOk();
 	void start();
     void SendPoolingFrame();
 	void updateAddr( uint64_t rx, uint64_t tx, bool writeToFile );
 	void setTransactionErrorFunction( void (*FuncType)( BYTE data[], int size) );
-    
-	
+
+
 private:
 	bool _NFRok;
 	RF24 *_Radio;
@@ -40,9 +40,9 @@ private:
 	bool _UpdateAddr;
 	pthread_t _Thread;
 	uint64_t _Address[2];
-	
+
     void poolState();
-    static void *getData( void *); 
+    static void *getData( void *);
 };
 
 #endif /* defined(__ProtocolCommunication__Nrf24__) */

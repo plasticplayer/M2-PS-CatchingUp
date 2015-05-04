@@ -19,7 +19,10 @@ StillCamera::StillCamera(RASPISTILL_STATE newState)
 		StillCamera::_instance = this;
 	}
 }
-
+StillCamera * StillCamera::getCamera()
+{
+	return StillCamera::_instance;
+}
 bool StillCamera::init()
 {
 	status = MMAL_SUCCESS;

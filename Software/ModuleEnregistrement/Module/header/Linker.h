@@ -29,4 +29,6 @@ void REC_TO_SRV_EndFileTransfert( uint64_t chksum, char* fileName, BYTE nameLeng
 bool ftpCheck();
 void ftpSenderStart();
 
+void forceStartRecording();
+void forceStopRecording();
 #endif

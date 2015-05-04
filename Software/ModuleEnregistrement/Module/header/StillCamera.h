@@ -14,6 +14,7 @@ public:
     bool saveSnapshot(string baseFileName,bool counter = true);
     bool takeSnapshot(uint8_t ** bufferOut,int * bufferSize);
     static bool isInUse();
+    static StillCamera * getCamera();
 private:
     RASPISTILL_STATE state;
     MMAL_PORT_T *camera_still_port;

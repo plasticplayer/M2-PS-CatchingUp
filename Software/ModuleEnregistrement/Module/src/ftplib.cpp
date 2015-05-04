@@ -3,8 +3,12 @@
 #include "Config.h"
 
 #ifndef NOLFS
+#ifndef _LARGEFILE_SOURCE
 #define _LARGEFILE_SOURCE
+#endif
+#ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif
 #endif
 
 #include "ftplib.h"
@@ -98,10 +102,10 @@ ftplib::ftplib()
          printf("WSAStartup() failed, %lu\n", (unsigned long)GetLastError());
     }
     #endif
-                
+
 	#ifndef NOSSL
 	SSL_library_init();
-	#endif	
+	#endif
 
 	mp_ftphandle = static_cast<ftphandle *>(calloc(1,sizeof(ftphandle)));
 	if (mp_ftphandle == NULL) perror("calloc");
@@ -247,7 +251,7 @@ int ftplib::readline(char *buf,int max,ftphandle *ctl)
 			else x = net_read(ctl->handle,ctl->cput,ctl->cleft);
 		}
 #else
-		x = net_read(ctl->handle,ctl->cput,ctl->cleft);		
+		x = net_read(ctl->handle,ctl->cput,ctl->cleft);
 #endif
 		if ( x == -1)
 		{
@@ -317,7 +321,7 @@ int ftplib::writeline(char *buf, int len, ftphandle *nData)
 			else w = net_write(nData->handle, nbp, FTPLIB_BUFSIZ);
 #else
 			w = net_write(nData->handle, nbp, FTPLIB_BUFSIZ);
-#endif	
+#endif
 			if (w != FTPLIB_BUFSIZ)
 			{
 				LOGGER_ERROR("write(2) returned "<< w <<" errno = " << errno);
@@ -334,7 +338,7 @@ int ftplib::writeline(char *buf, int len, ftphandle *nData)
 		if (nData->tlsctrl) w = SSL_write(nData->ssl, nbp, nb);
 		else w = net_write(nData->handle, nbp, nb);
 #else
-		w = net_write(nData->handle, nbp, nb);	
+		w = net_write(nData->handle, nbp, nb);
 #endif
 		if (w != nb)
 		{
@@ -354,7 +358,7 @@ int ftplib::writeline(char *buf, int len, ftphandle *nData)
 int ftplib::readresp(char c, ftphandle *nControl)
 {
 	char match[5];
-	
+
 	if (readline(nControl->response,256,nControl) == -1)
 	{
 		perror("Control socket read failed");
@@ -406,13 +410,13 @@ int ftplib::Connect(const char *host)
 	mp_ftphandle->ctrl = NULL;
 	mp_ftphandle->xfered = 0;
 	mp_ftphandle->xfered1 = 0;
-#ifndef NOSSL	
+#ifndef NOSSL
 	mp_ftphandle->tlsctrl = 0;
 	mp_ftphandle->tlsdata = 0;
 #endif
 	mp_ftphandle->offset = 0;
 	mp_ftphandle->handle = 0;
-	
+
 	memset(&sin,0,sizeof(sin));
 	sin.sin_family = AF_INET;
 	lhost = strdup(host);
@@ -437,7 +441,7 @@ int ftplib::Connect(const char *host)
 			sin.sin_port = pse->s_port;
 		}
 	}
-	
+
 #if defined(_WIN32)
 	if ((sin.sin_addr.s_addr = inet_addr(lhost)) == -1)
 #else
@@ -453,7 +457,7 @@ int ftplib::Connect(const char *host)
 		}
 		memcpy((char *)&sin.sin_addr, phe->h_addr, phe->h_length);
 	}
-	
+
 	free(lhost);
 
 	sControl = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -462,7 +466,7 @@ int ftplib::Connect(const char *host)
 		perror("socket");
 		return 0;
 	}
-	
+
 	if (setsockopt(sControl,SOL_SOCKET,SO_REUSEADDR, SETSOCKOPT_OPTVAL_TYPE &on, sizeof(on)) == -1)
 	{
 		perror("setsockopt");
@@ -515,7 +519,7 @@ int ftplib::FtpSendCmd(const char *cmd, char expresp, ftphandle *nControl)
 	}
 
 	if (mp_ftphandle->logcb != NULL) mp_ftphandle->logcb(buf, mp_ftphandle->cbarg, false);
-	
+
 	return readresp(expresp, nControl);
 }
 
@@ -618,7 +622,7 @@ int ftplib::FtpAcceptConnection(ftphandle *nData, ftphandle *nControl)
 int ftplib::FtpAccess(const char *path, accesstype type, transfermode mode, ftphandle *nControl, ftphandle **nData)
 {
 	char buf[256];
-	int dir, ret;
+	int dir;
 
 	if ((path == NULL) && ((type == ftplib::filewrite)
 		|| (type == ftplib::fileread)
@@ -680,6 +684,7 @@ int ftplib::FtpAccess(const char *path, accesstype type, transfermode mode, ftph
 	}
 
 #ifndef NOSSL
+int ret;
 	if (nControl->tlsdata)
 	{
 		(*nData)->ssl = SSL_new(nControl->ctx);
@@ -868,7 +873,7 @@ int ftplib::FtpOpenPasv(ftphandle *nControl, ftphandle **nData, transfermode mod
 #if defined(_WIN32)
 	unsigned int v_i[6];
     sscanf(cp,"%u,%u,%u,%u,%u,%u",&v_i[2],&v_i[3],&v_i[4],&v_i[5],&v_i[0],&v_i[1]);
-    for (int i = 0; i < 6; i++) v[i] = (unsigned char) v_i[i]; 
+    for (int i = 0; i < 6; i++) v[i] = (unsigned char) v_i[i];
 #else
 	sscanf(cp,"%hhu,%hhu,%hhu,%hhu,%hhu,%hhu",&v[2],&v[3],&v[4],&v[5],&v[0],&v[1]);
 #endif
@@ -1198,7 +1203,7 @@ int ftplib::FtpXfer(const char *localfile, const char *path, ftphandle *nControl
 	if (localfile != NULL)
 	{
 		printf("localfile: -%s-", localfile);
-	
+
 		//local = fopen(localfile, (typ == ftplib::filewrite) ? "r" : "w");
 		char ac[3] = "  ";
 		if ((type == ftplib::dir) || (type == ftplib::dirverbose)) { ac[0] = 'w'; ac[1] = '\0'; }
@@ -1213,7 +1218,7 @@ int ftplib::FtpXfer(const char *localfile, const char *path, ftphandle *nControl
 		if (type == ftplib::filewriteappend) fseeko64(local,mp_ftphandle->offset,SEEK_SET);
 #else
 		local = fopen(localfile, ac);
-		if (type == ftplib::filewriteappend) fseek(local,mp_ftphandle->offset,SEEK_SET);	
+		if (type == ftplib::filewriteappend) fseek(local,mp_ftphandle->offset,SEEK_SET);
 #endif
 		if (local == NULL)
 		{
@@ -1395,14 +1400,14 @@ int ftplib::Quit()
 		return 1;
 	}
 }
- 
+
 int ftplib::Fxp(ftplib* src, ftplib* dst, const char *pathSrc, const char *pathDst, transfermode mode, fxpmethod method)
 {
 	char *cp;
 	unsigned char v[6];
 	char buf[256];
 	int retval = 0;
-	
+
 	sprintf(buf, "TYPE %c", mode);
 	if (!dst->FtpSendCmd(buf,'2',dst->mp_ftphandle)) return -1;
 	if (!src->FtpSendCmd(buf,'2',src->mp_ftphandle)) return -1;
@@ -1418,7 +1423,7 @@ int ftplib::Fxp(ftplib* src, ftplib* dst, const char *pathSrc, const char *pathD
 #if defined(_WIN32)
 		unsigned int v_i[6];
     	sscanf(cp,"%u,%u,%u,%u,%u,%u",&v_i[2],&v_i[3],&v_i[4],&v_i[5],&v_i[0],&v_i[1]);
-    	for (int i = 0; i < 6; i++) v[i] = (unsigned char) v_i[i]; 
+    	for (int i = 0; i < 6; i++) v[i] = (unsigned char) v_i[i];
 #else
 		sscanf(cp,"%hhu,%hhu,%hhu,%hhu,%hhu,%hhu",&v[2],&v[3],&v[4],&v[5],&v[0],&v[1]);
 #endif
@@ -1458,7 +1463,7 @@ int ftplib::Fxp(ftplib* src, ftplib* dst, const char *pathSrc, const char *pathD
 			hours and i was absolutely clueless, playing around with
 			ABOR and whatever, when i desperately checked the pftp
 			source which gave me this final hint. thanks dude(s). */
-		
+
 			dst->FtpSendCmd("PASV", '2', dst->mp_ftphandle);
 			src->readresp('4', src->mp_ftphandle);
 			return 0;
@@ -1467,7 +1472,7 @@ int ftplib::Fxp(ftplib* src, ftplib* dst, const char *pathSrc, const char *pathD
 		retval = (src->readresp('2', src->mp_ftphandle)) & (dst->readresp('2', dst->mp_ftphandle));
 
 	}
-	else 
+	else
 	{
 		// PASV src
 
@@ -1478,7 +1483,7 @@ int ftplib::Fxp(ftplib* src, ftplib* dst, const char *pathSrc, const char *pathD
 #if defined(_WIN32)
 		unsigned int v_i[6];
     	sscanf(cp,"%u,%u,%u,%u,%u,%u",&v_i[2],&v_i[3],&v_i[4],&v_i[5],&v_i[0],&v_i[1]);
-    	for (int i = 0; i < 6; i++) v[i] = (unsigned char) v_i[i]; 
+    	for (int i = 0; i < 6; i++) v[i] = (unsigned char) v_i[i];
 #else
 		sscanf(cp,"%hhu,%hhu,%hhu,%hhu,%hhu,%hhu",&v[2],&v[3],&v[4],&v[5],&v[0],&v[1]);
 #endif
@@ -1559,13 +1564,13 @@ int ftplib::NegotiateEncryption()
 
 	ret = SSL_connect(mp_ftphandle->ssl);
 	if (ret == 1) mp_ftphandle->tlsctrl = 1;
-	
+
 	if (mp_ftphandle->certcb != NULL)
 	{
 		X509 *cert = SSL_get_peer_certificate(mp_ftphandle->ssl);
 		if (!mp_ftphandle->certcb(mp_ftphandle->cbarg, cert)) return 0;
 	}
-	
+
 	if (ret < 1) return 0;
 
 	return 1;
@@ -1625,7 +1630,7 @@ void ftplib::ClearHandle()
 	mp_ftphandle->xfered = 0;
 	mp_ftphandle->xfered1 = 0;
 	mp_ftphandle->cbbytes = 0;
-#ifndef NOSSL	
+#ifndef NOSSL
 	mp_ftphandle->tlsctrl = 0;
 	mp_ftphandle->tlsdata = 0;
 	mp_ftphandle->certcb = NULL;
@@ -1648,9 +1653,9 @@ int ftplib::CorrectPasvResponse(unsigned char *v)
 		net_close(mp_ftphandle->handle);
 		return 0;
 	}
-	
+
 	for (int i = 2; i < 6; i++) v[i] = ipholder.sa_data[i];
-	
+
 	return 1;
 }
 
@@ -1658,7 +1663,7 @@ ftphandle* ftplib::RawOpen(const char *path, accesstype type, transfermode mode)
 {
 	int ret;
 	ftphandle* datahandle;
-	ret = FtpAccess(path, type, mode, mp_ftphandle, &datahandle); 
+	ret = FtpAccess(path, type, mode, mp_ftphandle, &datahandle);
 	if (ret) return datahandle;
 	else return NULL;
 }
@@ -1666,7 +1671,7 @@ ftphandle* ftplib::RawOpen(const char *path, accesstype type, transfermode mode)
 int ftplib::RawClose(ftphandle* handle)
 {
 	return FtpClose(handle);
-} 
+}
 
 int ftplib::RawWrite(void* buf, int len, ftphandle* handle)
 {

@@ -1,7 +1,7 @@
-#include "../header/Config.h"
-#include "../header/logger.h"
-#include "../header/Recording.h"
-#include "../header/define.h"
+#include "Config.h"
+#include "logger.h"
+#include "Recording.h"
+#include "define.h"
 
 #include <sys/stat.h>
 #include <iostream>
@@ -21,6 +21,7 @@ list<Recording *> Recording::_Recordings;
 
 Recording::Recording( uint64_t idRecording ){
 	LOGGER_DEBUG( "Create Recording " << idRecording ) ;
+	_folderRecording = SSTR(CurrentApplicationConfig.Data_path  << "/" << idRecording).c_str();
 	_IdRecording = idRecording;
 	_isRecording = false;
 	_isUploading = false;
@@ -65,14 +66,14 @@ bool Recording::loadRecordings(){
 					loadRecordingFolder(dirName, ent->d_name );
 				}
 			}
-			
+
 		}
 	}
 	closedir(rep);
 	return false;
 }
 
-RecordingFile* Recording::getNextFile(){ 
+RecordingFile* Recording::getNextFile(){
 	Recording* r = NULL;
 	RecordingFile *f = NULL;
 
@@ -85,7 +86,7 @@ RecordingFile* Recording::getNextFile(){
 			if ( !f->isUploaded ) {
 				return f ;
 			}
-		} 
+		}
 	}
 	return NULL;
 }
@@ -96,11 +97,11 @@ void Recording::loadRecordingFolder( string folder , string fol ){
 		return;
 
 	Recording *r = NULL;
-	
+
 	DIR* rep = opendir(folder.c_str() );
 	if ( rep == NULL ) {
 		LOGGER_WARN("Open res failed: " << folder );
-		return;	
+		return;
 	}
 	struct dirent *ent;
 
@@ -109,11 +110,11 @@ void Recording::loadRecordingFolder( string folder , string fol ){
 			continue;
 		if ( r == NULL ){
 			r = new Recording( idRecording );
-			r->_isFinished = true;	
+			r->_isFinished = true;
 		}
 		RecordingFile *f = new RecordingFile();
 		f->isInRecord = false;
-		f->fileName = ent->d_name;    
+		f->fileName = ent->d_name;
 		f->path = SSTR ( folder << "/" << ent->d_name );
 		r->addFile(f);
 	}
