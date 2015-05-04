@@ -7,7 +7,7 @@
 //
 #define CFTPSERVER_ENABLE_EVENTS
 
-
+#include "Mysql.h"
 #include "Config.h"
 #include <sys/signal.h> 
 #include "INIReader.h"
@@ -24,13 +24,17 @@ typedef unsigned char BYTE ;
 
 
 /** .ini file configuration : **/
-#define FILE_INI 					"config.ini"
-#define INI_CONFIG_SECTION_NAME     "config"
+#define FILE_INI 			"config.ini"
+#define INI_CONFIG_SECTION_NAME     	"config"
 #define INI_SERVER_TCP_PORT     	"tcpPort"
-#define INI_SERVER_UDP_PORT         "udpPort"
-#define INI_SERVER_FTP_PORT			"ftpPort"
+#define INI_SERVER_UDP_PORT         	"udpPort"
+#define INI_SERVER_FTP_PORT		"ftpPort"
 #define INI_SERVER_FOLDER	        "FolderPath"
-#define INI_SERVER_FTP_MAX_UPLOAD	"FTP_MAX_UPLOAD"	
+#define INI_SERVER_FTP_MAX_UPLOAD	"FTP_MAX_UPLOAD"
+#define INI_SERVER_MYSQL_DATABASE	"SQL_DATABASE"
+#define INI_SERVER_MYSQL_HOST		"SQL_HOST"
+#define INI_SERVER_MYSQL_USER		"SQL_USER"
+#define INI_SERVER_MYSQL_PASSWORD	"SQL_PASSWORD"	
 
 Udp *_Udp = NULL;
 Ftp *_Ftp;
@@ -47,7 +51,7 @@ bool loadConfigFromIniFile(applicationConfiguration &conf);
 bool loadUdpServer( int port );
 bool loadTcpServer( int port );
 bool loadFtpServer( int port );
-
+bool loadMysql( );
 
 void signal_handler(int signal_number)
 {
@@ -68,6 +72,12 @@ int main(int argc, const char * argv[]) {
 	CurrentApplicationConfig.FTP_serverPort = 1904;
 	CurrentApplicationConfig.FolderPath = "/Tmp";
 	CurrentApplicationConfig.FTP_maxUpload = 10;
+	CurrentApplicationConfig.MysqlHost = "localhost";
+	CurrentApplicationConfig.MysqlDatabase = "mydb" ;
+	CurrentApplicationConfig.MysqlUser = "priseCours";
+	CurrentApplicationConfig.MysqlPassword = "priseCours";
+
+
 	Logger::Priority loggerLevel = Logger::CONFIG;
 	if ( CurrentApplicationConfig.f_Verbose )
 		loggerLevel = Logger::VERB;
@@ -91,6 +101,15 @@ int main(int argc, const char * argv[]) {
 	}
 	else
 		LOGGER_DEBUG("Loading configuration OK");
+	
+	if ( !loadMysql() ){
+		LOGGER_ERROR( "Cannot connect to SQL");
+		return -1;
+	}
+	else {
+		LOGGER_INFO("MySql connection OK");
+	}
+	
 	if ( !loadUdpServer( CurrentApplicationConfig.UDP_serverPort ) ){
 		LOGGER_ERROR("Cannot Start Udp Server");
 #ifdef EXIT_ON_ERROR
@@ -146,6 +165,18 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_TCP_PORT,"1903");
 	conf.TCP_serverPort = strtoull(s.c_str(), NULL, 10);
 
+	s = reader.Get(INI_CONFIG_SECTION_NAME , INI_SERVER_MYSQL_HOST , conf.MysqlHost);
+	conf.MysqlHost = s.c_str();
+	
+	s = reader.Get(INI_CONFIG_SECTION_NAME , INI_SERVER_MYSQL_DATABASE , conf.MysqlDatabase);
+	conf.MysqlDatabase = s.c_str();
+	
+	s = reader.Get(INI_CONFIG_SECTION_NAME , INI_SERVER_MYSQL_USER , conf.MysqlUser);
+	conf.MysqlUser = s.c_str();
+	
+	s = reader.Get(INI_CONFIG_SECTION_NAME , INI_SERVER_MYSQL_PASSWORD , conf.MysqlPassword);
+	conf.MysqlPassword = s.c_str();
+	
 	LOGGER_CONFIG("Loading configuration from " << conf.iniFileName);
 	LOGGER_CONFIG("=================START CONFIGURATION======================");
 	LOGGER_CONFIG("-------------     FTP CONFIGURATION      -----------------");
@@ -154,7 +185,12 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	LOGGER_CONFIG("Max Upload      : \t" << conf.FTP_maxUpload);
 	LOGGER_CONFIG("-------------    NETWORK CONFIGURATION   -----------------");
 	LOGGER_CONFIG("SERVER TCP PORT : \t" << conf.TCP_serverPort );
-	LOGGER_CONFIG("SERVER UDP PORT : \t"  << conf.UDP_serverPort );
+	LOGGER_CONFIG("SERVER UDP PORT : \t" << conf.UDP_serverPort );
+	LOGGER_CONFIG("-------------    DATABASE CONFIGURATION   -----------------");
+	LOGGER_CONFIG("HOST            : \t" << conf.MysqlHost );
+	LOGGER_CONFIG("DATABASE	       : \t" << conf.MysqlDatabase );	
+	LOGGER_CONFIG("USER            : \t" << conf.MysqlUser );
+	LOGGER_CONFIG("PASSWORD        : \t" << conf.MysqlPassword );
 	LOGGER_CONFIG("===================END CONFIGURATION======================");
 
 	return true;
@@ -175,4 +211,20 @@ bool loadTcpServer( int port ){
 	_TcpSocketSrv = new Tcp_Socket_Server( port );
 	_TcpSocketSrv->start();
 	return true;
+}
+
+bool loadMysql( ){	
+	Mysql *mysql = new Mysql( );
+	if ( ! mysql->connect(CurrentApplicationConfig.MysqlHost , CurrentApplicationConfig.MysqlDatabase , CurrentApplicationConfig.MysqlUser , CurrentApplicationConfig.MysqlPassword ) )
+		return false;
+//	Mysql::createRoom("A465","");
+//	Mysql::createRecorder( 1 , SSTR("b827eb27f46a"));
+//	Mysql::createUserRecorder ( "GHILES" , "MOSTAFAOUI" , "PASSWD" , "gm@ucp.net" , "2015-01-01" , "2016-01-01" )
+//	Mysql::createCard( 0x3124, 1 );
+//	uint64_t idUserRecorder = Mysql::getIdUserRecorderFromTag(0x3124);
+//	cout << std::hex << idUserRecorder << endl;
+/*	uint64_t idRecording = Mysql::createRecording(1,1);
+	if ( idRecording != 0x00 )
+		Mysql::stopRecording(idRecording);
+*/	return true;
 }

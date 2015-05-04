@@ -68,7 +68,7 @@ class Recorder{
 
 		Udp *_UdpSrv;
 		void* _UdpSocket;
-		BYTE _MacAddress[13];
+		BYTE _MacAddress[12];
 		char *_IpAddr;
 
 		int _Count, _SizeImage;
@@ -76,7 +76,7 @@ class Recorder{
 		int* _ImageParts;
 		BYTE _StatutRasp, _StatutArd;
 
-		uint64_t _IdRecorder;
+		uint64_t _IdRecorder, _IdUserRecording;
 };
 
 #endif /* defined(__server__Recorder__) */

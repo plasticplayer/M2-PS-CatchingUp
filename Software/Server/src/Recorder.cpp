@@ -2,19 +2,23 @@
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
-#include "../header/Config.h"
-#include "../header/define.h"
-#include "../header/Recorder.h"
-#include "../header/Communication.h"
+#include "Config.h"
+#include "define.h"
+#include "Recorder.h"
+#include "Communication.h"
+#include "Mysql.h"
+
 
 list<Recorder *> Recorder::_Recorders;
 using namespace std;
 
-
+/****************  Constructor  ****************/ 
 Recorder::Recorder ( Udp *udp, char* ip ){
-	_StatutRasp = 0x00;
-	_StatutArd  = 0x00;
-	_IdRecorder = 2;
+	// Init Variable
+	this->_StatutRasp = 0x00;
+	this->_StatutArd  = 0x00;
+	this->_IdRecorder = 0;
+	this->_IdUserRecording = 0;
 	this->_UdpSrv = udp;
 	this->_UdpSocket = NULL;
 	this->_ImageParts = NULL;
@@ -35,6 +39,10 @@ Recorder::Recorder ( Udp *udp, char* ip ){
 }
 
 
+
+
+
+/****************  Getters / Setters  ****************/ 
 Recorder* Recorder::findRecorderByIp( char* ip ){
 	if ( _Recorders.empty() )
 		return NULL;
@@ -47,12 +55,13 @@ Recorder* Recorder::findRecorderByIp( char* ip ){
 	return NULL;
 }  
 
-
-/// Getters / Setters 
 bool Recorder::isTcpConnected(){
 	return ( this->_Tcp != NULL );
 }
 
+/** setTcpSocket
+ * Initialise TCP CallBacks
+ **/
 void Recorder::setTcpSocket( Tcp* s ){
 	this->_Tcp = s;
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_getStatut), (int)GET_STATUT);
@@ -77,7 +86,9 @@ void Recorder::setUdpSocket ( void* sock, int size ){
 
 
 
-/// Communication functions
+
+
+/****************  Communications functions  ****************/ 
 void Recorder::getFrameUdp( BYTE* data, unsigned long size  ){
 	if ( _CommunicationUdp == NULL )
 		return;
@@ -100,25 +111,41 @@ bool Recorder::sendTcpFrame( BYTE* data , int size, bool needAck){
 
 
 
-/// Request
 
+
+/****************  Request  ****************/
+
+/** SRV_TO_REC_askVisuImage
+ * Send to Recorder a request to get an image from Camera
+ **/
 void Recorder::SRV_TO_REC_askVisuImage( BYTE idCam ){
 	BYTE req[] = { ASK_VISU_CAM , idCam } ; 
 	sendTcpFrame(req,2,false);
 }
 
+/** SVR_TO_REC_askStatut
+ * Ask to recorder his status
+ **/
 void Recorder::SRV_TO_REC_askStatut(){
 	BYTE req[] = { SEND_ASK_STATUT } ; 
 	sendTcpFrame(req,1,false);
 }
 
+
+/** SRV_TO_REC_sendParring
+ * Send Nrf Address to Recorder
+ **/
 void Recorder::SRV_TO_REC_sendParring( ){
 	// TODO : GENERATE WITH DATABASE ON 32Bits each One
 
 	LOGGER_DEBUG("Send NRF ADDRESSES TO Recorder");
-	uint64_t addressGenerateRpi = (uint64_t) ( ((uint64_t)rand())<<32 | ((uint64_t)rand())<<16 | rand() ) & 0x00FFFFFFFF;
-	uint64_t addressGenerateArd = (uint64_t) ( ((uint64_t)rand())<<32 | ((uint64_t)rand())<<16 | rand() ) & 0x00FFFFFFFF;
+	uint64_t addressGenerateRpi =  0x00;
+	uint64_t addressGenerateArd =  0x00;
 
+	if ( ! Mysql::generateNrfAddress( _IdRecorder , &addressGenerateRpi, &addressGenerateArd )){
+		LOGGER_ERROR("Cannot generate NRF ADDRESSES");
+		return;
+	}
 	BYTE req[] = { SEND_ASK_PAIRING , 
 		(uint8_t) (( addressGenerateRpi >> 24 ) & 0xFF),
 		(uint8_t) (( addressGenerateRpi >> 16 ) & 0xFF),
@@ -135,19 +162,22 @@ void Recorder::SRV_TO_REC_sendParring( ){
 
 
 
-/// Udp CallBacks
+/****************  Udp Callbacks  ****************/
+/** REC_TO_SRV_getMacAddress
+ * Get the broadcast Frame from Recorder
+ **/
 void Recorder::REC_TO_SRV_getMacAddress( BYTE* data, unsigned long size, void *sender ){
 	Recorder *rec = (Recorder*) sender;
 
-	//LOGGER_DEBUG( "Get Mac Addr: " );
 	memcpy( rec->_MacAddress, data , size );
-	//for (unsigned long i = 0; i < size; i++ ) printf("%c", rec->_MacAddress[i] );
 
-	//cout << " On Ip: " << rec->_IpAddr << endl;
+	rec->_IdRecorder = Mysql::getIdRecorderFromMac( SSTR(rec->_MacAddress).substr(0,12) );
 
-	// TODO : SEARCH IN MYSQL ID OF RECORDER BY MAC_ADDRESS - If not in DataBase add to availableList and return
+	if ( rec->_IdRecorder == 0 ){
+		LOGGER_WARN("Recorder Unkown : " << rec->_MacAddress << ". Ignore Request");
+		return;
+	}
 
-	LOGGER_DEBUG ( "SEND TCP port: " << CurrentApplicationConfig.TCP_serverPort << " FTP: " << CurrentApplicationConfig.FTP_serverPort); 	
 	BYTE req[] = { 0x42 , (BYTE)(CurrentApplicationConfig.TCP_serverPort >> 8),
 		(BYTE)(CurrentApplicationConfig.TCP_serverPort & 0xFF),
 		(BYTE)(CurrentApplicationConfig.FTP_serverPort >> 8), 
@@ -158,6 +188,9 @@ void Recorder::REC_TO_SRV_getMacAddress( BYTE* data, unsigned long size, void *s
 	rec->sendUdpFrame(ans, t);
 }
 
+/** REC_TO_SRV_ImageInfo
+ * Get the number of parts for image
+ **/
 void Recorder::REC_TO_SRV_ImageInfo( BYTE* data, unsigned long size, void *sender ){
 	if ( size != 2 )
 		return;
@@ -167,7 +200,7 @@ void Recorder::REC_TO_SRV_ImageInfo( BYTE* data, unsigned long size, void *sende
 
 	Recorder *rec = (Recorder*) sender;
 
-
+	// Free lasted image
 	if ( rec->_Image != NULL ){
 		for (int i =0; i < rec->_SizeImage ;i++){
 			if ( rec->_Image[i] != NULL ){
@@ -184,7 +217,7 @@ void Recorder::REC_TO_SRV_ImageInfo( BYTE* data, unsigned long size, void *sende
 		rec->_ImageParts = NULL;
 	}
 
-
+	// Allocate spaces for images
 	rec->_ImageParts = ( int * ) malloc ( sizeof(int) * ss);
 
 	memset(rec->_ImageParts,0,ss);
@@ -195,8 +228,10 @@ void Recorder::REC_TO_SRV_ImageInfo( BYTE* data, unsigned long size, void *sende
 	rec->_Count = 0;
 }
 
+/** REC_TO_SRV_ImagePart
+ * Get a part of Image
+ **/
 void Recorder::REC_TO_SRV_ImagePart( BYTE* data, unsigned long size, void *sender ){
-
 	if ( size < 3 )
 		return;
 
@@ -207,8 +242,7 @@ void Recorder::REC_TO_SRV_ImagePart( BYTE* data, unsigned long size, void *sende
 	rec->_ImageParts[ partNo ] = size - 2;
 
 	rec->_Count++;
-	//	cout << "Get Image Parts: " << partNo << " ==> " << rec->_Count << endl;
-
+	// cout << "Get Image Parts: " << partNo << " ==> " << rec->_Count << endl;
 
 	if ( rec->_Image[partNo] == NULL ){
 		rec->_Image[partNo] = ( char* ) malloc (sizeof(char)*size-2);
@@ -216,6 +250,9 @@ void Recorder::REC_TO_SRV_ImagePart( BYTE* data, unsigned long size, void *sende
 	}
 }
 
+/** REC_TO_SRV_imageCompletlySend
+ * Get From Recorder a signal to all images parts will be send
+ **/
 void Recorder::REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, void *sender ){
 	Recorder *rec = (Recorder*) sender;
 	list<int> l;
@@ -235,6 +272,7 @@ void Recorder::REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, vo
 
 
 	if ( l.size() == 0 ) {
+		LOGGER_DEBUG("Image completly Recieve");
 		// Y a toute l'image
 		ofstream myFile ("img.jpg", ios::out | ios::binary);
 		for (int i =0; i < rec->_SizeImage ;i++){
@@ -249,10 +287,10 @@ void Recorder::REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, vo
 		l.pop_front();
 		req[i++] = d >> 8 & 0xFF;
 		req[i++] = d & 0xFF;
-		//		cout << "Request for " << d << endl;
+		// cout << "Request for " << d << endl;
 	}
 
-	// Send Data
+	// Send idParts not recieve
 	BYTE* ans = NULL;
 	int t = rec->_CommunicationUdp->encodeData(req, &ans, siz );
 	usleep(100000);
@@ -262,7 +300,11 @@ void Recorder::REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, vo
 
 
 
-/// Tcp CallBacks
+/****************  TCP CallBacks  ****************/ 
+
+/** REC_TO_SRV_getSatut
+ * Recieve Status from Recorder
+ **/
 void Recorder::REC_TO_SRV_getStatut( BYTE* data, unsigned long size, void *sender ){
 	if ( size != 2 )
 		return;
@@ -272,37 +314,49 @@ void Recorder::REC_TO_SRV_getStatut( BYTE* data, unsigned long size, void *sende
 	rec->_StatutArd  = data[1];
 }
 
+/** REC_TO_SRV_authentificationAsk
+ * Recieve a Tag id from Recorder to verify UserRecorder
+ **/
 void Recorder::REC_TO_SRV_authentificationAsk( BYTE* data, unsigned long size, void *sender ){
 	if ( size != 8 ){
 		return;
 	}
 
 	Recorder *rec = (Recorder*)sender;
+	if ( rec->_IdRecorder == 0 ){
+		LOGGER_WARN("Authentification request ignore. Recorder unkown");
+		return;
+	}
+
 	uint64_t idCard = (uint64_t) ( (uint64_t) data[0] << 56 | (uint64_t) data[1] << 48 | (uint64_t )data[2] << 40 | (uint64_t) data[3] << 32 |
 			(uint64_t) data[4] << 24 | (uint64_t) data[5] << 16 | (uint64_t) data[6] << 8  | (uint64_t) data[7]);
-	LOGGER_DEBUG("Get authentification: " << idCard );				  
-	// TODO: SEARCH TAG IN DATABASE
-	bool exist = true;
-	if ( exist ){
-		uint64_t idUserRecorder = idCard ; // GET FROM DATABASE 
+
+	LOGGER_DEBUG("Search  authentification for: " << idCard );				  
+	rec->_IdUserRecording = Mysql::getIdUserRecorderFromTag( idCard );
+
+	if ( rec->_IdUserRecording != 0x00 ){
 		BYTE req[] = { ANS_AUTHENTIFICATION , 0x01, 
-			(uint8_t) (( idUserRecorder >> 56  )& 0xFF),
-			(uint8_t) (( idUserRecorder >> 48 ) & 0xFF),
-			(uint8_t) (( idUserRecorder >> 40 ) & 0xFF),
-			(uint8_t) (( idUserRecorder >> 32 ) & 0xFF),
-			(uint8_t) (( idUserRecorder >> 24 ) & 0xFF),
-			(uint8_t) (( idUserRecorder >> 16 ) & 0xFF),
-			(uint8_t) (( idUserRecorder >> 8 )  & 0xFF),
-			(uint8_t) (  idUserRecorder 	    & 0xFF)
+			(uint8_t) (( rec->_IdUserRecording >> 56 ) & 0xFF),
+			(uint8_t) (( rec->_IdUserRecording >> 48 ) & 0xFF),
+			(uint8_t) (( rec->_IdUserRecording >> 40 ) & 0xFF),
+			(uint8_t) (( rec->_IdUserRecording >> 32 ) & 0xFF),
+			(uint8_t) (( rec->_IdUserRecording >> 24 ) & 0xFF),
+			(uint8_t) (( rec->_IdUserRecording >> 16 ) & 0xFF),
+			(uint8_t) (( rec->_IdUserRecording >> 8 )  & 0xFF),
+			(uint8_t) (  rec->_IdUserRecording 	  & 0xFF)
 		};
 		rec->sendTcpFrame(req,10,true);
 	}
 	else{
+		LOGGER_WARN("Authentification Error : Tag unkown or invalid");
 		BYTE req[] = { ANS_AUTHENTIFICATION , 0x00 };
 		rec->sendTcpFrame(req,2,true);
 	}
 }
 
+/** REC_TO_SRV_ansParring
+ * Get parring statut
+ **/
 void Recorder::REC_TO_SRV_ansParring( BYTE* data, unsigned long size, void *sender ){
 	Recorder *rec = (Recorder*) sender;
 
@@ -318,6 +372,9 @@ void Recorder::REC_TO_SRV_ansParring( BYTE* data, unsigned long size, void *send
 	rec->_Tcp->sendAck( (BYTE*) ANS_ASK_APPARAIGE );
 }
 
+/** REC_TO_SRV_askSendFile
+ * Recieve a ask to send file with FTP
+ **/
 void Recorder::REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sender ){
 	Recorder *rec = (Recorder*) sender;
 	if ( rec->_IdRecorder == 0 )
@@ -346,6 +403,9 @@ void Recorder::REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sen
 	}
 }
 
+/** REC_TO_SRV_endFileTransfert
+ * Recieve a signal to end file transfert
+ **/
 void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void *sender ){
 	Recorder *rec = (Recorder*) sender;
 	if ( rec->_IdRecorder == 0 )
@@ -372,6 +432,9 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	rec->sendTcpFrame(req,2,true);
 }
 
+/** REC_TO_SRV_endFilesTransfert 
+ * Get signal for all files will be send for recording
+ **/
 void Recorder::REC_TO_SRV_endFilesTransfert( BYTE* data, unsigned long size, void *sender ){
 	Recorder *rec = (Recorder*) sender;
 
@@ -385,29 +448,42 @@ void Recorder::REC_TO_SRV_endFilesTransfert( BYTE* data, unsigned long size, voi
 	rec->_Tcp->sendAck( ( BYTE * )GET_END_TRANSFERT_FILES);
 }
 
-void Recorder::REC_TO_SRV_createRecording( BYTE* data, unsigned long size, void *sender) {
-	LOGGER_INFO("Create Recording");
+/** REC_TO_SRV_createRecording
+ * Receive a signal to create a recording
+ **/
+void Recorder::REC_TO_SRV_createRecording( BYTE* data, unsigned long size, void *sender) {	
 	Recorder *rec = (Recorder*) sender;
-	// TODO : MYSQL GENERATE ID RECORDING
-	uint64_t idRecording = 0x12345678;
-	
-	BYTE req[] = { SEND_RECORDING_ID , 
-			(uint8_t) (( idRecording >> 56 )& 0xFF),
-			(uint8_t) (( idRecording >> 48 ) & 0xFF),
-			(uint8_t) (( idRecording >> 40 ) & 0xFF),
-			(uint8_t) (( idRecording >> 32 ) & 0xFF),
-			(uint8_t) (( idRecording >> 24 ) & 0xFF),
-			(uint8_t) (( idRecording >> 16 ) & 0xFF),
-			(uint8_t) (( idRecording >> 8  )  & 0xFF),
-			(uint8_t) (  idRecording	 & 0xFF)
-		};
-		rec->sendTcpFrame(req,9,true);
+	if ( rec->_IdRecorder == 0x00 || rec->_IdUserRecording == 0x00 ){
+		LOGGER_WARN("Create Recording request ignore");
+		return;
+	}
+	uint64_t idRecording = Mysql::createRecording ( rec->_IdRecorder , rec->_IdUserRecording );
+	if ( idRecording == 0x00 ){
+		LOGGER_WARN( "Cannot create a Recording");
+		return;
+	}
 
+	LOGGER_INFO("Create new Recording " << idRecording << " to Recorder: " << rec->_IdRecorder );
+
+	BYTE req[] = { SEND_RECORDING_ID , 
+		(uint8_t) (( idRecording >> 56 ) & 0xFF),
+		(uint8_t) (( idRecording >> 48 ) & 0xFF),
+		(uint8_t) (( idRecording >> 40 ) & 0xFF),
+		(uint8_t) (( idRecording >> 32 ) & 0xFF),
+		(uint8_t) (( idRecording >> 24 ) & 0xFF),
+		(uint8_t) (( idRecording >> 16 ) & 0xFF),
+		(uint8_t) (( idRecording >> 8  ) & 0xFF),
+		(uint8_t) (  idRecording	 & 0xFF)
+	};
+	rec->sendTcpFrame(req,9,true);
 }
 
+/** REC_TO_SRV_recordingEnd
+ * Get signal for the end of the recording
+ **/
 void Recorder::REC_TO_SRV_recordingEnd( BYTE* data, unsigned long size, void *sender ){
 	if ( size != 8 ){
-		cout << "lenght error getRecordingEnd" << endl;
+		cout << "lenght error getRecordingEnd: " << size  << endl;
 		return;
 	}
 

@@ -6,6 +6,10 @@ typedef struct applicationConfiguration
 {
 	string iniFileName;
 	string FolderPath;
+	string MysqlHost;
+	string MysqlDatabase;
+	string MysqlUser;
+	string MysqlPassword;
 	uint32_t TCP_serverPort;
 	uint32_t UDP_serverPort;
 	uint32_t FTP_serverPort;
