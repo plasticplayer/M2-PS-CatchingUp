@@ -69,7 +69,7 @@ enum HEADER_Protocol {
 	ASK_VISU_CAM = 0x2C,
 	ASK_ID_RECORDING = 0x2D,
 	ANS_ID_RECORDING = 0x2E,
-	SEND_RecordingEnd = 0x2F,
+	SEND_RecordingEnd = 0x30,
 	ACK_TCP = 0x2F,
 	
 	//// UDP HEADERS
