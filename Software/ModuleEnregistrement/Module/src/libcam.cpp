@@ -232,8 +232,18 @@ bool Camera::Init()
 
 	if(-1 == xioctl (fd, VIDIOC_S_FMT, &fmt))
 	{
-		LOGGER_ERROR("Init Camera : " << name << " cannot set image size : error : "<<errno << ", ("<<strerror(errno)<<")");
-		return false;
+	    CLEAR (fmt);
+        fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.width       = width;
+        fmt.fmt.pix.height      = height;
+        fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+	    LOGGER_ERROR("Init Camera : Try 2");
+
+	    if(-1 == xioctl (fd, VIDIOC_S_FMT, &fmt))
+        {
+            LOGGER_ERROR("Init Camera : " << name << " cannot set image size : error : "<<errno << ", ("<<strerror(errno)<<")");
+            return false;
+        }
 	}
 
 

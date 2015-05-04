@@ -18,6 +18,7 @@
 #include "Linker.h"
 #include "StillCamera.h"
 #include "webCam.h"
+#include "SoundRecord.h"
 
 #include <getopt.h>
 
@@ -33,14 +34,14 @@
 #define INI_CAMERA_SECTION          "CAMERA"
 #define INI_CAMERA_RES_WIDTH        "WIDTH"
 #define INI_CAMERA_RES_HEIGHT       "HEIGHT"
-#define INI_CAMERA_DELAY_SEC        "DELAY"
+#define INI_CAMERA_DELAY_MSEC       "DELAYMS"
 
 #define INI_WEBCAM_SECTION          "WEBCAM"
 #define INI_WEBCAM_RES_WIDTH        "WIDTH"
 #define INI_WEBCAM_RES_HEIGHT       "HEIGHT"
 #define INI_WEBCAM_FPS              "FPS"
 #define INI_WEBCAM_DEVICE           "DEV"
-#define INI_WEBCAM_SPLIT	    "SPLIT"
+#define INI_WEBCAM_SPLIT            "SPLIT"
 
 typedef unsigned char BYTE ;
 
@@ -75,6 +76,7 @@ bool startUDPCommunication(applicationConfiguration& conf);
 bool startTCPCommunication(applicationConfiguration& conf);
 bool startCAM(applicationConfiguration& conf);
 bool startWebCam(applicationConfiguration& conf);
+bool startSound(applicationConfiguration& conf);
 bool startServo(applicationConfiguration& conf);
 
 /** Globaly available variables **/
@@ -98,6 +100,27 @@ void signal_handler(int signal_number)
 			w->stopRecording();
 		}
 		w->close();
+	}
+	if(StillCamera::isInUse())
+	{
+		LOGGER_DEBUG("Closing Camera ");
+		StillCamera * w = StillCamera::getCamera();
+		if(w->isRecording())
+		{
+			LOGGER_DEBUG("Stopping recording Camera ");
+			w->stopRecording();
+		}
+		w->destroy();
+	}
+	//if(SoundRecord::isInUse())
+	{
+		LOGGER_DEBUG("Closing Sound ");
+		SoundRecord * sound = SoundRecord::getSoundRecord();
+		if(sound != NULL && sound->isRecording())
+		{
+			LOGGER_DEBUG("Stopping sound recording ");
+			sound->stopRecording();
+		}
 	}
 	exit(255);
 }
@@ -266,6 +289,18 @@ int main(int argc, char * argv[])
 		LOGGER_DEBUG("WebCam OK");
 #endif
 
+	LOGGER_DEBUG("Starting Sound test");
+	if(!startSound(CurrentApplicationConfig))
+	{
+		LOGGER_ERROR("Cannot Sound ");
+#ifdef EXIT_ON_ERROR
+		LOGGER_ERROR("Exiting");
+		return -1;
+#endif
+	}
+	else
+		LOGGER_DEBUG("Sound OK");
+
 
 	while ( char c = getchar() )
 	{
@@ -324,12 +359,12 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_RES_HEIGHT,"1944");
 	conf.camera.height = strtoull(s.c_str(), NULL, 10);
 
-	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_DELAY_SEC,"1");
-	conf.camera.delay = strtoull(s.c_str(), NULL, 10);
+	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_DELAY_MSEC,"10000");
+	conf.camera.delayMs = strtoull(s.c_str(), NULL, 10);
 
 
-    s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_DEVICE,"/dev/video0");
-    conf.webcam.device = s;
+	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_DEVICE,"/dev/video0");
+	conf.webcam.device = s;
 
 	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_RES_WIDTH,"800");
 	conf.webcam.width = strtoull(s.c_str(), NULL, 10);
@@ -356,7 +391,7 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	LOGGER_CONFIG("PATH                : \t "<< conf.Data_path);
 	LOGGER_CONFIG("-------------    CAMERA CONFIGURATION    -----------------");
 	LOGGER_CONFIG("RESOLUTION          : \t ["<< conf.camera.width << " x "<< conf.camera.height << "]");
-	LOGGER_CONFIG("DELAY (SEC)         : \t "<< conf.camera.delay );
+	LOGGER_CONFIG("DELAY (mS)          : \t "<< conf.camera.delayMs );
 	LOGGER_CONFIG("-------------    WEBCAM CONFIGURATION    -----------------");
 	LOGGER_CONFIG("DEVICE              : \t "<< conf.webcam.device );
 	LOGGER_CONFIG("RESOLUTION          : \t ["<< conf.webcam.width << " x "<< conf.webcam.height << "]");
@@ -435,6 +470,7 @@ bool startCAM(applicationConfiguration& conf)
 	state.preview_parameters.wantPreview=0;
 
 	StillCamera * cam = new StillCamera(state);
+	cam->setSleepTime(conf.camera.delayMs);
 	uint8_t * buff = NULL;
 	int sizeBuff = 0;
 	if(cam->init())
@@ -471,6 +507,24 @@ bool startWebCam(applicationConfiguration& conf)
 	return resultTest;
 }
 
+bool startSound(applicationConfiguration& conf)
+{
+	SoundRecord * sound ;
+	if((sound = SoundRecord::getSoundRecord()) == NULL)
+		sound = new SoundRecord("plughw:1");
+	return true;
+	/*if(!sound->isRecording())
+	    LOGGER_VERB("Not recording !");
+	Recording * rec = new Recording(1);
+	rec->makeDirectory();
+	sound->startRecording(rec);
+	if(!sound->isRecording())
+	    LOGGER_VERB("Not recording !");
+
+	usleep(10000000);
+	sound->stopRecording();*/
+
+}
 bool parseCommandLine(int argc, char * argv[], applicationConfiguration& conf)
 {
 	/* **************************

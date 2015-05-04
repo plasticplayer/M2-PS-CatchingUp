@@ -2,7 +2,7 @@
 #include "logger.h"
 #include "Recording.h"
 #include "define.h"
-
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <iostream>
 #include <dirent.h>
@@ -28,7 +28,15 @@ Recording::Recording( uint64_t idRecording ){
 	_isFinished  = false;
 	_Recordings.push_back(this);
 }
-
+void Recording::makeDirectory()
+{
+	DIR *rep = opendir(_folderRecording.c_str());
+	if(rep == NULL)
+	{
+		LOGGER_VERB("Must create directory : " << _folderRecording);
+		mkdir(_folderRecording.c_str(), 0777);
+	}
+}
 bool Recording::startRecord(){
 	if ( _isFinished )
 		return false;

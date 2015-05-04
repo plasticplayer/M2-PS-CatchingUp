@@ -30,14 +30,14 @@ public:
 	static RecordingFile* getNextFile();
 	static bool loadRecordings();
 	static uint64_t _FilesNotUpload;
-    string _folderRecording;
+	void makeDirectory();
+	string _folderRecording;
 protected:
 
 
 private:
 	static list<Recording *> _Recordings;
 	static void loadRecordingFolder( string folder, string fold );
-
 	list<RecordingFile *> _Files;
 	uint64_t _IdRecording;
 	bool _isRecording;

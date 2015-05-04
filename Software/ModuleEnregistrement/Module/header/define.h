@@ -7,7 +7,7 @@ struct _cameraConfiguration
 {
 	unsigned int width;
 	unsigned int height;
-	unsigned int delay;
+	unsigned int delayMs;
 
 };
 struct _webcamConfiguration

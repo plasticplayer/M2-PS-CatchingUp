@@ -1,8 +1,10 @@
+#include "Config.h"
 #include <iostream>
 #include <string>
 #include "StillCamera.h"
 #include "RaspiStill.h"
-#include "Config.h"
+#include "Recording.h"
+
 
 StillCamera * StillCamera::_instance;
 
@@ -15,13 +17,19 @@ StillCamera::StillCamera(RASPISTILL_STATE newState)
 		encoder_input_port = NULL;
 		encoder_output_port= NULL;
 
+		_recording = false;
 		_frameID = 1;
+		_sleepTimeMS = 1000;
 		StillCamera::_instance = this;
 	}
 }
 StillCamera * StillCamera::getCamera()
 {
 	return StillCamera::_instance;
+}
+void StillCamera::setSleepTime(unsigned int milliseconds)
+{
+    _sleepTimeMS = milliseconds;
 }
 bool StillCamera::init()
 {
@@ -91,7 +99,7 @@ bool StillCamera::init()
 
 }
 
-bool StillCamera::saveSnapshot(string baseFileName,bool counter)
+bool StillCamera::saveSnapshot(string& baseFileName,bool counter)
 {
 	bool statusSnap = true;
 	VCOS_STATUS_T vcos_status;
@@ -104,6 +112,7 @@ bool StillCamera::saveSnapshot(string baseFileName,bool counter)
 	else
 		use_filename = baseFileName ;
 
+    baseFileName = use_filename;
 	//if (state.timelapse)
 	//asprintf(&use_filename, state.filename, frame);
 
@@ -343,3 +352,56 @@ bool StillCamera::isInUse()
 {
 	return StillCamera::_instance != NULL;
 }
+
+
+bool StillCamera::startRecording(Recording * recording)
+{
+	_CurrentRecording = recording;
+	if(_CurrentRecording == NULL)
+		return false;
+	_recording = true;
+	_folderRecording = _CurrentRecording->_folderRecording;
+	_RecordingNumber = 1;
+	LOGGER_VERB("Creating Image Recording Thread ! Folder : " << this->_folderRecording );
+	int ret = pthread_create(&_ThreadRecording , NULL, &(this->_threadRecord), (void *) this) ;
+	return ret == 0;
+}
+bool StillCamera::isRecording()
+{
+    return _recording;
+}
+bool StillCamera::stopRecording()
+{
+	if(_recording)
+	{
+		_recording = false;
+		pthread_join(_ThreadRecording,NULL);
+		destroy();
+		return true;
+	}
+	destroy();
+	return false;
+
+}
+
+void * StillCamera::_threadRecord( void * arg)
+{
+	StillCamera * thisObj = (StillCamera *) arg;
+	LOGGER_DEBUG("Starting Image Recording Thread !");
+	while(thisObj->_recording)
+	{
+        string filePath = SSTR(thisObj->_CurrentRecording->_folderRecording << "/snap" );
+        thisObj->saveSnapshot(filePath,true);
+        RecordingFile * file = new RecordingFile();
+        file->isInRecord = false;
+        unsigned int foundPos = filePath.find_last_of("/");
+        file->fileName = filePath.substr(foundPos+1);
+        file->path = filePath;
+        //LOGGER_VERB("File path : " << filePath << " file name : " << file->fileName);
+        thisObj->_CurrentRecording->addFile(file);
+		usleep(thisObj->_sleepTimeMS * 1000);
+	}
+	return NULL;
+}
+
+

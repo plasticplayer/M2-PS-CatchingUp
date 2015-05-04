@@ -20,6 +20,7 @@
 
 #include "encode.h"
 #include "webCam.h"
+#include "Recording.h"
 
 using namespace std;
 
@@ -158,12 +159,15 @@ void Webcam::grabImage( char *buf, int32_t * filledLen)
 	*filledLen = _imageHeight * _imageWidth * 3;
 }
 
-bool Webcam::startRecording(string folder)
+bool Webcam::startRecording(Recording * recording)
 {
+	_CurrentRecording = recording;
+	if(_CurrentRecording == NULL)
+		return false;
 	_recording = true;
-	_folderRecording = folder;
-	_RecordingNumer = 1;
-	LOGGER_VERB("Creating Video Recording Thread ! Folder : " << this->_folderRecording << " R : " << this->_RecordingNumer );
+	_folderRecording = _CurrentRecording->_folderRecording;
+	_RecordingNumber = 1;
+	LOGGER_VERB("Creating Video Recording Thread ! Folder : " << this->_folderRecording << " R : " << this->_RecordingNumber );
 	int ret = pthread_create(&_ThreadRecording , NULL, &(this->_threadRecord), (void *) this) ;
 	return ret == 0;
 }
@@ -176,7 +180,7 @@ bool Webcam::stopRecording()
 		close();
 		return true;
 	}
-close();
+	close();
 	return false;
 
 }
@@ -187,7 +191,7 @@ void * Webcam::_threadRecord( void * arg)
 
 	LOGGER_DEBUG("Starting Video Recording Thread !");
 	FILE * fichierH264;
-	string fileName = SSTR(thisObj->_folderRecording << "/" << thisObj->_RecordingNumer << ".h264");
+	string fileName = SSTR(thisObj->_folderRecording << "/" << thisObj->_RecordingNumber << ".h264");
 	fichierH264 = fopen (fileName.c_str()  ,"wb+");
 	if(fichierH264 == NULL)
 	{
@@ -198,21 +202,32 @@ void * Webcam::_threadRecord( void * arg)
 
 	if(!initH264(thisObj->_imageHeight,thisObj->_imageWidth,thisObj->_frameRate))
 	{
-		LOGGER_ERROR("Cannot init hardware H.264 encoder !");
-		thisObj->_recording = false;
-		if(fichierH264 != NULL)
-			fclose (fichierH264);
-		return NULL;
+		// try 2 times to open the camera
+		if(!initH264(thisObj->_imageHeight,thisObj->_imageWidth,thisObj->_frameRate))
+		{
+			LOGGER_ERROR("Cannot init hardware H.264 encoder !");
+			thisObj->_recording = false;
+			if(fichierH264 != NULL)
+				fclose (fichierH264);
+			return NULL;
+		}
 	}
 
 	if(!thisObj->_Camera->Open() || !thisObj->_Camera->Init() || !thisObj->_Camera->Start())
 	{
-		LOGGER_ERROR("Cannot start webcam !");
-		thisObj->_recording = false;
-		deinitH264();
-		if(fichierH264 != NULL)
-			fclose (fichierH264);
-		return NULL;
+        /*thisObj->_Camera->Stop();
+        thisObj->_Camera->UnInit();
+		// try 2 times to open the camera
+		LOGGER_WARN("Open webcam : Try 2 ");
+		if(!thisObj->_Camera->Open() || !thisObj->_Camera->Init() || !thisObj->_Camera->Start())*/
+		{
+			LOGGER_ERROR("Cannot start webcam !");
+			thisObj->_recording = false;
+			deinitH264();
+			if(fichierH264 != NULL)
+				fclose (fichierH264);
+			return NULL;
+		}
 
 	}
 
@@ -233,7 +248,7 @@ void * Webcam::_threadRecord( void * arg)
 
 		gettimeofday(&now,NULL);
 		timeAct = now.tv_sec + now.tv_usec*1e-6;
-		
+
 		if(thisObj->_splitTimeSeconds > 0)
 		{
 			timeDiff = timeAct - timeLastSplit;
@@ -244,7 +259,15 @@ void * Webcam::_threadRecord( void * arg)
 
 				if(fichierH264 != NULL)
 					fclose (fichierH264);
-				string fileName = SSTR(thisObj->_folderRecording << "/" << ++thisObj->_RecordingNumer << ".h264");
+				// Creating a recording file (to be send over the network later)
+				RecordingFile * file = new RecordingFile();
+				file->isInRecord = false;
+				file->fileName = SSTR((int)thisObj->_RecordingNumber << ".h264");
+				file->path = fileName;
+				// Adding the file to the current recording
+				thisObj->_CurrentRecording->addFile(file);
+
+				string fileName = SSTR(thisObj->_folderRecording << "/" << ++thisObj->_RecordingNumber << ".h264");
 				fichierH264 = fopen (fileName.c_str()  ,"wb+");
 				if(fichierH264 == NULL)
 				{
@@ -253,13 +276,14 @@ void * Webcam::_threadRecord( void * arg)
 					return NULL;
 				}
 			}
-		}	
+		}
 		frameCounter ++;
 
 		//if (frameCounter%10) // On ne verifie que les FPS que toutes les 10 images
 		{
 			timeDiff = timeAct -timePast;
-			if ( timeDiff > 1) { // Calcul des FPS une fois par seconde
+			if ( timeDiff > 1)   // Calcul des FPS une fois par seconde
+			{
 				//lastFPS = (float)frameCounter/timeDiff;
 				LOGGER_VERB("FPS :" << (float)frameCounter/timeDiff);
 				timePast = timeAct;
@@ -271,6 +295,14 @@ void * Webcam::_threadRecord( void * arg)
 
 	if(fichierH264 != NULL)
 		fclose (fichierH264);
+
+	// Creating a recording file (to be send over the network later)
+	RecordingFile * file = new RecordingFile();
+	file->isInRecord = false;
+	file->fileName = SSTR(thisObj->_RecordingNumber << ".h264");
+	file->path = fileName;
+	// Adding the file to the current recording
+	thisObj->_CurrentRecording->addFile(file);
 	return NULL;
 }
 

@@ -5,6 +5,8 @@
 #include <stdint.h>
 
 #include "webCam.h"
+#include "StillCamera.h"
+#include "SoundRecord.h"
 #include "Nrf24.h"
 #include "define.h"
 #include "ftplib.h"
@@ -98,15 +100,18 @@ RecordingFile *fileInUpload = NULL;
 /** initRecording
  * Loads Recordings from file
  **/
-bool initRecording(){
+bool initRecording()
+{
 	return Recording::loadRecordings();
 }
 
 /** initNrfCallBacks
  * Configure Nrf and links to CallBack's functions
  **/
-void initNrfCallBacks(){
-	if ( Nrf24::_Nrf == NULL ){
+void initNrfCallBacks()
+{
+	if ( Nrf24::_Nrf == NULL )
+	{
 		LOGGER_ERROR("Nrf is Null");
 		return;
 	}
@@ -123,8 +128,10 @@ void initNrfCallBacks(){
 /** initUdpCallBacks
  * 	Configure Udp and links to CallBack's functions
  **/
-void initUdpCallBacks(){
-	if ( Udp::_udp == NULL ){
+void initUdpCallBacks()
+{
+	if ( Udp::_udp == NULL )
+	{
 		LOGGER_ERROR("Udp is Null");
 		return;
 	}
@@ -136,8 +143,10 @@ void initUdpCallBacks(){
 /** initTcpCallBacks
  * 	Configure Tcp and links to CallBack's functions
  **/
-void initTcpCallBacks(){
-	if ( Tcp::_tcp == NULL ){
+void initTcpCallBacks()
+{
+	if ( Tcp::_tcp == NULL )
+	{
 		LOGGER_ERROR("Tcp is Null");
 		return;
 	}
@@ -155,7 +164,8 @@ void initTcpCallBacks(){
 
 
 /******** -------------------------- 	Common -------------------------- ********/
-void transactionError( BYTE data[], int size ){
+void transactionError( BYTE data[], int size )
+{
 	char tmp[250];
 	tmp[0] = '\0';
 	for(int i = 0; i < size; i++)
@@ -166,20 +176,13 @@ void transactionError( BYTE data[], int size ){
 
 
 
-void forceStartRecording(){
-	if(Webcam::isInUse())
-	{
-		Webcam * cam = Webcam::getWebcam();
-		cam->startRecording("/home/pi/Record");
-	}
+void forceStartRecording()
+{
+	startRecording(1);
 }
-void forceStopRecording(){
-
-	if(Webcam::isInUse())
-	{
-		Webcam * cam = Webcam::getWebcam();
-		cam->stopRecording();
-	}
+void forceStopRecording()
+{
+	stopRecording();
 }
 
 
@@ -189,7 +192,8 @@ void forceStopRecording(){
 /** ParringNrf
  *	Set Module in NRF Parking Mode. Send pooling Frame
  **/
-void ParringNrf(){
+void ParringNrf()
+{
 	LOGGER_INFO("Starting Parring");
 	Nrf24::_Nrf->clearCommunications();
 	isParking = true;
@@ -203,7 +207,8 @@ void ParringNrf(){
 /** REC_TO_SRV_AckImage
  * Send to Server a Frame to signal end of Image Transfert
  **/
-void REC_TO_SRV_AckImage(){
+void REC_TO_SRV_AckImage()
+{
 	BYTE datas[ ] = { SEND_IMAGE_COMPLETLY_SEND , (uint8_t) ((_ImageParts >> 8)&0xFF), (uint8_t)( _ImageParts & 0xFF) };
 	_WaitAckImage = true;
 
@@ -218,16 +223,18 @@ void REC_TO_SRV_AckImage(){
 /** REC_TO_SRV_allFilesSends
  * Send a Frame to Server for signal that all file have been uploaded for the recording
  **/
-void REC_TO_SRV_allFilesSends( uint64_t idRecording ){
+void REC_TO_SRV_allFilesSends( uint64_t idRecording )
+{
 	BYTE res[] = { ALL_FILES_SEND,
-		(uint8_t) (( idRecording>>56) & 0xFF),
-		(uint8_t) (( idRecording>>48) & 0xFF),
-		(uint8_t) (( idRecording>>40) & 0xFF),
-		(uint8_t) (( idRecording>>32) & 0xFF),
-		(uint8_t) (( idRecording>>24) & 0xFF),
-		(uint8_t) (( idRecording>>16) & 0xFF),
-		(uint8_t) (( idRecording>>8 ) & 0xFF),
-		(uint8_t) (  idRecording      & 0xFF)};
+				   (uint8_t) (( idRecording>>56) & 0xFF),
+				   (uint8_t) (( idRecording>>48) & 0xFF),
+				   (uint8_t) (( idRecording>>40) & 0xFF),
+				   (uint8_t) (( idRecording>>32) & 0xFF),
+				   (uint8_t) (( idRecording>>24) & 0xFF),
+				   (uint8_t) (( idRecording>>16) & 0xFF),
+				   (uint8_t) (( idRecording>>8 ) & 0xFF),
+				   (uint8_t) (  idRecording      & 0xFF)
+				 };
 
 	Tcp::_tcp->sendData(res,9,true);
 }
@@ -235,18 +242,21 @@ void REC_TO_SRV_allFilesSends( uint64_t idRecording ){
 /** REC_TO_SRV_ImagePart
  *	Send to Server a part of image
  **/
-void REC_TO_SRV_ImagePart( int noPart ){
+void REC_TO_SRV_ImagePart( int noPart )
+{
 	BYTE datas[ MAX_SIZE_UDP+3 ];
 	datas[0] = SEND_IMAGE;
 
 	datas[1] = (noPart >> 8)&0xFF;
 	datas[2] = noPart & 0xFF;
 
-	if ( noPart != ( _ImageParts-1) ){
+	if ( noPart != ( _ImageParts-1) )
+	{
 		memcpy(datas+3,_ImageContent+(noPart*MAX_SIZE_UDP),MAX_SIZE_UDP);
 		Udp::_udp->send(datas,MAX_SIZE_UDP+3,_TcpInfo->ipAddress);
 	}
-	else{
+	else
+	{
 		memset(datas+3,0,MAX_SIZE_UDP);
 		int s = _ImageSize - (noPart*MAX_SIZE_UDP);
 		memcpy(datas+3,_ImageContent+(noPart*MAX_SIZE_UDP),s);
@@ -258,18 +268,22 @@ void REC_TO_SRV_ImagePart( int noPart ){
 /** REC_TO_SRV_Image
  * Send Image of a camera to Server
  **/
-void REC_TO_SRV_Image( BYTE idCam ){
+void REC_TO_SRV_Image( BYTE idCam )
+{
 	// Ignore if Tcp not connected
-	if ( _TcpInfo->port == -1 ){
+	if ( _TcpInfo->port == -1 )
+	{
 		return;
 	}
 
-	if ( isRecording ){
+	if ( isRecording )
+	{
 		LOGGER_WARN("Can't get image: Currently recording");
 		return;
 	}
 	// Load image from Camera
-	if ( getImageFromCam( idCam ) == false ){
+	if ( getImageFromCam( idCam ) == false )
+	{
 		LOGGER_WARN("Can't get image");
 		return;
 	}
@@ -284,7 +298,8 @@ void REC_TO_SRV_Image( BYTE idCam ){
 	Udp::_udp->send(datas,3,_TcpInfo->ipAddress);
 
 	// Send All Parts
-	for (int i = 0; i < _ImageParts; i++){
+	for (int i = 0; i < _ImageParts; i++)
+	{
 		REC_TO_SRV_ImagePart( i );
 	}
 
@@ -295,7 +310,8 @@ void REC_TO_SRV_Image( BYTE idCam ){
 /** REC_TO_SRV_TcpAck
  * Send a Ack to Server
  **/
-void REC_TO_SRV_TcpAck( BYTE command ) {
+void REC_TO_SRV_TcpAck( BYTE command )
+{
 	BYTE d[] = { ACK_TCP , command };
 	Tcp::_tcp->sendData(d,2,false);
 }
@@ -303,11 +319,13 @@ void REC_TO_SRV_TcpAck( BYTE command ) {
 /** REC_TO_SRV_StorageAsk
  * Send a Request to send a file In Tcp
  **/
-void REC_TO_SRV_StorageAsk( unsigned long fileInQueue ) {
+void REC_TO_SRV_StorageAsk( unsigned long fileInQueue )
+{
 	int size = fileInQueue / 256 + 1;
 	BYTE res[size + 1];
 	res[0] = SEND_STORAGE_REQUEST;
-	for ( int i = 0; i < size; i++ ){
+	for ( int i = 0; i < size; i++ )
+	{
 		res[i+1] = ( fileInQueue >> (8*(size-i-1))) & 0xFF ;
 	}
 	LOGGER_VERB("Send Storage Ask : " << fileInQueue );
@@ -317,7 +335,8 @@ void REC_TO_SRV_StorageAsk( unsigned long fileInQueue ) {
 /** REC_TO_SRV_EndFileTransfert
  * Send to Server Frame to signal the end of a File Upload
  **/
-void REC_TO_SRV_EndFileTransfert( uint64_t chksum, char* fileName, BYTE nameLength ){
+void REC_TO_SRV_EndFileTransfert( uint64_t chksum, char* fileName, BYTE nameLength )
+{
 	BYTE res [ 10 + nameLength ];
 	res[0] = SEND_FILE_SEND_TCP;
 	res[1] = nameLength; // SizeOf Name
@@ -336,9 +355,11 @@ void REC_TO_SRV_EndFileTransfert( uint64_t chksum, char* fileName, BYTE nameLeng
 /** REC_TO_SRV_Authenification
  * Send to Server Tag Id to validate Card
  **/
-void REC_TO_SRV_Authenification( uint64_t idTag ){
+void REC_TO_SRV_Authenification( uint64_t idTag )
+{
 	LOGGER_VERB("Send to SRV authentification Request ");
-	BYTE res[] = {
+	BYTE res[] =
+	{
 		SEND_AUTHENTIICATION_REQUEST_TCP,
 		(uint8_t) (( idTag >> 56  )& 0xFF),
 		(uint8_t) (( idTag >> 48 ) & 0xFF),
@@ -355,7 +376,8 @@ void REC_TO_SRV_Authenification( uint64_t idTag ){
 /** REC_TO_ACT_AuthenificationAns
  * Send to Act Authentication answer
  **/
-void REC_TO_ACT_AuthenificationAns( bool authorisation ){
+void REC_TO_ACT_AuthenificationAns( bool authorisation )
+{
 	LOGGER_VERB("Ans Anthentification to NRF : " << authorisation );
 	BYTE answer[] = { AUTH_ANS, ( authorisation )?(uint8_t)0x01:(uint8_t)0x00 } ;
 	Nrf24::_Nrf->sendBuffer(AUTH_ANS,answer,2,false, 0);
@@ -364,7 +386,8 @@ void REC_TO_ACT_AuthenificationAns( bool authorisation ){
 /** REC_TO_SRV_IdRecording
  * Send to SRV to get recording Id
  **/
-void REC_TO_SRV_IdRecording(){
+void REC_TO_SRV_IdRecording()
+{
 	BYTE res[] = { ASK_ID_RECORDING };
 	Tcp::_tcp->sendData(res, 1 ,false);
 }
@@ -372,9 +395,11 @@ void REC_TO_SRV_IdRecording(){
 /** REC_TO_SRV_RECORDING_END
  * Send To SRV the end OF Records
  **/
-void REC_TO_SRV_RECORDING_END(uint64_t idRecording){
+void REC_TO_SRV_RECORDING_END(uint64_t idRecording)
+{
 	LOGGER_VERB("SEND RECORDING END" << idRecording );
-	BYTE res[] = {
+	BYTE res[] =
+	{
 		SEND_RecordingEnd,
 		(uint8_t) (( idRecording >> 56  )& 0xFF),
 		(uint8_t) (( idRecording >> 48 ) & 0xFF),
@@ -391,7 +416,8 @@ void REC_TO_SRV_RECORDING_END(uint64_t idRecording){
 /** REC_TO_SRV_ParringStatus
  * Send To SRV the state of Parring
  **/
-void REC_TO_SRV_ParringStatus( bool succes ){
+void REC_TO_SRV_ParringStatus( bool succes )
+{
 	BYTE res[] = { ANS_PARIRING , ( succes == true ) ?(BYTE) 0x01 :(BYTE) 0x00 } ;
 	Tcp::_tcp->sendData(res, 2 ,true);
 }
@@ -404,7 +430,8 @@ void REC_TO_SRV_ParringStatus( bool succes ){
 /** ACT_TO_REC_ACK
  * Acknowledged received from Nrf
  **/
-void ACT_TO_REC_ACK(BYTE data[], int size){
+void ACT_TO_REC_ACK(BYTE data[], int size)
+{
 	if ( size == 0 )
 		return;
 
@@ -420,7 +447,8 @@ void ACT_TO_REC_ACK(BYTE data[], int size){
 /** ACT_TO_REC_Authentification
  * Callback When a Tag is put on RIFD Reader
  **/
-void ACT_TO_REC_Authentification( BYTE data[], int size ){
+void ACT_TO_REC_Authentification( BYTE data[], int size )
+{
 	// Refused request if Nrf in is Parking Mode
 	if ( isParking == true || Nrf24::_Nrf->_State != WAIT_FOR_DATA )
 		return;
@@ -438,42 +466,48 @@ void ACT_TO_REC_Authentification( BYTE data[], int size ){
 /** ACT_TO_REC_StatusRequest
  *	CallBack when receive a demand of status from NRF
  **/
-void ACT_TO_REC_StatusRequest( BYTE data[], int size ){
+void ACT_TO_REC_StatusRequest( BYTE data[], int size )
+{
 	LOGGER_DEBUG("Status Nrf request received");
-	if ( isParking == true ){
+	if ( isParking == true )
+	{
 		LOGGER_WARN("Module in Parking => Status request ignored");
-			return;
+		return;
 	}
 
 	// TODO : When size can have a size of -1 ???
-	if ( size == -1 ){
+	if ( size == -1 )
+	{
 		BYTE answer[] = {  STATUS_ASK, ( isRecording )?(uint8_t)0x01:(uint8_t)0x00 } ;
-			Nrf24::_Nrf->sendBuffer(STATUS_ASK, answer, sizeof(answer), false, 0);
-			return;
+		Nrf24::_Nrf->sendBuffer(STATUS_ASK, answer, sizeof(answer), false, 0);
+		return;
 	}
 
 	// Send to Nrf the status of this module
 	BYTE answer[] = {  STATUS_ANS, ( isRecording )?(uint8_t)0x01 : (uint8_t)0x00 } ;
-		Nrf24::_Nrf->sendBuffer(STATUS_ANS, answer, sizeof(answer), true, 0);
+	Nrf24::_Nrf->sendBuffer(STATUS_ANS, answer, sizeof(answer), true, 0);
 }
 
 /** ACT_TO_REC_StatusAns
  * 	CallBack when Receive status from Nrf
  **/
-void ACT_TO_REC_StatusAns( BYTE data[], int size ){
+void ACT_TO_REC_StatusAns( BYTE data[], int size )
+{
 	LOGGER_DEBUG("Status Nrf Ans received");
-	if ( isParking == true ){
+	if ( isParking == true )
+	{
 		LOGGER_WARN("Module in Parking => Status Ans ignored" );
 		return;
 	}
 	// TODO : Why The delete Frame is here ?
-	if ( ! Nrf24::_Nrf->_FrameToSend.empty()  ){
+	if ( ! Nrf24::_Nrf->_FrameToSend.empty()  )
+	{
 		Frame f =  Nrf24::_Nrf->_FrameToSend.front();
-			if ( f.header == STATUS_ASK )
-			{
-				Nrf24::_Nrf->_FrameToSend.pop_front();
-					Nrf24::_Nrf->_State = WAIT_FOR_DATA;
-			}
+		if ( f.header == STATUS_ASK )
+		{
+			Nrf24::_Nrf->_FrameToSend.pop_front();
+			Nrf24::_Nrf->_State = WAIT_FOR_DATA;
+		}
 	}
 	Nrf24::_Nrf->sendAck(STATUS_ANS);
 }
@@ -481,21 +515,25 @@ void ACT_TO_REC_StatusAns( BYTE data[], int size ){
 /** ACT_TO_REC_ControlRequest
  * 	CallBack when Nrf ask to start/stop a recording
  **/
-void ACT_TO_REC_ControlRequest( BYTE data[], int size ){
+void ACT_TO_REC_ControlRequest( BYTE data[], int size )
+{
 	LOGGER_DEBUG("Control request received : " << (int)data[0]);
-		if ( isParking == true || Nrf24::_Nrf->_State != WAIT_FOR_DATA ){
-			LOGGER_WARN("Module in Parking OR Waiting for data => Control request ignored");
-				return;
-		}
+	if ( isParking == true || Nrf24::_Nrf->_State != WAIT_FOR_DATA )
+	{
+		LOGGER_WARN("Module in Parking OR Waiting for data => Control request ignored");
+		return;
+	}
 
 	if ( data[0] == 0x01 )
 	{
 		// Start Recording
-		if ( isRecording ){
+		if ( isRecording )
+		{
 			LOGGER_WARN("Module in already in RecordMode. Ignore request");
 			return;
 		}
-		if ( _IdUserRecorder == 0x00 ){
+		if ( _IdUserRecorder == 0x00 )
+		{
 			LOGGER_WARN("No Tag Presented. Ignore request");
 			return;
 		}
@@ -504,7 +542,8 @@ void ACT_TO_REC_ControlRequest( BYTE data[], int size ){
 	else
 	{
 		// Stop Recording
-		if ( ! isRecording ){
+		if ( ! isRecording )
+		{
 			LOGGER_WARN("Module isn't in RecordMode. Ignore request");
 			return;
 		}
@@ -516,34 +555,38 @@ void ACT_TO_REC_ControlRequest( BYTE data[], int size ){
 /** ACT_TO_REC_PoolingParkingAns
  * 	Callback when ??
  **/
-void ACT_TO_REC_PoolingParkingAns(BYTE data[], int size){
-	if ( isParking == false ){
+void ACT_TO_REC_PoolingParkingAns(BYTE data[], int size)
+{
+	if ( isParking == false )
+	{
 		return;
 	}
 	// TODO: N'authoriser qu'une suele réponse par demande d'appairage
 	Nrf24::_Nrf->clearCommunications();
-		//LOGGER_DEBUG("Appairage ID recieved :" << std::uppercase << std::hex << data[0] << " " << std::uppercase << std::hex<< data[1]);
+	//LOGGER_DEBUG("Appairage ID recieved :" << std::uppercase << std::hex << data[0] << " " << std::uppercase << std::hex<< data[1]);
 
-		memcpy(idGenerate,data,2);
+	memcpy(idGenerate,data,2);
 
-		BYTE answer[] = {  	POOL_SET_ADDR , idGenerate[0] , idGenerate[1] ,
-			(uint8_t)((addressGenerate[0]>>24) & 0xFF), (uint8_t)((addressGenerate[0]>>16) & 0xFF),  (uint8_t)((addressGenerate[0]>>8) & 0xFF),  (uint8_t)((addressGenerate[0] & 0xFF)),
-				(uint8_t)((addressGenerate[1]>>24) & 0xFF) ,(uint8_t)((addressGenerate[1]>>16) & 0xFF),  (uint8_t)((addressGenerate[1]>>8) & 0xFF),  (uint8_t)((addressGenerate[1] & 0xFF)),
-		} ;
+	BYTE answer[] = {  	POOL_SET_ADDR , idGenerate[0] , idGenerate[1] ,
+						(uint8_t)((addressGenerate[0]>>24) & 0xFF), (uint8_t)((addressGenerate[0]>>16) & 0xFF),  (uint8_t)((addressGenerate[0]>>8) & 0xFF),  (uint8_t)((addressGenerate[0] & 0xFF)),
+						(uint8_t)((addressGenerate[1]>>24) & 0xFF) ,(uint8_t)((addressGenerate[1]>>16) & 0xFF),  (uint8_t)((addressGenerate[1]>>8) & 0xFF),  (uint8_t)((addressGenerate[1] & 0xFF)),
+					} ;
 	Nrf24::_Nrf->sendBuffer(POOL_SET_ADDR, answer ,sizeof(answer) , false, 5);
 }
 
 /** ACT_TO_REC_ValidateParringConfig
  * 	CallBack when Nrf validate configuration
  **/
-void ACT_TO_REC_ValidateParringConfig(BYTE data[], int size){
-	if ( isParking == false ){
+void ACT_TO_REC_ValidateParringConfig(BYTE data[], int size)
+{
+	if ( isParking == false )
+	{
 		return;
 	}
 	isParking = false;
-		Nrf24::_Nrf->clearCommunications();
-		
-		Nrf24::_Nrf->sendAck(POOL_VALIDATE_CONFIG);
+	Nrf24::_Nrf->clearCommunications();
+
+	Nrf24::_Nrf->sendAck(POOL_VALIDATE_CONFIG);
 	// Wait for ack will send
 	usleep(2500000);
 	// Configure the new Addresses
@@ -561,7 +604,8 @@ void ACT_TO_REC_ValidateParringConfig(BYTE data[], int size){
 /** SRV_TO_REC_InfoSrvAns
  * 	CallBack when server send his Configuration
  **/
-void SRV_TO_REC_InfoSrvAns ( BYTE data[], int size ){
+void SRV_TO_REC_InfoSrvAns ( BYTE data[], int size )
+{
 	if ( size != 4 )
 		return;
 	sprintf( _TcpInfo->ipAddress ,"%s",Udp::_udp->_IpSender);
@@ -580,16 +624,20 @@ void SRV_TO_REC_InfoSrvAns ( BYTE data[], int size ){
 /** SRV_TO_REC_AckImage
  * 	CallBack when Seveur send a image ack
  **/
-void SRV_TO_REC_AckImage ( BYTE data[], int size ){
+void SRV_TO_REC_AckImage ( BYTE data[], int size )
+{
 	_WaitAckImage = false;
 
-	for ( int i = 0 ; i < size; i+=2 ){
+	for ( int i = 0 ; i < size; i+=2 )
+	{
 		REC_TO_SRV_ImagePart(data[i]<<8 | data[i+1]  );
 	}
-	if ( size != 0 ){
+	if ( size != 0 )
+	{
 		REC_TO_SRV_AckImage();
 	}
-	else{
+	else
+	{
 		// Image completly received ==> Clear buffer
 		LOGGER_VERB("Image completely received");
 		free( _ImageContent );
@@ -608,7 +656,8 @@ void SRV_TO_REC_AckImage ( BYTE data[], int size ){
 /** SRV_TO_REC_VisuCam
  * 	Callback when Server ask to get Image from Camera
  **/
-void SRV_TO_REC_VisuCam( BYTE* data, unsigned long size ){
+void SRV_TO_REC_VisuCam( BYTE* data, unsigned long size )
+{
 	// Ignore: No Camera Id Pass
 	if ( size != 1 )
 		return;
@@ -619,7 +668,8 @@ void SRV_TO_REC_VisuCam( BYTE* data, unsigned long size ){
 /** SRV_TO_REC_ParringAsk
  * 	CallBack when Server send The Nrf Address
  **/
-void SRV_TO_REC_ParringAsk( BYTE* data, unsigned long size ){
+void SRV_TO_REC_ParringAsk( BYTE* data, unsigned long size )
+{
 	if ( size != 8 )
 		return;
 
@@ -634,19 +684,23 @@ void SRV_TO_REC_ParringAsk( BYTE* data, unsigned long size ){
 /** SRV_TO_REC_Authentification
  * 	Callback from Server to validate a TagId
  **/
-void SRV_TO_REC_Authentification( BYTE* data, unsigned long size ){
+void SRV_TO_REC_Authentification( BYTE* data, unsigned long size )
+{
 	if ( size == 0 ) // Can't have no data
 		return;
 
-	if ( isRecording ) {
+	if ( isRecording )
+	{
 		LOGGER_WARN("Authentication ignore : Currently Recording");
 		return;
 	}
-	if ( data[0] == 0x00 ){
+	if ( data[0] == 0x00 )
+	{
 		LOGGER_DEBUG ( "GetAuthentification: Tag unknown" ) ;
 		REC_TO_ACT_AuthenificationAns( false );
 	}
-	else if ( data[0] == 0x01 && size > 1 ){
+	else if ( data[0] == 0x01 && size > 1 )
+	{
 		// Save idUserRecorder
 		_IdUserRecorder = 0;
 		for (unsigned long i = 1; i < size ; i++ ) _IdUserRecorder = (_IdUserRecorder << 8) | data[i];
@@ -658,7 +712,8 @@ void SRV_TO_REC_Authentification( BYTE* data, unsigned long size ){
 /** SRV_TO_REC_StatutRequest
  * 	CallBack when Server ask for Status
  **/
-void SRV_TO_REC_StatutRequest( BYTE* data, unsigned long size ){
+void SRV_TO_REC_StatutRequest( BYTE* data, unsigned long size )
+{
 	BYTE res[3];
 	res[0] = ANS_STATUS_TCP;
 	res[1] = _StateArduino;
@@ -670,12 +725,14 @@ void SRV_TO_REC_StatutRequest( BYTE* data, unsigned long size ){
 /** SRV_TO_REC_StorageAns
  * 	CallBack from Server to validate if this module can send a file in FTP
  **/
-void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size ){
+void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size )
+{
 	LOGGER_VERB("Get Storage Ans");
 	if ( size != 1 ) // Can't has no data
 		return;
 
-	if ( data[0] == 0x01 ){
+	if ( data[0] == 0x01 )
+	{
 		// TODO : Upload One File
 		LOGGER_DEBUG ( "Can upload one file" ) ;
 		ftpSendFile();
@@ -686,21 +743,25 @@ void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size ){
 /** SRV_TO_REC_FileTransfertAck
  * 	CallBack from Server to validate a file transfer
  **/
-void SRV_TO_REC_FileTransfertAck( BYTE* data, unsigned long size ){
+void SRV_TO_REC_FileTransfertAck( BYTE* data, unsigned long size )
+{
 	if ( size != 1 )  // Can't has no data
 		return;
 
-	if ( !fileInUpload || fileInUpload->isInUpload ){
+	if ( !fileInUpload || fileInUpload->isInUpload )
+	{
 		// EROR No file Was Send
 		return;
 	}
 
-	if ( data[0] == 0x01 ){
+	if ( data[0] == 0x01 )
+	{
 		// TODO : Upload OK :: DELETE FILE FROM RPI
 		LOGGER_INFO ( "File Upload OK" ) ;
 		fileInUpload->isUploaded = true;
 	}
-	else{
+	else
+	{
 		// TODO : RESEND FILE
 		LOGGER_ERROR( "Error during File Transfer ");
 	}
@@ -711,13 +772,14 @@ void SRV_TO_REC_FileTransfertAck( BYTE* data, unsigned long size ){
 /** SRV_TO_REC_GetIdRecording
  * 	CallBack from Server when Generate Recording Id
  **/
-void SRV_TO_REC_GetIdRecording( BYTE* data, unsigned long size){
+void SRV_TO_REC_GetIdRecording( BYTE* data, unsigned long size)
+{
 	if ( size != 8 )
 		return;
 
 	uint64_t idRecording = 	(uint64_t) data[0] << 56 | (uint64_t) data[1] << 48 | (uint64_t) data[2] << 40 |(uint64_t)
-		data[3] << 32 |( uint64_t) data[4] << 24 | (uint64_t)  data[5] << 16 |(uint64_t) data[6] << 8 |
-		(uint64_t)  data[7];
+							data[3] << 32 |( uint64_t) data[4] << 24 | (uint64_t)  data[5] << 16 |(uint64_t) data[6] << 8 |
+							(uint64_t)  data[7];
 	startRecording( idRecording );
 }
 
@@ -726,20 +788,60 @@ void SRV_TO_REC_GetIdRecording( BYTE* data, unsigned long size){
 
 
 /******** -------------------------- 	Recordings Functions -------------------------- ********/
-bool startRecording( uint64_t idRecording ){
+bool startRecording( uint64_t idRecording )
+{
 	_CurrentRecording = new Recording( idRecording );
 	isRecording = _CurrentRecording->startRecord();
+	_CurrentRecording->makeDirectory();
 	_IdRecording = idRecording;
-	// TODO : ACTIVATE CAMERAS
+
+
+	if(isRecording && Webcam::isInUse() && StillCamera::isInUse())
+	{
+		LOGGER_VERB("Will start cameras");
+		StillCamera * still = StillCamera::getCamera();
+		Webcam * cam = Webcam::getWebcam();
+		SoundRecord * sound = SoundRecord::getSoundRecord();
+		if(!cam->isRecording() && !still->isRecording() && !sound->isRecording())
+		{
+			LOGGER_VERB("Starting Cameras and sound recording");
+			isRecording &= sound->startRecording(_CurrentRecording);
+			isRecording &= cam->startRecording(_CurrentRecording);
+			isRecording &= still->startRecording(_CurrentRecording);
+
+		}
+		else
+			LOGGER_WARN("At least one camera is already in recording");
+	}
+	else
+		LOGGER_WARN("Recording not started : Webcam : "<< Webcam::isInUse() <<" Camera : " << StillCamera::isInUse());
 	return isRecording;
 }
 
-bool stopRecording(){
+bool stopRecording()
+{
 	_CurrentRecording->stopRecord();
 	_CurrentRecording = NULL;
+
+	if(Webcam::isInUse())
+	{
+		Webcam * cam = Webcam::getWebcam();
+		if(cam->isRecording())
+			cam->stopRecording();
+	}
+	if(StillCamera::isInUse())
+	{
+		StillCamera * cam = StillCamera::getCamera();
+		if(cam->isRecording())
+			cam->stopRecording();
+	}
+	SoundRecord * sound = SoundRecord::getSoundRecord();
+	if(!sound->isRecording())
+		sound->stopRecording();
+
 	REC_TO_SRV_RECORDING_END( _IdRecording );
 	isRecording = false;
-	// TODO : DESACTIVATE CAMERA
+
 	return true;
 }
 
@@ -748,9 +850,10 @@ bool stopRecording(){
 /** getImageFromCam
  * 	Load from Video calls an image
  **/
-bool getImageFromCam ( BYTE idCam ){
-	// TODO : GET IMAGE FROM WEBCAM
-	streampos size;
+bool getImageFromCam ( BYTE idCam )
+{
+
+	/*streampos size;
 	ifstream file ("img.jpg", ios::in|ios::binary|ios::ate);
 	if (file.is_open())
 	{
@@ -768,19 +871,34 @@ bool getImageFromCam ( BYTE idCam ){
 	else{
 		LOGGER_WARN("Unable to open file");
 		return false;
+	}*/
+	if(StillCamera::isInUse())
+	{
+		StillCamera * cam = StillCamera::getCamera();
+		if(cam->isRecording())
+		{
+			LOGGER_WARN("Cannot get image while in recording !");
+			return false;
+		}
+		if ( _ImageContent != NULL )
+			free(_ImageContent);
+		return cam->takeSnapshot((unsigned char**)&_ImageContent,(int *)(&_ImageSize));
 	}
-	return true;
+	return false;
 }
 
 
 /******** -------------------------- 	FTP Functions -------------------------- ********/
-bool ftpCheck( ){
-	if ( !_Ftp->Connect(_FtpHost.c_str() )){
+bool ftpCheck( )
+{
+	if ( !_Ftp->Connect(_FtpHost.c_str() ))
+	{
 		LOGGER_ERROR("Failed to FTP Connect. Host error: " << _FtpHost.c_str()  );
 		return false;
 	}
 
-	if ( !_Ftp->Login(_FtpUser.c_str(), _FtpPassword.c_str()) ){
+	if ( !_Ftp->Login(_FtpUser.c_str(), _FtpPassword.c_str()) )
+	{
 		LOGGER_ERROR("Failed to FTP Connect. User/Password error");
 		return false;
 	}
@@ -790,11 +908,13 @@ bool ftpCheck( ){
 	return true;
 }
 
-void ftpSenderStart(){
+void ftpSenderStart()
+{
 	pthread_create( &_FtpThread , NULL ,  &ftpSenderThread , NULL );
 }
 
-bool ftpSendFile( ){
+bool ftpSendFile( )
+{
 	if ( fileInUpload != NULL )
 		return false;
 
@@ -807,12 +927,14 @@ bool ftpSendFile( ){
 	fileInUpload->isInUpload = true;
 	LOGGER_DEBUG( "Send File : " << fileInUpload->fileName );
 
-	if ( !_Ftp->Connect( _FtpHost.c_str() ) ){
+	if ( !_Ftp->Connect( _FtpHost.c_str() ) )
+	{
 		LOGGER_ERROR("Failed to FTP Connect. Host error");
 		return false;
 	}
 
-	if ( !_Ftp->Login(_FtpUser.c_str() , _FtpPassword.c_str() ) ){
+	if ( !_Ftp->Login(_FtpUser.c_str() , _FtpPassword.c_str() ) )
+	{
 		LOGGER_ERROR("Failed to FTP Connect. User/Password error");
 		return false;
 	}
@@ -825,16 +947,20 @@ bool ftpSendFile( ){
 	return ( uploadRes == 0x01 );
 }
 
-void* ftpSenderThread( void* data ){
+void* ftpSenderThread( void* data )
+{
 	LOGGER_DEBUG("Ftp Client Start : Start Sender Thread ");
 	sleep(15);
-	while ( true ){
-		if ( _isSending ) {
+	while ( true )
+	{
+		if ( _isSending )
+		{
 			sleep(60);
 			continue;
 		}
 
-		if ( isRecording ){
+		if ( isRecording )
+		{
 			sleep(150);
 		}
 		LOGGER_VERB("SEND TCP REQUEST");
