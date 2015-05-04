@@ -96,7 +96,7 @@ void Camera::StopCam()
 		this->Stop();
 		this->UnInit();
 		this->Close();
-
+		LOGGER_VERB("Closing Webcam Done");
 		free(data);
 		initialised = false;
 	}
@@ -442,7 +442,7 @@ bool Camera::Init()
 		init_userp(fmt.fmt.pix.sizeimage);
 		break;
 	}
-
+	initialised = true;
 	return true;
 }
 

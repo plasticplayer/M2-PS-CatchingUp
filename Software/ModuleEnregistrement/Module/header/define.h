@@ -16,6 +16,7 @@ struct _webcamConfiguration
 	unsigned int width;
 	unsigned int height;
 	unsigned int fps;
+	unsigned int split;
 };
 
 typedef struct applicationConfiguration

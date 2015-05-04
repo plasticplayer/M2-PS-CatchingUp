@@ -40,6 +40,7 @@
 #define INI_WEBCAM_RES_HEIGHT       "HEIGHT"
 #define INI_WEBCAM_FPS              "FPS"
 #define INI_WEBCAM_DEVICE           "DEV"
+#define INI_WEBCAM_SPLIT	    "SPLIT"
 
 typedef unsigned char BYTE ;
 
@@ -74,8 +75,9 @@ bool startUDPCommunication(applicationConfiguration& conf);
 bool startTCPCommunication(applicationConfiguration& conf);
 bool startCAM(applicationConfiguration& conf);
 bool startWebCam(applicationConfiguration& conf);
+bool startServo(applicationConfiguration& conf);
 
-/** Globoly available variables **/
+/** Globaly available variables **/
 //static
 applicationConfiguration CurrentApplicationConfig;
 static int CurrentIdRecording;
@@ -163,8 +165,8 @@ int main(int argc, char * argv[])
 	if(!loadConfigFromIniFile(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot load configuration form the .ini file ");
-		LOGGER_ERROR("Exiting");
 #ifdef EXIT_ON_ERROR
+		LOGGER_ERROR("Exiting");
 		return -1;
 #endif
 	}
@@ -338,6 +340,8 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_FPS,"30");
 	conf.webcam.fps = strtoull(s.c_str(), NULL, 10);
 
+	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_SPLIT,"600");
+	conf.webcam.split = strtoull(s.c_str(), NULL, 10);
 
 
 	LOGGER_CONFIG("Loading configuration from "<<conf.iniFileName);
@@ -357,6 +361,7 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	LOGGER_CONFIG("DEVICE              : \t "<< conf.webcam.device );
 	LOGGER_CONFIG("RESOLUTION          : \t ["<< conf.webcam.width << " x "<< conf.webcam.height << "]");
 	LOGGER_CONFIG("FRAME RATE          : \t "<< conf.webcam.fps );
+	LOGGER_CONFIG("SPLITTING EACH      : \t " << conf.webcam.split << " seconds");
 	LOGGER_CONFIG("===================END CONFIGURATION======================");
 
 	return true;
@@ -429,12 +434,12 @@ bool startCAM(applicationConfiguration& conf)
 	state.height = conf.camera.height;                         /// requested height of image
 	state.preview_parameters.wantPreview=0;
 
-	StillCamera cam(state);
+	StillCamera * cam = new StillCamera(state);
 	uint8_t * buff = NULL;
 	int sizeBuff = 0;
-	if(cam.init())
+	if(cam->init())
 	{
-		resultTest = cam.takeSnapshot(&buff,&sizeBuff);
+		resultTest = cam->takeSnapshot(&buff,&sizeBuff);
 		//usleep(1000);
 	}
 	else
@@ -457,8 +462,9 @@ bool startWebCam(applicationConfiguration& conf)
 	if(!Webcam::isInUse())
 	{
 		Webcam * cam = new Webcam(conf.webcam.device,conf.webcam.width, conf.webcam.height,conf.webcam.fps);
+		cam->setSplitTime(conf.webcam.split);
 		resultTest = cam->testWebcam();
-//			cam->startRecording(CurrentApplicationConfig.Data_path);
+		//cam->startRecording(CurrentApplicationConfig.Data_path);
 	}
 
 

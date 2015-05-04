@@ -43,25 +43,26 @@
 COMPONENT_T *video_encode = NULL;
 COMPONENT_T *ComponentsList[5];
 ILCLIENT_T *client;
+bool h264Init = false;
 
 
 void print_def(OMX_PARAM_PORTDEFINITIONTYPE def)
 {
 	printf("Port %u: %s %u/%u %u %u %s,%s,%s %ux%u %ux%u @%u %u\n",
-		   def.nPortIndex,
-		   def.eDir == OMX_DirInput ? "in" : "out",
-		   def.nBufferCountActual,
-		   def.nBufferCountMin,
-		   def.nBufferSize,
-		   def.nBufferAlignment,
-		   def.bEnabled ? "enabled" : "disabled",
-		   def.bPopulated ? "populated" : "not pop.",
-		   def.bBuffersContiguous ? "contig." : "not cont.",
-		   def.format.video.nFrameWidth,
-		   def.format.video.nFrameHeight,
-		   def.format.video.nStride,
-		   def.format.video.nSliceHeight,
-		   def.format.video.xFramerate, def.format.video.eColorFormat);
+			def.nPortIndex,
+			def.eDir == OMX_DirInput ? "in" : "out",
+			def.nBufferCountActual,
+			def.nBufferCountMin,
+			def.nBufferSize,
+			def.nBufferAlignment,
+			def.bEnabled ? "enabled" : "disabled",
+			def.bPopulated ? "populated" : "not pop.",
+			def.bBuffersContiguous ? "contig." : "not cont.",
+			def.format.video.nFrameWidth,
+			def.format.video.nFrameHeight,
+			def.format.video.nStride,
+			def.format.video.nSliceHeight,
+			def.format.video.xFramerate, def.format.video.eColorFormat);
 }
 
 bool initH264(int _height,int _width,unsigned char _frameRate)
@@ -85,14 +86,14 @@ bool initH264(int _height,int _width,unsigned char _frameRate)
 
 	// create video_encode
 	r = ilclient_create_component(client, &video_encode, "video_encode",
-								  ILCLIENT_DISABLE_ALL_PORTS |
-								  ILCLIENT_ENABLE_INPUT_BUFFERS |
-								  ILCLIENT_ENABLE_OUTPUT_BUFFERS);
+			ILCLIENT_DISABLE_ALL_PORTS |
+			ILCLIENT_ENABLE_INPUT_BUFFERS |
+			ILCLIENT_ENABLE_OUTPUT_BUFFERS);
 	if (r != 0)
 	{
 		printf
-		("ilclient_create_component() for video_encode failed with %x!\n",
-		 r);
+			("ilclient_create_component() for video_encode failed with %x!\n",
+			 r);
 		return false;
 	}
 	ComponentsList[0] = video_encode;
@@ -108,7 +109,7 @@ bool initH264(int _height,int _width,unsigned char _frameRate)
 			 &def) != OMX_ErrorNone)
 	{
 		printf("%s:%d: OMX_GetParameter() for video_encode port 200 failed!\n",
-			   __FUNCTION__, __LINE__);
+				__FUNCTION__, __LINE__);
 		return false;
 	}
 
@@ -126,12 +127,12 @@ bool initH264(int _height,int _width,unsigned char _frameRate)
 	print_def(def);
 
 	r = OMX_SetParameter(ILC_GET_HANDLE(video_encode),
-						 OMX_IndexParamPortDefinition, &def);
+			OMX_IndexParamPortDefinition, &def);
 	if (r != OMX_ErrorNone)
 	{
 		printf
-		("%s:%d: OMX_SetParameter() for video_encode port 200 failed with %x!\n",
-		 __FUNCTION__, __LINE__, r);
+			("%s:%d: OMX_SetParameter() for video_encode port 200 failed with %x!\n",
+			 __FUNCTION__, __LINE__, r);
 		return false;
 	}
 
@@ -143,12 +144,12 @@ bool initH264(int _height,int _width,unsigned char _frameRate)
 
 	printf("OMX_SetParameter for video_encode:201...\n");
 	r = OMX_SetParameter(ILC_GET_HANDLE(video_encode),
-						 OMX_IndexParamVideoPortFormat, &format);
+			OMX_IndexParamVideoPortFormat, &format);
 	if (r != OMX_ErrorNone)
 	{
 		printf
-		("%s:%d: OMX_SetParameter() for video_encode port 201 failed with %x!\n",
-		 __FUNCTION__, __LINE__, r);
+			("%s:%d: OMX_SetParameter() for video_encode port 201 failed with %x!\n",
+			 __FUNCTION__, __LINE__, r);
 		return false;
 	}
 
@@ -161,12 +162,12 @@ bool initH264(int _height,int _width,unsigned char _frameRate)
 	bitrateType.nTargetBitrate = 5000000;
 	bitrateType.nPortIndex = 201;
 	r = OMX_SetParameter(ILC_GET_HANDLE(video_encode),
-						 OMX_IndexParamVideoBitrate, &bitrateType);
+			OMX_IndexParamVideoBitrate, &bitrateType);
 	if (r != OMX_ErrorNone)
 	{
 		printf
-		("%s:%d: OMX_SetParameter() for bitrate for video_encode port 201 failed with %x!\n",
-		 __FUNCTION__, __LINE__, r);
+			("%s:%d: OMX_SetParameter() for bitrate for video_encode port 201 failed with %x!\n",
+			 __FUNCTION__, __LINE__, r);
 		return false;
 	}
 
@@ -182,7 +183,7 @@ bool initH264(int _height,int _width,unsigned char _frameRate)
 			 &bitrateType) != OMX_ErrorNone)
 	{
 		printf("%s:%d: OMX_GetParameter() for video_encode for bitrate port 201 failed!\n",
-			   __FUNCTION__, __LINE__);
+				__FUNCTION__, __LINE__);
 		return false;
 	}
 	printf("Current Bitrate=%u\n",bitrateType.nTargetBitrate);
@@ -193,8 +194,8 @@ bool initH264(int _height,int _width,unsigned char _frameRate)
 	if (ilclient_change_component_state(video_encode, OMX_StateIdle) == -1)
 	{
 		printf
-		("%s:%d: ilclient_change_component_state(video_encode, OMX_StateIdle) failed",
-		 __FUNCTION__, __LINE__);
+			("%s:%d: ilclient_change_component_state(video_encode, OMX_StateIdle) failed",
+			 __FUNCTION__, __LINE__);
 	}
 
 	printf("enabling port buffers for 200...\n");
@@ -213,29 +214,31 @@ bool initH264(int _height,int _width,unsigned char _frameRate)
 
 	printf("encode to executing...\n");
 	ilclient_change_component_state(video_encode, OMX_StateExecuting);
-
+	h264Init = true;
 	return true;
 }
 void deinitH264()
 {
 	//fclose(outf);
+	if(h264Init)
+	{
+		printf("Teardown.\n");
 
-	printf("Teardown.\n");
-
-	printf("disabling port buffers for 200 and 201...\n");
-	ilclient_disable_port_buffers(video_encode, 200, NULL, NULL, NULL);
-	ilclient_disable_port_buffers(video_encode, 201, NULL, NULL, NULL);
-
-	ilclient_state_transition(ComponentsList, OMX_StateIdle);
-	ilclient_state_transition(ComponentsList, OMX_StateLoaded);
-
-	ilclient_cleanup_components(ComponentsList);
-
-	OMX_Deinit();
-
-	ilclient_destroy(client);
+		printf("disabling port buffers for 200 and 201...\n");
+		ilclient_disable_port_buffers(video_encode, 200, NULL, NULL, NULL);
+		ilclient_disable_port_buffers(video_encode, 201, NULL, NULL, NULL);
+		printf("Switching component to idle then loaded \n");
+		ilclient_state_transition(ComponentsList, OMX_StateIdle);
+		ilclient_state_transition(ComponentsList, OMX_StateLoaded);
+		printf("Cleaning up componenent list\n");
+		ilclient_cleanup_components(ComponentsList);
+		printf("Deinit OMX\n");
+		OMX_Deinit();
+		printf("Destroy client \n");
+		ilclient_destroy(client);
+		h264Init = false;
+	}
 }
-
 void writeImageH264(char *image, int32_t filledLen,FILE * fileDesc)
 {
 	OMX_BUFFERHEADERTYPE *buf;
@@ -243,9 +246,9 @@ void writeImageH264(char *image, int32_t filledLen,FILE * fileDesc)
 	OMX_ERRORTYPE r;
 
 	/*while((buf = ilclient_get_input_buffer(video_encode, 200, 1) )== NULL)
-	{
-		printf("Doh, no buffers for me!\n");
-	}*/
+	  {
+	  printf("Doh, no buffers for me!\n");
+	  }*/
 	buf = ilclient_get_input_buffer(video_encode, 200, 1);
 	if(buf != NULL)
 	{

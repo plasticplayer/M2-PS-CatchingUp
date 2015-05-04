@@ -1,15 +1,16 @@
-#include "../header/Config.h"
+#include "Config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "../header/Nrf24.h"
-#include "../header/define.h"
-#include "../header/ftplib.h"
-#include "../header/Linker.h"
-#include "../header/Recording.h"
-#include "../header/Communication.h"
+#include "webCam.h"
+#include "Nrf24.h"
+#include "define.h"
+#include "ftplib.h"
+#include "Linker.h"
+#include "Recording.h"
+#include "Communication.h"
 
 #define MAX_SIZE_UDP 1024
 
@@ -166,10 +167,19 @@ void transactionError( BYTE data[], int size ){
 
 
 void forceStartRecording(){
-
+	if(Webcam::isInUse())
+	{
+		Webcam * cam = Webcam::getWebcam();
+		cam->startRecording("/home/pi/Record");
+	}
 }
 void forceStopRecording(){
 
+	if(Webcam::isInUse())
+	{
+		Webcam * cam = Webcam::getWebcam();
+		cam->stopRecording();
+	}
 }
 
 
@@ -363,6 +373,7 @@ void REC_TO_SRV_IdRecording(){
  * Send To SRV the end OF Records
  **/
 void REC_TO_SRV_RECORDING_END(uint64_t idRecording){
+	LOGGER_VERB("SEND RECORDING END" << idRecording );
 	BYTE res[] = {
 		SEND_RecordingEnd,
 		(uint8_t) (( idRecording >> 56  )& 0xFF),
@@ -472,10 +483,10 @@ void ACT_TO_REC_StatusAns( BYTE data[], int size ){
  **/
 void ACT_TO_REC_ControlRequest( BYTE data[], int size ){
 	LOGGER_DEBUG("Control request received : " << (int)data[0]);
-	if ( isParking == true || Nrf24::_Nrf->_State != WAIT_FOR_DATA ){
-		LOGGER_WARN("Module in Parking OR Waiting for data => Control request ignored");
-			return;
-	}
+		if ( isParking == true || Nrf24::_Nrf->_State != WAIT_FOR_DATA ){
+			LOGGER_WARN("Module in Parking OR Waiting for data => Control request ignored");
+				return;
+		}
 
 	if ( data[0] == 0x01 )
 	{
@@ -511,14 +522,14 @@ void ACT_TO_REC_PoolingParkingAns(BYTE data[], int size){
 	}
 	// TODO: N'authoriser qu'une suele réponse par demande d'appairage
 	Nrf24::_Nrf->clearCommunications();
-	//LOGGER_DEBUG("Appairage ID recieved :" << std::uppercase << std::hex << data[0] << " " << std::uppercase << std::hex<< data[1]);
+		//LOGGER_DEBUG("Appairage ID recieved :" << std::uppercase << std::hex << data[0] << " " << std::uppercase << std::hex<< data[1]);
 
-	memcpy(idGenerate,data,2);
+		memcpy(idGenerate,data,2);
 
-	BYTE answer[] = {  	POOL_SET_ADDR , idGenerate[0] , idGenerate[1] ,
-		(uint8_t)((addressGenerate[0]>>24) & 0xFF), (uint8_t)((addressGenerate[0]>>16) & 0xFF),  (uint8_t)((addressGenerate[0]>>8) & 0xFF),  (uint8_t)((addressGenerate[0] & 0xFF)),
-		(uint8_t)((addressGenerate[1]>>24) & 0xFF) ,(uint8_t)((addressGenerate[1]>>16) & 0xFF),  (uint8_t)((addressGenerate[1]>>8) & 0xFF),  (uint8_t)((addressGenerate[1] & 0xFF)),
-	} ;
+		BYTE answer[] = {  	POOL_SET_ADDR , idGenerate[0] , idGenerate[1] ,
+			(uint8_t)((addressGenerate[0]>>24) & 0xFF), (uint8_t)((addressGenerate[0]>>16) & 0xFF),  (uint8_t)((addressGenerate[0]>>8) & 0xFF),  (uint8_t)((addressGenerate[0] & 0xFF)),
+				(uint8_t)((addressGenerate[1]>>24) & 0xFF) ,(uint8_t)((addressGenerate[1]>>16) & 0xFF),  (uint8_t)((addressGenerate[1]>>8) & 0xFF),  (uint8_t)((addressGenerate[1] & 0xFF)),
+		} ;
 	Nrf24::_Nrf->sendBuffer(POOL_SET_ADDR, answer ,sizeof(answer) , false, 5);
 }
 
@@ -531,7 +542,7 @@ void ACT_TO_REC_ValidateParringConfig(BYTE data[], int size){
 	}
 	isParking = false;
 		Nrf24::_Nrf->clearCommunications();
-
+		
 		Nrf24::_Nrf->sendAck(POOL_VALIDATE_CONFIG);
 	// Wait for ack will send
 	usleep(2500000);
@@ -705,8 +716,8 @@ void SRV_TO_REC_GetIdRecording( BYTE* data, unsigned long size){
 		return;
 
 	uint64_t idRecording = 	(uint64_t) data[0] << 56 | (uint64_t) data[1] << 48 | (uint64_t) data[2] << 40 |(uint64_t)
-				 data[3] << 32 |( uint64_t) data[4] << 24 | (uint64_t)  data[5] << 16 |(uint64_t) data[6] << 8 |
-				 (uint64_t)  data[7];
+		data[3] << 32 |( uint64_t) data[4] << 24 | (uint64_t)  data[5] << 16 |(uint64_t) data[6] << 8 |
+		(uint64_t)  data[7];
 	startRecording( idRecording );
 }
 

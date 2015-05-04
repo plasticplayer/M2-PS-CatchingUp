@@ -39,6 +39,7 @@ Webcam::Webcam(string dev,unsigned int imageWidth, unsigned int imageHeight,uint
 		_Camera = new Camera(dev.c_str(), _imageWidth, _imageHeight, _frameRate);
 		_recording = false;
 
+		_splitTimeSeconds = 0; // No split
 		Webcam::_instance = this;
 	}
 }
@@ -49,7 +50,7 @@ bool Webcam::isInUse()
 }
 Webcam * Webcam::getWebcam()
 {
-    return Webcam::_instance;
+	return Webcam::_instance;
 }
 
 void Webcam::setSplitTime(unsigned int seconds)
@@ -78,9 +79,9 @@ bool Webcam::testWebcam()
 
 void Webcam::close()
 {
-
-    _Camera->StopCam();
-    deinitH264();
+	LOGGER_DEBUG("Closing webcam");
+	_Camera->StopCam();
+	deinitH264();
 }
 
 void Webcam::generate_test_card(char *buf, int32_t * filledLen, int frame)
@@ -131,7 +132,7 @@ void Webcam::grabImage( char *buf, int32_t * filledLen)
 			r = buf + (pix * 3);
 			g = r+1;
 			b = g+1;
-
+			// TODO: Optimisation (without float) (YCbYCr to RGB)
 			int rt = (int) (*Y + 1.40200 * (*Cr - 0x80));
 			int gt = (int) (*Y - 0.34414 * (*Cb - 0x80) - 0.71414 * (*Cr - 0x80));
 			int bt = (int) (*Y + 1.77200 * (*Cb - 0x80));
@@ -172,8 +173,10 @@ bool Webcam::stopRecording()
 	{
 		_recording = false;
 		pthread_join(_ThreadRecording,NULL);
+		close();
 		return true;
 	}
+close();
 	return false;
 
 }
@@ -218,81 +221,106 @@ void * Webcam::_threadRecord( void * arg)
 	int taille;
 
 	struct timeval now;
-	double timeAct,timePast,timeDiff;
+	double timeLastSplit, timeAct,timePast,timeDiff;
 	gettimeofday(&now,NULL);
 	timePast = now.tv_sec + now.tv_usec*1e-6;
+	timeLastSplit = timePast;
 	unsigned int frameCounter = 0;
 	while(thisObj->_recording)
 	{
 		thisObj->grabImage(tmpData,&taille);
 		writeImageH264(tmpData, taille,fichierH264);
 
+		gettimeofday(&now,NULL);
+		timeAct = now.tv_sec + now.tv_usec*1e-6;
+		
+		if(thisObj->_splitTimeSeconds > 0)
+		{
+			timeDiff = timeAct - timeLastSplit;
+			if(timeDiff >= thisObj->_splitTimeSeconds)
+			{
+				timeLastSplit = timeAct;
+				LOGGER_VERB("We need to split the recording now");
+
+				if(fichierH264 != NULL)
+					fclose (fichierH264);
+				string fileName = SSTR(thisObj->_folderRecording << "/" << ++thisObj->_RecordingNumer << ".h264");
+				fichierH264 = fopen (fileName.c_str()  ,"wb+");
+				if(fichierH264 == NULL)
+				{
+					LOGGER_ERROR("Cannot open file for writting : " << fileName);
+					thisObj->_recording = false;
+					return NULL;
+				}
+			}
+		}	
 		frameCounter ++;
 
 		//if (frameCounter%10) // On ne verifie que les FPS que toutes les 10 images
 		{
-			gettimeofday(&now,NULL);
-			timeAct = now.tv_sec + now.tv_usec*1e-6;
 			timeDiff = timeAct -timePast;
 			if ( timeDiff > 1) { // Calcul des FPS une fois par seconde
 				//lastFPS = (float)frameCounter/timeDiff;
-				printf("FPS : %.2f \n",(float)frameCounter/timeDiff);
+				LOGGER_VERB("FPS :" << (float)frameCounter/timeDiff);
 				timePast = timeAct;
 				frameCounter = 0;
 			}
 		}
 
 	}
+
+	if(fichierH264 != NULL)
+		fclose (fichierH264);
 	return NULL;
 }
 
 /*int main(int argc, char **argv)
+  {
+  if (argc < 2)
+  {
+  printf("Usage: %s <filename>\n", argv[0]);
+  exit(1);
+  }
+  bcm_host_init();
+
+  Camera A("/dev/video0", WIDTH, HEIGHT,25);
+
+
+  initH264(argv[1],HEIGHT,WIDTH);
+
+  int a;
+  char tmpData[HEIGHT * WIDTH * 3];
+  int tmp;
+
+
+  int frameCounter = 0;
+  struct timeval now;
+  double timeAct,timePast,timeDiff,timeStart;
+  gettimeofday(&now,NULL);
+  timePast = now.tv_sec + now.tv_usec*1e-6;
+  float lastFPS = 0;
+  for(a = 0; a < 300 ; a++)
+  {
+
+  frameCounter ++;
+
+//if (frameCounter%10) // On ne verifie que les FPS que toutes les 10 images
 {
-	if (argc < 2)
-	{
-		printf("Usage: %s <filename>\n", argv[0]);
-		exit(1);
-	}
-	bcm_host_init();
-
-Camera A("/dev/video0", WIDTH, HEIGHT,25);
-
-
-	initH264(argv[1],HEIGHT,WIDTH);
-
-	int a;
-	char tmpData[HEIGHT * WIDTH * 3];
-	int tmp;
-
-
-	int frameCounter = 0;
-	struct timeval now;
-	double timeAct,timePast,timeDiff,timeStart;
-	gettimeofday(&now,NULL);
-	timePast = now.tv_sec + now.tv_usec*1e-6;
-	float lastFPS = 0;
-	for(a = 0; a < 300 ; a++)
-	{
-
-		frameCounter ++;
-
-		//if (frameCounter%10) // On ne verifie que les FPS que toutes les 10 images
-		{
-			gettimeofday(&now,NULL);
-			timeAct = now.tv_sec + now.tv_usec*1e-6;
-			timeStart = timeAct;
-			timeDiff = timeAct -timePast;
-			if ( timeDiff > 1) { // Calcul des FPS une fois par seconde
-				lastFPS = (float)frameCounter/timeDiff;
-				printf("FPS : %.2f \n",lastFPS);
-				timePast = timeAct;
-				frameCounter = 0;
-			}
-		}
+gettimeofday(&now,NULL);
+timeAct = now.tv_sec + now.tv_usec*1e-6;
+timeStart = timeAct;
+timeDiff = timeAct -timePast;
+if ( timeDiff > 1) { // Calcul des FPS une fois par seconde
+lastFPS = (float)frameCounter/timeDiff;
+printf("FPS : %.2f \n",lastFPS);
+timePast = timeAct;
+frameCounter = 0;
+}
+}
 //		generate_test_card(tmpData,&tmp,a);
-		grabImage( A,tmpData,&tmp);
-		writeImage(tmpData, tmp);
-	}
-	return 0;
+grabImage( A,tmpData,&tmp);
+writeImage(tmpData, tmp);
+}
+return 0;
 }*/
 

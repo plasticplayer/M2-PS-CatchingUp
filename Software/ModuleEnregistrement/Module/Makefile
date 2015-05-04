@@ -39,7 +39,7 @@ app: $(OBJ) $(OBJCPP)
 $(LIBDIR)/%.o: $(SRCDIR)/%.c
 	@echo "-- Compiling $<"  
 	@$(CC) -o $@ -c $< $(CFLAGS) 
-	@echo "-- Generating Dependecies for $<"
+	@echo "-- Generating Dependencies for $<"
 	@$(CC) $(CFLAGS) -MT '$@' -MM $< > $(DEPDIR)/$(notdir $<).depend
 
 
@@ -47,7 +47,7 @@ $(LIBDIR)/%.o: $(SRCDIR)/%.c
 $(LIBDIR)/%.o: $(SRCDIR)/%.cpp
 	@echo "-- Compiling $<" 
 	@$(CPP) -o $@ -c $< $(CFLAGS)
-	@echo "-- Generating Dependecies for $<"
+	@echo "-- Generating Dependencies for $<"
 	@$(CPP) $(CFLAGS) -MT '$@' -MM $< > $(DEPDIR)/$(notdir $<).depend
 
 

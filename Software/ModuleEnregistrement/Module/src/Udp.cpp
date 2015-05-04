@@ -5,9 +5,9 @@
 //  Created by maxime max on 04/03/2015.
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
-#include "../header/Config.h"
-#include "../header/logger.h"
-#include "../header/Udp.h"
+#include "Config.h"
+#include "logger.h"
+#include "Udp.h"
 #include <iostream>
 #include <string.h>
 #include <sys/types.h>
