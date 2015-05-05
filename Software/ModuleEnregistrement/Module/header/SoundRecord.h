@@ -21,6 +21,7 @@ public:
     static SoundRecord * getSoundRecord();
 private :
     string _device;
+    string _fileName;
 	Recording * _CurrentRecording;
 	static SoundRecord * _instance;
 };

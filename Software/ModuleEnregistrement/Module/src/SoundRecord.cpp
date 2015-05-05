@@ -22,7 +22,8 @@ SoundRecord::SoundRecord(string dev)
 bool SoundRecord::startRecording(Recording * recording)
 {
     _CurrentRecording = recording;
-	string command = SSTR("arecord --quiet -M -D " << _device <<" -f S16_LE -c1 -r22050 -t raw |" << " lame --quiet -r -s 22.05 -m m -b 64 - '" << _CurrentRecording->_folderRecording << "/sound.mp3' &");
+    _fileName = SSTR(_CurrentRecording->_folderRecording << "/sound.mp3");
+	string command = SSTR("arecord --quiet -M -D " << _device <<" -f S16_LE -c1 -r22050 -t raw |" << " lame --quiet -r -s 22.05 -m m -b 64 - '" << _fileName << "' &");
     LOGGER_VERB("Starting sound record : cmdline : "<< command);
 	system(command.c_str());
 	return isRecording();
@@ -45,6 +46,13 @@ bool SoundRecord::stopRecording()
                 usleep(100);
             }
             LOGGER_VERB("Recording stopped ");
+            RecordingFile * file = new RecordingFile();
+			file->isInRecord = false;
+			 unsigned int foundPos = _fileName.find_last_of("/");
+            file->fileName = _fileName.substr(foundPos+1);
+			file->path = _fileName;
+			// Adding the file to the current recording
+            _CurrentRecording->addFile(file);
             return true;
         }
         else

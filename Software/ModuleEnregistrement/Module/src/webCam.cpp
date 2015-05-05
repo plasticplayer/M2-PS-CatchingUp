@@ -21,6 +21,7 @@
 #include "encode.h"
 #include "webCam.h"
 #include "Recording.h"
+#include "TraitementImage.h"
 
 using namespace std;
 
@@ -31,7 +32,6 @@ Webcam::Webcam(string dev,unsigned int imageWidth, unsigned int imageHeight,uint
 	if(Webcam::_instance == NULL)
 	{
 
-
 		_imageHeight = imageHeight;
 		_imageWidth = imageWidth;
 		_frameRate = frameRate;
@@ -40,6 +40,7 @@ Webcam::Webcam(string dev,unsigned int imageWidth, unsigned int imageHeight,uint
 		_Camera = new Camera(dev.c_str(), _imageWidth, _imageHeight, _frameRate);
 		_recording = false;
 
+		_frame = new Mat(_imageWidth,_imageHeight,3);
 		_splitTimeSeconds = 0; // No split
 		Webcam::_instance = this;
 	}
@@ -68,7 +69,7 @@ bool Webcam::testWebcam()
 	if(!_Camera->Open() || !_Camera->Init() || !_Camera->Start())
 		return false;
 
-	char tmpData[_imageHeight * _imageWidth * 3];
+	unsigned char tmpData[_imageHeight * _imageWidth * 3];
 	int taille;
 	grabImage(tmpData,&taille);
 	if(taille == 0)
@@ -107,14 +108,15 @@ void Webcam::generate_test_card(char *buf, int32_t * filledLen, int frame)
 	*filledLen = _imageHeight * _imageWidth * 3;
 }
 
-void Webcam::grabImage( char *buf, int32_t * filledLen)
+void Webcam::grabImage(unsigned char *buf, int32_t * filledLen)
 {
 	char * dataPtr= NULL;
 	while((dataPtr = ((char*)_Camera->Get()))==0)
 	{
 		usleep(10);   	// get the image
 	}
-	char *Y ,*Cb, *Cr, *Y2 ,*r,*g,*b;
+	char *Y ,*Cb, *Cr, *Y2; 
+	unsigned char *r,*g,*b;
 
 	unsigned int pix = 0;
 	unsigned int pixY = 0;
@@ -232,7 +234,7 @@ void * Webcam::_threadRecord( void * arg)
 	}
 
 	LOGGER_DEBUG("Recording Webcam init done, starting recording");
-	char tmpData[thisObj->_imageHeight * thisObj->_imageWidth * 3];
+	//char tmpData[thisObj->_imageHeight * thisObj->_imageWidth * 3];
 	int taille;
 
 	struct timeval now;
@@ -243,9 +245,9 @@ void * Webcam::_threadRecord( void * arg)
 	unsigned int frameCounter = 0;
 	while(thisObj->_recording)
 	{
-		thisObj->grabImage(tmpData,&taille);
-		writeImageH264(tmpData, taille,fichierH264);
-
+		thisObj->grabImage(thisObj->_frame->data,&taille);
+		writeImageH264(thisObj->_frame->data, taille,fichierH264);
+		track(thisObj->_frame);
 		gettimeofday(&now,NULL);
 		timeAct = now.tv_sec + now.tv_usec*1e-6;
 

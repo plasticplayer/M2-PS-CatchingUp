@@ -239,7 +239,7 @@ void deinitH264()
 		h264Init = false;
 	}
 }
-void writeImageH264(char *image, int32_t filledLen,FILE * fileDesc)
+void writeImageH264(unsigned char *image, int32_t filledLen,FILE * fileDesc)
 {
 	OMX_BUFFERHEADERTYPE *buf;
 	OMX_BUFFERHEADERTYPE *out;

@@ -178,6 +178,7 @@ void transactionError( BYTE data[], int size )
 
 void forceStartRecording()
 {
+	stopRecording();
 	startRecording(1);
 }
 void forceStopRecording()
@@ -397,7 +398,7 @@ void REC_TO_SRV_IdRecording()
  **/
 void REC_TO_SRV_RECORDING_END(uint64_t idRecording)
 {
-	LOGGER_VERB("SEND RECORDING END" << idRecording );
+	LOGGER_VERB("SEND RECORDING END " << idRecording );
 	BYTE res[] =
 	{
 		SEND_RecordingEnd,
@@ -805,7 +806,7 @@ bool startRecording( uint64_t idRecording )
 		if(!cam->isRecording() && !still->isRecording() && !sound->isRecording())
 		{
 			LOGGER_VERB("Starting Cameras and sound recording");
-			isRecording &= sound->startRecording(_CurrentRecording);
+		//	isRecording &= sound->startRecording(_CurrentRecording);
 			isRecording &= cam->startRecording(_CurrentRecording);
 			isRecording &= still->startRecording(_CurrentRecording);
 
@@ -820,8 +821,7 @@ bool startRecording( uint64_t idRecording )
 
 bool stopRecording()
 {
-	_CurrentRecording->stopRecord();
-	_CurrentRecording = NULL;
+
 
 	if(Webcam::isInUse())
 	{
@@ -836,11 +836,16 @@ bool stopRecording()
 			cam->stopRecording();
 	}
 	SoundRecord * sound = SoundRecord::getSoundRecord();
-	if(!sound->isRecording())
+	if(sound != NULL && !sound->isRecording())
 		sound->stopRecording();
+	if(_CurrentRecording != NULL)
+	{
+		_CurrentRecording->stopRecord();
+		_CurrentRecording = NULL;
+		REC_TO_SRV_RECORDING_END( _IdRecording );
+		isRecording = false;
+	}
 
-	REC_TO_SRV_RECORDING_END( _IdRecording );
-	isRecording = false;
 
 	return true;
 }
