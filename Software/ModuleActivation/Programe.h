@@ -98,6 +98,8 @@ private :
   static boolean inParking;
   //static boolean resetAddress;
   static unsigned long countPress;
+  static boolean error; // En nombre de seconde
+  static unsigned long counter;
   static unsigned long lastMessRec;
  
   static LinkedList<MessageProtocol*> fileMessageToSend;
