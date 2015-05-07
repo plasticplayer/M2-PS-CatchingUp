@@ -114,7 +114,7 @@ void* Tcp_Socket_Server::listenner( void* data){
 		Tcp *client = new Tcp(  client_sock , r );
 		r->setTcpSocket(client);
 		client->start();
-		return NULL;
+		//return NULL;
 	}
 	return NULL;
 }

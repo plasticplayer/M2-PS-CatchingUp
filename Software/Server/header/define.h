@@ -5,7 +5,8 @@
 typedef struct applicationConfiguration
 {
 	string iniFileName;
-	string FolderPath;
+	string FolderPathTmp;
+	string FolderPathMedia;
 	string MysqlHost;
 	string MysqlDatabase;
 	string MysqlUser;
