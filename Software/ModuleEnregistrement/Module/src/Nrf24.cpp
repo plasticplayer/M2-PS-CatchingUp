@@ -49,7 +49,7 @@ Nrf24::Nrf24( ) : Communication( 0x10,0x22,0x20 ){
 		
 
 	_Radio->printDetails();
-		if(_Radio->get_status() != 0x00)
+		if(_Radio->getChannel() == 75)
 			_NFRok = true;
 }
 bool Nrf24::isOk()
