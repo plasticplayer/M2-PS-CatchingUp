@@ -1,5 +1,5 @@
 // Affichage en mode debug ?
-#define DEBUG_ON
+//#define DEBUG_ON
 
 #ifndef __debuge_h_
 #define __debuge_h_
