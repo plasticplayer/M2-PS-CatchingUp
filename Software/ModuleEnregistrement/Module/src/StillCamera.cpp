@@ -1,8 +1,10 @@
+#include "Config.h"
 #include <iostream>
 #include <string>
 #include "StillCamera.h"
 #include "RaspiStill.h"
-#include "Config.h"
+#include "Recording.h"
+
 
 StillCamera * StillCamera::_instance;
 
@@ -15,11 +17,20 @@ StillCamera::StillCamera(RASPISTILL_STATE newState)
 		encoder_input_port = NULL;
 		encoder_output_port= NULL;
 
+		_recording = false;
 		_frameID = 1;
+		_sleepTimeMS = 1000;
 		StillCamera::_instance = this;
 	}
 }
-
+StillCamera * StillCamera::getCamera()
+{
+	return StillCamera::_instance;
+}
+void StillCamera::setSleepTime(unsigned int milliseconds)
+{
+	_sleepTimeMS = milliseconds;
+}
 bool StillCamera::init()
 {
 	status = MMAL_SUCCESS;
@@ -88,7 +99,7 @@ bool StillCamera::init()
 
 }
 
-bool StillCamera::saveSnapshot(string baseFileName,bool counter)
+bool StillCamera::saveSnapshot(string& baseFileName,bool counter)
 {
 	bool statusSnap = true;
 	VCOS_STATUS_T vcos_status;
@@ -101,6 +112,7 @@ bool StillCamera::saveSnapshot(string baseFileName,bool counter)
 	else
 		use_filename = baseFileName ;
 
+	baseFileName = use_filename;
 	//if (state.timelapse)
 	//asprintf(&use_filename, state.filename, frame);
 
@@ -226,73 +238,73 @@ bool StillCamera::takeSnapshot(uint8_t ** bufferOut,int * bufferSize)
 	return statusSnap;
 }
 /*bool StillCamera::takeSnapshot(uint8_t ** bufferOut,int * bufferSize)
+  {
+  bool statusSnap = true;
+  VCOS_STATUS_T vcos_status;
+  vcos_status = vcos_semaphore_create(&callback_data.complete_semaphore, "RaspiStill-sem", 0);
+
+  vcos_assert(vcos_status == VCOS_SUCCESS);
+
+  callback_data.file_handle = NULL;
+  callback_data.bMemOutput = true;
+  callback_data.pBuffer = bufferOut;
+  callback_data.pBufferSize = bufferSize;
+
+
+// We only capture if a filename was specified and it opened
+//if (output_file)
 {
-	bool statusSnap = true;
-	VCOS_STATUS_T vcos_status;
-	vcos_status = vcos_semaphore_create(&callback_data.complete_semaphore, "RaspiStill-sem", 0);
+// Send all the buffers to the encoder output port
+int num = mmal_queue_length(state.encoder_pool->queue);
+int q;
 
-	vcos_assert(vcos_status == VCOS_SUCCESS);
+for (q=0; q<num; q++)
+{
+MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(state.encoder_pool->queue);
 
-	callback_data.file_handle = NULL;
-	callback_data.bMemOutput = true;
-	callback_data.pBuffer = bufferOut;
-	callback_data.pBufferSize = bufferSize;
+if (!buffer)
+{
+LOGGER_ERROR("Unable to get a required buffer " << q << " from pool queue");
+statusSnap = false;
+}
 
+//vcos_log_error("Unable to get a required buffer %d from pool queue", q);
 
-	// We only capture if a filename was specified and it opened
-	//if (output_file)
-	{
-		// Send all the buffers to the encoder output port
-		int num = mmal_queue_length(state.encoder_pool->queue);
-		int q;
-
-		for (q=0; q<num; q++)
-		{
-			MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(state.encoder_pool->queue);
-
-			if (!buffer)
-			{
-				LOGGER_ERROR("Unable to get a required buffer " << q << " from pool queue");
-				statusSnap = false;
-			}
-
-			//vcos_log_error("Unable to get a required buffer %d from pool queue", q);
-
-			if (mmal_port_send_buffer(encoder_output_port, buffer)!= MMAL_SUCCESS)
-			{
-				LOGGER_ERROR("Unable to send a buffer to encoder output port ("<<q<<")");
-				statusSnap = false;
-			}
+if (mmal_port_send_buffer(encoder_output_port, buffer)!= MMAL_SUCCESS)
+{
+LOGGER_ERROR("Unable to send a buffer to encoder output port ("<<q<<")");
+statusSnap = false;
+}
 
 
-		}
-		LOGGER_DEBUG("Starting capture On RAM ADDR : " << (int)(bufferOut) );
+}
+LOGGER_DEBUG("Starting capture On RAM ADDR : " << (int)(bufferOut) );
 
-		if (mmal_port_parameter_set_boolean(camera_still_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
-		{
-			LOGGER_ERROR("Failed to start capture");
-			statusSnap = false;
-			//vcos_log_error("%s: Failed to start capture", __func__);
-		}
-		else
-		{
-		    LOGGER_DEBUG("Capture process");
-			// Wait for capture to complete
-			// For some reason using vcos_semaphore_wait_timeout sometimes returns immediately with bad parameter error
-			// even though it appears to be all correct, so reverting to untimed one until figure out why its erratic
+if (mmal_port_parameter_set_boolean(camera_still_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
+{
+LOGGER_ERROR("Failed to start capture");
+statusSnap = false;
+//vcos_log_error("%s: Failed to start capture", __func__);
+}
+else
+{
+LOGGER_DEBUG("Capture process");
+// Wait for capture to complete
+// For some reason using vcos_semaphore_wait_timeout sometimes returns immediately with bad parameter error
+// even though it appears to be all correct, so reverting to untimed one until figure out why its erratic
 
-			vcos_semaphore_wait(&callback_data.complete_semaphore);
-			LOGGER_DEBUG("Finished capture " );
-		}
-        LOGGER_DEBUG("Sizeof pBuffer : " << *bufferSize);
+vcos_semaphore_wait(&callback_data.complete_semaphore);
+LOGGER_DEBUG("Finished capture " );
+}
+LOGGER_DEBUG("Sizeof pBuffer : " << *bufferSize);
 
-		// Ensure we don't die if get callback with no open file
-		callback_data.file_handle = NULL;
-		callback_data.bMemOutput = false;
-        callback_data.pBuffer = NULL;
-	}
-	vcos_semaphore_delete(&callback_data.complete_semaphore);
-	return statusSnap;
+// Ensure we don't die if get callback with no open file
+callback_data.file_handle = NULL;
+callback_data.bMemOutput = false;
+callback_data.pBuffer = NULL;
+}
+vcos_semaphore_delete(&callback_data.complete_semaphore);
+return statusSnap;
 }*/
 
 void StillCamera::destroy()
@@ -340,3 +352,56 @@ bool StillCamera::isInUse()
 {
 	return StillCamera::_instance != NULL;
 }
+
+
+bool StillCamera::startRecording(Recording * recording)
+{
+	_CurrentRecording = recording;
+	if(_CurrentRecording == NULL)
+		return false;
+	_recording = true;
+	_folderRecording = _CurrentRecording->_folderRecording;
+	_RecordingNumber = 1;
+	LOGGER_VERB("Creating Image Recording Thread ! Folder : " << this->_folderRecording );
+	int ret = pthread_create(&_ThreadRecording , NULL, &(this->_threadRecord), (void *) this) ;
+	return ret == 0;
+}
+bool StillCamera::isRecording()
+{
+	return _recording;
+}
+bool StillCamera::stopRecording()
+{
+	if(_recording)
+	{
+		_recording = false;
+		pthread_join(_ThreadRecording,NULL);
+		//destroy();
+		return true;
+	}
+	//destroy();
+	return false;
+
+}
+
+void * StillCamera::_threadRecord( void * arg)
+{
+	StillCamera * thisObj = (StillCamera *) arg;
+	LOGGER_DEBUG("Starting Image Recording Thread !");
+	while(thisObj->_recording)
+	{
+		string filePath = SSTR(thisObj->_CurrentRecording->_folderRecording << "/snap" );
+		thisObj->saveSnapshot(filePath,true);
+		RecordingFile * file = new RecordingFile();
+		file->isInRecord = false;
+		unsigned int foundPos = filePath.find_last_of("/");
+		file->fileName = filePath.substr(foundPos+1);
+		file->path = filePath;
+		//LOGGER_VERB("File path : " << filePath << " file name : " << file->fileName);
+		thisObj->_CurrentRecording->addFile(file);
+		usleep(thisObj->_sleepTimeMS * 1000);
+	}
+	return NULL;
+}
+
+

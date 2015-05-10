@@ -21,7 +21,7 @@
 #define __RF24_H__
 
 #include "RF24_config.h"
-#include "./bcm2835.h"
+#include "bcm2835.h"
 
 
 /**
@@ -401,7 +401,7 @@ public:
    * @param channel Which RF channel to communicate on, 0-127
    */
   void setChannel(uint8_t channel);
-
+uint8_t getChannel();
   /**
    * Set Static Payload Size
    *

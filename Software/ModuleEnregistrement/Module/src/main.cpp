@@ -1,4 +1,3 @@
-//
 //  main.cpp
 //  ProtocolCommunication
 //
@@ -6,14 +5,20 @@
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
 
-#include "Config.h"
 
+//#define EXIT_ON_ERROR 1
+#define ENABLE_CAMERA 1
+#define ENABLE_COMM 1
+
+#include "Config.h"
+#include "define.h"
 #include "INIReader.h"
 #include "Nrf24.h"
 #include "Communication.h"
-#include "CallBack.h"
+#include "Linker.h"
 #include "StillCamera.h"
-#include "Udp.h"
+#include "webCam.h"
+#include "SoundRecord.h"
 
 #include <getopt.h>
 
@@ -24,6 +29,20 @@
 #define INI_CLIENT_ID               "client"
 #define INI_SERVER_UDP_PORT         "udpPort"
 #define INI_SERVER_UDP_INTERFACE    "iface"
+#define INI_SERVER_DATA_PATH	    "data_path"
+
+#define INI_CAMERA_SECTION          "CAMERA"
+#define INI_CAMERA_RES_WIDTH        "WIDTH"
+#define INI_CAMERA_RES_HEIGHT       "HEIGHT"
+#define INI_CAMERA_DELAY_MSEC       "DELAYMS"
+
+#define INI_WEBCAM_SECTION          "WEBCAM"
+#define INI_WEBCAM_RES_WIDTH        "WIDTH"
+#define INI_WEBCAM_RES_HEIGHT       "HEIGHT"
+#define INI_WEBCAM_FPS              "FPS"
+#define INI_WEBCAM_DEVICE           "DEV"
+#define INI_WEBCAM_SPLIT            "SPLIT"
+
 typedef unsigned char BYTE ;
 
 using namespace std;
@@ -31,9 +50,10 @@ using namespace std;
 /**
     Structure defining the configuration of the application
 **/
-typedef struct applicationConfiguration
+/*typedef struct applicationConfiguration
 {
 	string iniFileName;
+	string Data_path;
 	uint64_t NRF24_ServerId;
 	uint64_t NRF24_ClientId;
 	uint32_t UDP_serverPort;
@@ -41,13 +61,15 @@ typedef struct applicationConfiguration
 	int f_Debug; // Used as bool
 	int f_Verbose; // Used as bool
 } applicationConfiguration;
-
+*/
 
 
 
 /** Functions **/
 
-void signal_handler(int signal_number);
+/*void signal_handler(int signal_number);
+void sigpipe_handler(int signal_number);
+void exit_handler(void );*/
 bool parseCommandLine(int argc, char * argv[], applicationConfiguration& conf);
 
 bool loadConfigFromIniFile(applicationConfiguration& conf);
@@ -56,26 +78,69 @@ bool startUDPCommunication(applicationConfiguration& conf);
 bool startTCPCommunication(applicationConfiguration& conf);
 bool startCAM(applicationConfiguration& conf);
 bool startWebCam(applicationConfiguration& conf);
+bool startSound(applicationConfiguration& conf);
+bool startServo(applicationConfiguration& conf);
 
-/** Globoly available variables **/
-static applicationConfiguration CurrentApplicationConfig;
+/** Globaly available variables **/
+//static
+applicationConfiguration CurrentApplicationConfig;
 static int CurrentIdRecording;
 
 /*** CODE ***/
+void exit_handler(void){
 
+}
+void sigpipe_handler(int signal_number)
+{
+	LOGGER_WARN("SIG_PIPE received ! Something is goinng horribly wrong !");
+}
 void signal_handler(int signal_number)
 {
 	LOGGER_INFO("Closing requested");
-	exit(255);
+
+	if(Webcam::isInUse())
+	{
+		LOGGER_DEBUG("Closing webcam ");
+		Webcam * w = Webcam::getWebcam();
+		if(w->isRecording())
+		{
+			LOGGER_DEBUG("Stopping recording webcam ");
+			w->stopRecording();
+		}
+		w->close();
+	}
+	if(StillCamera::isInUse())
+	{
+		LOGGER_DEBUG("Closing Camera ");
+		StillCamera * w = StillCamera::getCamera();
+		if(w->isRecording())
+		{
+			LOGGER_DEBUG("Stopping recording Camera ");
+			w->stopRecording();
+		}
+		w->destroy();
+	}
+	//if(SoundRecord::isInUse())
+	{
+		LOGGER_DEBUG("Closing Sound ");
+		SoundRecord * sound = SoundRecord::getSoundRecord();
+		if(sound != NULL && sound->isRecording())
+		{
+			LOGGER_DEBUG("Stopping sound recording ");
+			sound->stopRecording();
+		}
+	}
+exit(255);
 }
 
 
 /** Entry point **/
 int main(int argc, char * argv[])
 {
-    /** Registering a signal handler (for CTRL-C) **/
-    signal(SIGINT, signal_handler);
-
+	/** Registering a signal handler (for CTRL-C) **/
+	signal(SIGINT, signal_handler);
+	/** Register signal handler for SIGPIPE **/
+	signal(SIGPIPE, sigpipe_handler);
 	/* Setting the default configuration file */
 	/* Do not edit this, edit the .ini file */
 	CurrentApplicationConfig.iniFileName  = FILE_INI;
@@ -83,17 +148,17 @@ int main(int argc, char * argv[])
 	CurrentApplicationConfig.f_Debug = false;
 	CurrentApplicationConfig.UDP_interface = "eth0";
 	CurrentApplicationConfig.UDP_serverPort = 1902;
+	CurrentApplicationConfig.Data_path	= "/tmp";
+	CurrentIdRecording = 0;
 
-    CurrentIdRecording = 0;
+	/** parsing Command line arguments **/
+	parseCommandLine(argc,argv,CurrentApplicationConfig);
 
-     /** parsing Command line arguments **/
-    parseCommandLine(argc,argv,CurrentApplicationConfig);
-
-    Logger::Priority loggerLevel = Logger::CONFIG;
-    if(CurrentApplicationConfig.f_Verbose)
-        loggerLevel = Logger::VERB;
-    else if(CurrentApplicationConfig.f_Debug)
-        loggerLevel = Logger::DEBUG;
+	Logger::Priority loggerLevel = Logger::CONFIG;
+	if(CurrentApplicationConfig.f_Verbose)
+		loggerLevel = Logger::VERB;
+	else if(CurrentApplicationConfig.f_Debug)
+		loggerLevel = Logger::DEBUG;
 
 	/* Change directory to be inside the folder of the executable (in case of starting like "bin/app") */
 	char *dirsep = strrchr( argv[0], '/' );
@@ -104,7 +169,7 @@ int main(int argc, char * argv[])
 	else
 		LOGGER_WARN("Failed to change directory to "<< argv[0]);
 
-    /* Starting the Logger first */
+	/* Starting the Logger first */
 	LOGGER_START(loggerLevel,"log.log",true);
 
 
@@ -132,19 +197,34 @@ int main(int argc, char * argv[])
 	if(!loadConfigFromIniFile(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot load configuration form the .ini file ");
+#ifdef EXIT_ON_ERROR
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		return -1;
+#endif
 	}
 	else
 		LOGGER_DEBUG("Loading configuration OK");
 
 
-	LOGGER_DEBUG("Starting NRF4 test");
+	LOGGER_DEBUG("Init Recording");
+	if ( !initRecording() )
+	{
+		LOGGER_INFO("Can't init Recordings !");
+	}
+	else
+		LOGGER_DEBUG("Recording OK");
+
+
+#ifdef ENABLE_COMM
+	LOGGER_DEBUG("Starting NRF24 test");
 	if(!startNRF24Communication(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start NRF24 ");
+
+#ifdef EXIT_ON_ERROR
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		return -1;
+#endif
 	}
 	else
 		LOGGER_DEBUG("NRF24 OK");
@@ -153,28 +233,54 @@ int main(int argc, char * argv[])
 	if(!startUDPCommunication(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start UDP communication ");
+
+#ifdef EXIT_ON_ERROR
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		return -1;
+#endif
 	}
 	else
 		LOGGER_DEBUG("UDP OK");
 
+	LOGGER_DEBUG("Starting Ftp test");
+	if ( !ftpCheck() )
+	{
+		LOGGER_INFO("Can't init Ftp !");
+#ifdef EXIT_ON_ERROR
+		LOGGER_ERROR("Exiting");
+		return -1;
+#endif
+	}
+	else
+	{
+		LOGGER_DEBUG("Ftp OK");
+		ftpSenderStart();
+	}
 	LOGGER_DEBUG("Starting TCP test");
 	if(!startTCPCommunication(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start TCP communication ");
+#ifdef EXIT_ON_ERROR
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		return -1;
+#endif
 	}
 	else
+	{
 		LOGGER_DEBUG("TCP OK");
 
+	}
+#endif
+
+#ifdef ENABLE_CAMERA
 	LOGGER_DEBUG("Starting Camera test");
 	if(!startCAM(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start Raspberry Camera ");
+#ifdef EXIT_ON_ERROR
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		return -1;
+#endif
 	}
 	else
 		LOGGER_DEBUG("Camera OK");
@@ -183,25 +289,48 @@ int main(int argc, char * argv[])
 	if(!startWebCam(CurrentApplicationConfig))
 	{
 		LOGGER_ERROR("Cannot start Webcam ");
+#ifdef EXIT_ON_ERROR
 		LOGGER_ERROR("Exiting");
-		//return -1;
+		return -1;
+#endif
 	}
 	else
 		LOGGER_DEBUG("WebCam OK");
+#endif
 
-	LOGGER_INFO("Program started succesfully !");
+	LOGGER_DEBUG("Starting Sound test");
+	if(!startSound(CurrentApplicationConfig))
+	{
+		LOGGER_ERROR("Cannot Sound ");
+#ifdef EXIT_ON_ERROR
+		LOGGER_ERROR("Exiting");
+		return -1;
+#endif
+	}
+	else
+		LOGGER_DEBUG("Sound OK");
+
 
 	while ( char c = getchar() )
 	{
-		if(c == 'a' )
+		switch ( c )
 		{
-			appairage();
-			fflush(stdin);
-		}
-		if(c == 'q' )
-		{
+		case 'a':
+			LOGGER_INFO("Force NRF paring");
+			ParringNrf();
+			break;
+		case 'z':
+			LOGGER_INFO("Force Start Recording");
+			forceStartRecording();
+			break;
+		case 'e':
+			LOGGER_INFO("Force Stop Recording");
+			forceStopRecording();
+			break;
+		case 'q':
 			break;
 		}
+		fflush(stdin);
 	}
 	return EXIT_SUCCESS;
 }
@@ -228,14 +357,55 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_UDP_INTERFACE,"eth0");
 	conf.UDP_interface = s;
 
+	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_DATA_PATH,"/tmp");
+	conf.Data_path = s;
+
+
+
+	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_RES_WIDTH,"2592");
+	conf.camera.width = strtoull(s.c_str(), NULL, 10);
+
+	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_RES_HEIGHT,"1944");
+	conf.camera.height = strtoull(s.c_str(), NULL, 10);
+
+	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_DELAY_MSEC,"10000");
+	conf.camera.delayMs = strtoull(s.c_str(), NULL, 10);
+
+
+	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_DEVICE,"/dev/video0");
+	conf.webcam.device = s;
+
+	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_RES_WIDTH,"800");
+	conf.webcam.width = strtoull(s.c_str(), NULL, 10);
+
+	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_RES_HEIGHT,"600");
+	conf.webcam.height = strtoull(s.c_str(), NULL, 10);
+
+	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_FPS,"30");
+	conf.webcam.fps = strtoull(s.c_str(), NULL, 10);
+
+	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_SPLIT,"600");
+	conf.webcam.split = strtoull(s.c_str(), NULL, 10);
+
+
 	LOGGER_CONFIG("Loading configuration from "<<conf.iniFileName);
 	LOGGER_CONFIG("=================START CONFIGURATION======================");
 	LOGGER_CONFIG("-------------NRF24 WIRELESS CONFIGURATION-----------------");
-	LOGGER_CONFIG("ID NRF24 RECORDER : \t0x" <<  std::uppercase <<std::hex << conf.NRF24_ServerId );
-	LOGGER_CONFIG("ID NRF24 CONTROL : \t0x"  << std::uppercase << std::hex << conf.NRF24_ClientId );
+	LOGGER_CONFIG("ID NRF24 RECORDER   : \t0x" <<  std::uppercase <<std::hex << conf.NRF24_ServerId );
+	LOGGER_CONFIG("ID NRF24 CONTROL    : \t0x"  << std::uppercase << std::hex << conf.NRF24_ClientId );
 	LOGGER_CONFIG("-------------    NETWORK CONFIGURATION   -----------------");
-	LOGGER_CONFIG("NETWORK INTERFACE : \t "<< conf.UDP_interface);
-	LOGGER_CONFIG("SERVER UDP PORT : \t" << conf.UDP_serverPort );
+	LOGGER_CONFIG("NETWORK INTERFACE   : \t "<< conf.UDP_interface);
+	LOGGER_CONFIG("SERVER UDP PORT     : \t "<< conf.UDP_serverPort );
+	LOGGER_CONFIG("-------------     MEDIA CONFIGURATION    -----------------");
+	LOGGER_CONFIG("PATH                : \t "<< conf.Data_path);
+	LOGGER_CONFIG("-------------    CAMERA CONFIGURATION    -----------------");
+	LOGGER_CONFIG("RESOLUTION          : \t ["<< conf.camera.width << " x "<< conf.camera.height << "]");
+	LOGGER_CONFIG("DELAY (mS)          : \t "<< conf.camera.delayMs );
+	LOGGER_CONFIG("-------------    WEBCAM CONFIGURATION    -----------------");
+	LOGGER_CONFIG("DEVICE              : \t "<< conf.webcam.device );
+	LOGGER_CONFIG("RESOLUTION          : \t ["<< conf.webcam.width << " x "<< conf.webcam.height << "]");
+	LOGGER_CONFIG("FRAME RATE          : \t "<< conf.webcam.fps );
+	LOGGER_CONFIG("SPLITTING EACH      : \t " << conf.webcam.split << " seconds");
 	LOGGER_CONFIG("===================END CONFIGURATION======================");
 
 	return true;
@@ -249,25 +419,21 @@ bool startNRF24Communication(applicationConfiguration& conf)
 		LOGGER_ERROR("Error NRF24 not available !");
 		return false;
 	}
-
+	LOGGER_VERB("NRF24 Connection OK");
+	LOGGER_VERB("NRF24 Updating Adresses");
 	nrfCom->updateAddr(conf.NRF24_ClientId, conf.NRF24_ServerId,  false );
+	initNrfCallBacks();
+	LOGGER_VERB("NRF24 Starting listenning thread");
 	nrfCom->start();
-	setComm( nrfCom );
 
-	nrfCom->setFunction(&getAck,ACK);
-	nrfCom->setFunction(&authentificationRequest, AUTH_ASK);
-	nrfCom->setFunction(&statusRequest, STATUS_ASK);
-	nrfCom->setFunction(&statusAns, STATUS_ANS);
-	nrfCom->setFunction(&ControlRequest, ACTIVATE_RECORDING);
-	nrfCom->setFunction(&AppariagePoolingStep1, POOL_PARK_ADDR_ANS);
-	nrfCom->setFunction(&AppariageValidConfig, POOL_VALIDATE_CONFIG);
-	nrfCom->setTransactionErrorFunction(&transactionError);
 	return true;
 }
 
 bool startUDPCommunication(applicationConfiguration& conf)
 {
 	Udp *udp = new Udp( conf.UDP_interface ,conf.UDP_serverPort );
+	initUdpCallBacks();
+	udp->start();
 
 	LOGGER_INFO("Trying to find a server on port " << conf.UDP_serverPort );
 	InfoTCP *info = udp->getInfoSrv();
@@ -286,6 +452,13 @@ bool startUDPCommunication(applicationConfiguration& conf)
 
 bool startTCPCommunication(applicationConfiguration& conf)
 {
+	if ( Udp::_TcpInfo == NULL || Udp::_TcpInfo->port == -1 )
+		return false;
+
+	Tcp* tcp = new Tcp(Udp::_TcpInfo);
+	initTcpCallBacks();
+	tcp->start();
+
 	return true;
 }
 
@@ -299,35 +472,71 @@ bool startCAM(applicationConfiguration& conf)
 	bool resultTest = true;
 	RASPISTILL_STATE state;
 	default_status(&state);
-	state.timeout = 0;                  /// Time between snapshoots, in ms
+	state.timeout = 0;                  /// Time between snapshots, in ms
 	state.verbose = 0;
-	state.width = 400;                          /// Requested width of image
-	state.height = 300;                         /// requested height of image
+	state.width = conf.camera.width;                          /// Requested width of image
+	state.height = conf.camera.height;                         /// requested height of image
 	state.preview_parameters.wantPreview=0;
 
-	StillCamera cam(state);
+	StillCamera * cam = new StillCamera(state);
+	cam->setSleepTime(conf.camera.delayMs);
 	uint8_t * buff = NULL;
 	int sizeBuff = 0;
-	if(cam.init())
+	if(cam->init())
 	{
-		resultTest = cam.takeSnapshot(&buff,&sizeBuff);
-		usleep(1000);
+		resultTest = cam->takeSnapshot(&buff,&sizeBuff);
+		//usleep(1000);
 	}
 	else
 		resultTest = false;
-	cam.destroy();
+	//cam.destroy();
 	free (buff);
 	return resultTest;
 }
 
 bool startWebCam(applicationConfiguration& conf)
 {
-	return true;
+	if(Webcam::isInUse())
+	{
+		LOGGER_ERROR("Can't create the webcam it's already in use !");
+		return false;
+	}
+
+	bool resultTest = false ;
+
+	if(!Webcam::isInUse())
+	{
+		Webcam * cam = new Webcam(conf.webcam.device,conf.webcam.width, conf.webcam.height,conf.webcam.fps);
+		cam->setSplitTime(conf.webcam.split);
+		resultTest = cam->testWebcam();
+		//cam->startRecording(CurrentApplicationConfig.Data_path);
+	}
+
+
+	return resultTest;
 }
 
+bool startSound(applicationConfiguration& conf)
+{
+	SoundRecord * sound ;
+	if((sound = SoundRecord::getSoundRecord()) == NULL)
+		sound = new SoundRecord("plughw:1");
+	return true;
+	/*if(!sound->isRecording())
+	    LOGGER_VERB("Not recording !");
+	Recording * rec = new Recording(1);
+	rec->makeDirectory();
+	sound->startRecording(rec);
+	if(!sound->isRecording())
+	    LOGGER_VERB("Not recording !");
+
+	usleep(10000000);
+	sound->stopRecording();*/
+
+}
 bool parseCommandLine(int argc, char * argv[], applicationConfiguration& conf)
 {
-    /* **************************
+	/* **************************
 	*** ARGS ***
 	*************************** */
 	static struct option long_options[] =
@@ -369,12 +578,12 @@ bool parseCommandLine(int argc, char * argv[], applicationConfiguration& conf)
 		case '?':
 			break;
 		default :
-				return false;
+			return false;
 		}
 	}
 	if (optind < argc)
 	{
-		printf("Argument inconnus : \n");
+		printf("Argument unknown : \n");
 		while (optind < argc)
 			printf("%s \n",argv[optind++]);
 	}

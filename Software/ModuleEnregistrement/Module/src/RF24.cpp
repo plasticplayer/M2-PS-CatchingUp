@@ -272,6 +272,10 @@ RF24::RF24(uint8_t _cepin, uint8_t _cspin, uint32_t _spi_speed):
 
 /****************************************************************************/
 
+uint8_t RF24::getChannel()
+{
+  return read_register(RF_CH);
+}
 void RF24::setChannel(uint8_t channel)
 {
   const uint8_t max_channel = 127;
@@ -357,7 +361,7 @@ void RF24::printDetails(void)
   printf("CE Pin  \t = Custom GPIO%d\n", ce_pin );
 
 	// SPI Bus Speed
-	printf("Clock Speed\t = " );
+	printf("Clock Speed\t = ");
 	switch (spi_speed)
 	{
 		case BCM2835_SPI_SPEED_64MHZ : printf("64 Mhz");	break ;
@@ -407,7 +411,7 @@ bool RF24::begin(void)
 	debug = false;
 	#if defined(DEBUG)
 	  debug = true;
-    #endif
+	#endif
 	// This initialize the SPI bus with
 	// csn pin as chip select (custom or not)
 

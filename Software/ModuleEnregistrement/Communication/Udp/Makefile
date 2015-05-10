@@ -1,8 +1,8 @@
 CC=gcc
 CPP=g++
 
-SRCDIR=./
-HEADDIR=./
+SRCDIR=./src/
+HEADDIR=./header/
 LIBDIR=obj
 BINDIR=bin
  

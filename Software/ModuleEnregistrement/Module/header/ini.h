@@ -12,6 +12,7 @@ http://code.google.com/p/inih/
 
 /* Make this header file easier to include in C++ code */
 #ifdef __cplusplus
+
 extern "C" {
 #endif
 

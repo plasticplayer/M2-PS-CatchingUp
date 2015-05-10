@@ -1241,10 +1241,15 @@ int bcm2835_init(void)
 	bcm2835_bsc0 = (uint32_t*)BCM2835_BSC0_BASE;
 	bcm2835_bsc1 = (uint32_t*)BCM2835_BSC1_BASE;
 	bcm2835_st   = (uint32_t*)BCM2835_ST_BASE;
+	if ( debug ) 
+		printf("RF24 : Return Success");
 	return 1; // Success
     }
     int memfd = -1;
     int ok = 0;
+
+    if ( debug ) 
+	printf("RF24 : Open");
     // Open the master /dev/memory device
     if ((memfd = open("/dev/mem", O_RDWR | O_SYNC) ) < 0)
     {
@@ -1252,7 +1257,8 @@ int bcm2835_init(void)
 		strerror(errno)) ;
 	goto exit;
     }
-
+if ( debug ) 
+	printf("RF24 : GPIO");
     // GPIO:
     bcm2835_gpio = (volatile uint32_t *)mapmem("gpio", BCM2835_BLOCK_SIZE, memfd, BCM2835_GPIO_BASE);
     if (bcm2835_gpio == MAP_FAILED) goto exit;
@@ -1271,6 +1277,8 @@ int bcm2835_init(void)
     bcm2835_spi0 = (volatile uint32_t *)mapmem("spi0", BCM2835_BLOCK_SIZE, memfd, BCM2835_SPI0_BASE);
     if (bcm2835_spi0 == MAP_FAILED) goto exit;
 
+ 	if ( debug ) 
+	printf("RF24 : I2C");
     // I2C
     bcm2835_bsc0 = (volatile uint32_t *)mapmem("bsc0", BCM2835_BLOCK_SIZE, memfd, BCM2835_BSC0_BASE);
     if (bcm2835_bsc0 == MAP_FAILED) goto exit;
@@ -1283,7 +1291,8 @@ int bcm2835_init(void)
     if (bcm2835_st == MAP_FAILED) goto exit;
 
     ok = 1;
-
+if ( debug ) 
+	printf("RF24 : ok = %i", ok);
 exit:
     if (memfd >= 0)
         close(memfd);

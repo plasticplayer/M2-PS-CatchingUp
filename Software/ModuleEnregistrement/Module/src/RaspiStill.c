@@ -917,6 +917,9 @@ error:
  */
 /*static*/ MMAL_STATUS_T add_exif_tag(RASPISTILL_STATE *state, const char *exif_tag)
 {
+//TODO FIX error
+return MMAL_SUCCESS;
+
 	MMAL_STATUS_T status;
 	MMAL_PARAMETER_EXIF_T *exif_param = (MMAL_PARAMETER_EXIF_T*)calloc(sizeof(MMAL_PARAMETER_EXIF_T) + MAX_EXIF_PAYLOAD_LENGTH, 1);
 
