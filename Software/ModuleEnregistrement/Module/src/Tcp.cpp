@@ -10,6 +10,7 @@
 #include "Tcp.h"
 #include "Udp.h"
 #include <iostream>
+#include "define.h"
 #include <string.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -21,7 +22,7 @@
 #include <net/if.h>
 #include <unistd.h>
 #include <fstream>
-
+#include <signal.h>
 using namespace std;
 
 #define SIZE_BUFFER 1024
@@ -32,6 +33,7 @@ Tcp *Tcp::_tcp = NULL ;
 Tcp::Tcp( InfoTCP* infoConnexion ) : Communication(0x10, 0x22, 0x20 ) {
 	LOGGER_VERB("Start Tcp on: " << infoConnexion->ipAddress << ":" << infoConnexion->port);
 	//Create socket
+	signal(SIGPIPE, sigpipe_handler);
 	_Sock = socket(AF_INET , SOCK_STREAM , 0);
 	if (_Sock == -1) perror("Could not create socket");
 

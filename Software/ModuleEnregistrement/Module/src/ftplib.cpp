@@ -741,6 +741,13 @@ int ftplib::FtpOpenPort(ftphandle *nControl, ftphandle **nData, transfermode mod
 		perror("socket");
 		return -1;
 	}
+	/*if (setsockopt(sData,SOL_SOCKET,MSG_NOSIGNAL, SETSOCKOPT_OPTVAL_TYPE &on,sizeof(on)) == -1)
+	{
+		perror("setsockopt");
+		net_close(sData);
+		return -1;
+	}*/
+
 	if (setsockopt(sData,SOL_SOCKET,SO_REUSEADDR, SETSOCKOPT_OPTVAL_TYPE &on,sizeof(on)) == -1)
 	{
 		perror("setsockopt");
@@ -898,6 +905,13 @@ int ftplib::FtpOpenPasv(ftphandle *nControl, ftphandle **nData, transfermode mod
 		perror("socket");
 		return -1;
 	}
+	
+	/*if (setsockopt(sData,SOL_SOCKET,MSG_NOSIGNAL, SETSOCKOPT_OPTVAL_TYPE &on,sizeof(on)) == -1)
+	{
+		perror("setsockopt");
+		net_close(sData);
+		return -1;
+	}*/
 	if (setsockopt(sData,SOL_SOCKET,SO_REUSEADDR, SETSOCKOPT_OPTVAL_TYPE &on,sizeof(on)) == -1)
 	{
 		perror("setsockopt");

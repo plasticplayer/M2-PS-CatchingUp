@@ -35,4 +35,7 @@ typedef struct applicationConfiguration
 
 extern applicationConfiguration CurrentApplicationConfig;
 
+void signal_handler(int signal_number);
+void sigpipe_handler(int signal_number);
+void exit_handler(void );
 #endif

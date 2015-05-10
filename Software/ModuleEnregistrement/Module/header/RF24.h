@@ -401,7 +401,7 @@ public:
    * @param channel Which RF channel to communicate on, 0-127
    */
   void setChannel(uint8_t channel);
-
+uint8_t getChannel();
   /**
    * Set Static Payload Size
    *

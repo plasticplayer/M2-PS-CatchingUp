@@ -28,23 +28,32 @@ import javax.swing.JScrollPane;
 import javax.swing.table.DefaultTableModel;
 
 import persistence.CardDAOImpl;
+import persistence.RecorderDAOImpl;
 import persistence.RoomDAOImpl;
 import persistence.UserRecorderDAOImpl;
 import dao.CardDAO;
+import dao.RecorderDAO;
 import dao.RoomDAO;
 import dao.UserRecorderDAO;
 import dm.Card;
+import dm.ConnectingModule;
+import dm.Recorder;
 import dm.Room;
 import dm.User;
 import dm.UserRecorder;
 
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.JButton;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 public class Configuration extends JFrame {
 
 	private JPanel contentPane;
 	private JTable tableSpeakers;
 	private JTable tableCards;
+	private JTable tableModuls;
 	private JTable tableClassrooms;
 	//public 
 
@@ -131,27 +140,41 @@ public class Configuration extends JFrame {
 		});*/
 		//String firstName, String lastName, String password, String email, Date dateBegin, Date dateEnd
 		String[] titreColonnes = { 
-				   "prénom","nom","mot de passe",
-				   "email","Date de début","date de fin"}; 
+				   "Prénom","Nom",
+				   "Email","Date de début","Date de fin"}; 
 		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
 		Model m = new Model(arrayUserRecorder,titreColonnes);
 		
 		JScrollPane scrollPane_2 = new JScrollPane();
+		
+		JButton UserButton = new JButton("Nouvel utilisateur");
+		UserButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				SpeakerCreation spCreationSpeaker = new SpeakerCreation();
+				spCreationSpeaker.show();
+			}
+		});
 				
 		GroupLayout gl_speakersManagementPanel = new GroupLayout(speakersManagementPanel);
 		gl_speakersManagementPanel.setHorizontalGroup(
-			gl_speakersManagementPanel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(Alignment.LEADING, gl_speakersManagementPanel.createSequentialGroup()
+			gl_speakersManagementPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
 					.addGap(39)
 					.addComponent(scrollPane_2, GroupLayout.DEFAULT_SIZE, 650, Short.MAX_VALUE)
 					.addGap(46))
+				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
+					.addGap(89)
+					.addComponent(UserButton)
+					.addContainerGap(557, Short.MAX_VALUE))
 		);
 		gl_speakersManagementPanel.setVerticalGroup(
 			gl_speakersManagementPanel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
 					.addGap(68)
 					.addComponent(scrollPane_2, GroupLayout.PREFERRED_SIZE, 241, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(119, Short.MAX_VALUE))
+					.addPreferredGap(ComponentPlacement.RELATED, 64, Short.MAX_VALUE)
+					.addComponent(UserButton)
+					.addGap(31))
 		);
 		tableSpeakers = new JTable(m);
 		scrollPane_2.setViewportView(tableSpeakers);
@@ -166,7 +189,7 @@ public class Configuration extends JFrame {
 		        int row = table.rowAtPoint(p);
 		        if (e.getClickCount() == 2) {
 		            // your valueChanged overridden method 
-		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate((String)arrayUserRecorder[row][0],(String)arrayUserRecorder[row][1],(String)arrayUserRecorder[row][2],(String)arrayUserRecorder[row][3],
+		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate((String)arrayUserRecorder[row][0],(String)arrayUserRecorder[row][1],(String)arrayUserRecorder[row][3],
 		        			(String)arrayUserRecorder[row][4],(String)arrayUserRecorder[row][5]);
 		        	speakerUpdate.setVisible(true);
 		        }
@@ -231,21 +254,19 @@ public class Configuration extends JFrame {
 		JScrollPane scrollPane_1 = new JScrollPane();
 		GroupLayout gl_classroomsManagementPanel = new GroupLayout(classroomsManagementPanel);
 		gl_classroomsManagementPanel.setHorizontalGroup(
-			gl_classroomsManagementPanel.createParallelGroup(Alignment.LEADING)
-				.addGroup(Alignment.TRAILING, gl_classroomsManagementPanel.createSequentialGroup()
-					.addContainerGap(187, Short.MAX_VALUE)
+			gl_classroomsManagementPanel.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_classroomsManagementPanel.createSequentialGroup()
+					.addContainerGap(181, Short.MAX_VALUE)
 					.addComponent(scrollPane_1, GroupLayout.PREFERRED_SIZE, 409, GroupLayout.PREFERRED_SIZE)
-					.addGap(139))
+					.addGap(145))
 		);
 		gl_classroomsManagementPanel.setVerticalGroup(
 			gl_classroomsManagementPanel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(Alignment.TRAILING, gl_classroomsManagementPanel.createSequentialGroup()
-					.addGap(88)
+				.addGroup(Alignment.LEADING, gl_classroomsManagementPanel.createSequentialGroup()
+					.addGap(75)
 					.addComponent(scrollPane_1, GroupLayout.PREFERRED_SIZE, 234, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(106, Short.MAX_VALUE))
+					.addContainerGap(118, Short.MAX_VALUE))
 		);
-		
-		
 		
 		RoomDAO roomDao= new RoomDAOImpl();
 		List<Room> room = roomDao.getRoomList();
@@ -269,11 +290,45 @@ public class Configuration extends JFrame {
 		        }
 		    }
 		});
-		
-		
+			
 		JPanel recordersManagementPanel = new JPanel();
+		tabbedPane.addTab("Gestion des cartes", null, recordersManagementPanel, null);
+		
+		JScrollPane scrollPane_3 = new JScrollPane();
+		GroupLayout gl_recordersManagementPanel = new GroupLayout(recordersManagementPanel);
+		gl_recordersManagementPanel.setHorizontalGroup(
+			gl_recordersManagementPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(Alignment.TRAILING, gl_recordersManagementPanel.createSequentialGroup()
+					.addContainerGap(211, Short.MAX_VALUE)
+					.addComponent(scrollPane_3, GroupLayout.PREFERRED_SIZE, 347, GroupLayout.PREFERRED_SIZE)
+					.addGap(177))
+		);
+		gl_recordersManagementPanel.setVerticalGroup(
+			gl_recordersManagementPanel.createParallelGroup(Alignment.TRAILING)
+				.addGroup(Alignment.LEADING, gl_recordersManagementPanel.createSequentialGroup()
+					.addGap(96)
+					.addComponent(scrollPane_3, GroupLayout.PREFERRED_SIZE, 229, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(103, Short.MAX_VALUE))
+		);
+		
+		RecorderDAO connectingModuleDao= new RecorderDAOImpl();
+		List<Recorder> recorders = connectingModuleDao.getRecorderList();
+		String[] connectingModuleColumnTitle = { 
+				   "enregistreur","activateur"}; 
+		Model mModul = new Model(toArrayModuls(recorders),connectingModuleColumnTitle);
+		tableModuls = new JTable(mModul);
+	//	JTableHeader headermModule = tableModuls.getTableHeader();
+	
+		scrollPane_3.setViewportView(tableModuls);
+		recordersManagementPanel.setLayout(gl_recordersManagementPanel);
+		 
+		
+		/*JPanel recordersManagementPanel = new JPanel();
 		tabbedPane.addTab("Gestion des enregisteurs", null, recordersManagementPanel, null);
-		contentPane.setLayout(gl_contentPane);
+		
+		JScrollPane scrollPane_3 = new JScrollPane();
+		recordersManagementPanel.add(scrollPane_3);
+		contentPane.setLayout(gl_contentPane);*/
 	}
 	
 	private Object[][] toArrayUserRecorder(List<UserRecorder> datas){
@@ -282,7 +337,7 @@ public class Configuration extends JFrame {
 		    ArrayList<String> row = new ArrayList<String>();
 		    row.add(datas.get(i).getFirstName());
 		    row.add(datas.get(i).getLastName());
-		    row.add(datas.get(i).getPassword());
+		   // row.add(datas.get(i).getPassword());
 		    row.add(datas.get(i).getEmail());
 		    row.add(datas.get(i).getDateBegin().toString());
 		    row.add(datas.get(i).getDateEnd().toString());
@@ -315,6 +370,17 @@ public class Configuration extends JFrame {
 		    ArrayList<String> row = new ArrayList<String>();
 		    row.add(datas.get(i).getName());
 		    row.add(datas.get(i).getDescription());
+		    array[i] = row.toArray(new String[row.size()]);
+		}
+		return array;
+	}
+	
+	private Object[][] toArrayModuls(List<Recorder> recorders){
+		Object[][] array = new Object[recorders.size()][];
+		for (int i = 0; i < recorders.size(); i++) {
+		    ArrayList<String> row = new ArrayList<String>();
+		    row.add(recorders.get(i).getRecordingModule().getIdNetwork()+"");
+		    row.add(recorders.get(i).getConnectingModule().getIdNetworkRecording()+"");
 		    array[i] = row.toArray(new String[row.size()]);
 		}
 		return array;

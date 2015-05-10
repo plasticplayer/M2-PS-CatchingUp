@@ -272,6 +272,10 @@ RF24::RF24(uint8_t _cepin, uint8_t _cspin, uint32_t _spi_speed):
 
 /****************************************************************************/
 
+uint8_t RF24::getChannel()
+{
+  return read_register(RF_CH);
+}
 void RF24::setChannel(uint8_t channel)
 {
   const uint8_t max_channel = 127;

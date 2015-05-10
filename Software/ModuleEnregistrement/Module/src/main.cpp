@@ -8,7 +8,7 @@
 
 //#define EXIT_ON_ERROR 1
 #define ENABLE_CAMERA 1
-//#define ENABLE_COMM 1
+#define ENABLE_COMM 1
 
 #include "Config.h"
 #include "define.h"
@@ -67,7 +67,9 @@ using namespace std;
 
 /** Functions **/
 
-void signal_handler(int signal_number);
+/*void signal_handler(int signal_number);
+void sigpipe_handler(int signal_number);
+void exit_handler(void );*/
 bool parseCommandLine(int argc, char * argv[], applicationConfiguration& conf);
 
 bool loadConfigFromIniFile(applicationConfiguration& conf);
@@ -85,7 +87,13 @@ applicationConfiguration CurrentApplicationConfig;
 static int CurrentIdRecording;
 
 /*** CODE ***/
+void exit_handler(void){
 
+}
+void sigpipe_handler(int signal_number)
+{
+	LOGGER_WARN("SIG_PIPE received ! Something is goinng horribly wrong !");
+}
 void signal_handler(int signal_number)
 {
 	LOGGER_INFO("Closing requested");
@@ -122,7 +130,7 @@ void signal_handler(int signal_number)
 			sound->stopRecording();
 		}
 	}
-	exit(255);
+exit(255);
 }
 
 
@@ -131,7 +139,8 @@ int main(int argc, char * argv[])
 {
 	/** Registering a signal handler (for CTRL-C) **/
 	signal(SIGINT, signal_handler);
-
+	/** Register signal handler for SIGPIPE **/
+	signal(SIGPIPE, sigpipe_handler);
 	/* Setting the default configuration file */
 	/* Do not edit this, edit the .ini file */
 	CurrentApplicationConfig.iniFileName  = FILE_INI;

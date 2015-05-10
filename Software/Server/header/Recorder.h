@@ -16,6 +16,8 @@
 #include "Communication.h"
 #include "Udp.h"
 #include "Tcp.h"
+#include "hashlibpp.h"
+#include "hl_md5wrapper.h"
 
 #include <fstream>
 

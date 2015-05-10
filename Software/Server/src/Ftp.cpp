@@ -6,8 +6,9 @@
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
 
-#include "../header/Config.h"
-#include "../header/Ftp.h"
+#include "Config.h"
+#include "Ftp.h"
+#include "define.h"
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
@@ -39,7 +40,7 @@ Ftp::Ftp( int port) {
 	//FtpServer.SetCheckPassDelay( 500 ); 	// milliseconds. Bruteforcing protection.
 
 
-	addUser( "test","pass","/tmp");
+	addUser( "test","pass",CurrentApplicationConfig.FolderPathTmp);
 	pthread_create(&_Listenner, NULL, &listenner, ( void * ) this );
 }
 

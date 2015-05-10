@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fstream>
+#include "hashlibpp.h"
+#include "hl_md5wrapper.h"
 
 using namespace std;
 
@@ -98,9 +100,13 @@ RecordingFile* Recording::getNextFile(){
 	}
 	return NULL;
 }
-
+bool Recording::isRecording(){
+	return _isRecording;
+}
 void Recording::loadRecordingFolder( string folder , string fol ){
 	uint64_t idRecording = strtoull(fol.c_str(), NULL, 0);
+	LOGGER_INFO( fol << "::" << idRecording );
+
 	if ( idRecording == 0 )
 		return;
 
@@ -121,6 +127,7 @@ void Recording::loadRecordingFolder( string folder , string fol ){
 			r->_isFinished = true;
 		}
 		RecordingFile *f = new RecordingFile();
+		f->idRecording = SSTR( idRecording ) ;
 		f->isInRecord = false;
 		f->fileName = ent->d_name;
 		f->path = SSTR ( folder << "/" << ent->d_name );
@@ -132,8 +139,40 @@ void Recording::loadRecordingFolder( string folder , string fol ){
 
 /// Export records from configurationFile
 void Recording::addFile(RecordingFile *f ){
-	if ( f != NULL )
-		_Files.push_back( f );
+	if ( f == NULL )
+		return;
+	f->recording = this;
+	_Files.push_back( f );
 	LOGGER_VERB( "Add File " << f->fileName );
 	_FilesNotUpload++;
+}
+
+bool RecordingFile::generateChksum(){
+	hashwrapper *myWrapper = new md5wrapper();
+        try
+        {
+                myWrapper->test();
+        }
+        catch(hlException &e)
+        {
+                cout << "Error 1 " << endl;
+                return false;
+        }
+
+        try
+        {
+                chks = myWrapper->getHashFromFile( path );
+        }
+        catch(hlException &e)
+        {
+                cout << "Error 2 " << endl;
+                return false;
+        }
+	return true;
+}
+
+void RecordingFile::uploadOk(){
+	Recording::_FilesNotUpload--;
+	recording->_Files.remove(this);
+	remove( (char*) path.c_str() );
 }

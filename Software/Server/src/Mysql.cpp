@@ -261,3 +261,11 @@ uint64_t Mysql::createCard ( uint64_t cardNumber, uint64_t idUser ){
 	LOGGER_INFO ( "Card create: " << std::hex << cardNumber << ":" << idUser <<":" << idCard );
 	return idCard;
 }
+
+
+bool Mysql::addFileToRecording ( uint64_t idRecording , string path ){
+	// TODO:
+	LOGGER_VERB("Add file " << path << " To Record: " << idRecording);
+	return true;
+}
+

@@ -21,6 +21,7 @@
 #include "encode.h"
 #include "webCam.h"
 #include "Recording.h"
+#include "TraitementImage.h"
 
 using namespace std;
 
@@ -40,6 +41,7 @@ Webcam::Webcam(string dev,unsigned int imageWidth, unsigned int imageHeight,uint
 		_Camera = new Camera(dev.c_str(), _imageWidth, _imageHeight, _frameRate);
 		_recording = false;
 
+		_frame = new Mat(_imageWidth,_imageHeight,3);
 		_splitTimeSeconds = 0; // No split
 		Webcam::_instance = this;
 	}
@@ -68,7 +70,7 @@ bool Webcam::testWebcam()
 	if(!_Camera->Open() || !_Camera->Init() || !_Camera->Start())
 		return false;
 
-	char tmpData[_imageHeight * _imageWidth * 3];
+	unsigned char tmpData[_imageHeight * _imageWidth * 3];
 	int taille;
 	grabImage(tmpData,&taille);
 	if(taille == 0)
@@ -107,14 +109,15 @@ void Webcam::generate_test_card(char *buf, int32_t * filledLen, int frame)
 	*filledLen = _imageHeight * _imageWidth * 3;
 }
 
-void Webcam::grabImage( char *buf, int32_t * filledLen)
+void Webcam::grabImage(unsigned char *buf, int32_t * filledLen)
 {
 	char * dataPtr= NULL;
 	while((dataPtr = ((char*)_Camera->Get()))==0)
 	{
 		usleep(10);   	// get the image
 	}
-	char *Y ,*Cb, *Cr, *Y2 ,*r,*g,*b;
+	char *Y ,*Cb, *Cr, *Y2; 
+	unsigned char *r,*g,*b;
 
 	unsigned int pix = 0;
 	unsigned int pixY = 0;
@@ -167,6 +170,20 @@ bool Webcam::startRecording(Recording * recording)
 	_recording = true;
 	_folderRecording = _CurrentRecording->_folderRecording;
 	_RecordingNumber = 1;
+	if(!_Camera->Open() || !_Camera->Init() || !_Camera->Start())
+	{
+        /*thisObj->_Camera->Stop();
+        thisObj->_Camera->UnInit();
+		// try 2 times to open the camera
+		LOGGER_WARN("Open webcam : Try 2 ");
+		if(!thisObj->_Camera->Open() || !thisObj->_Camera->Init() || !thisObj->_Camera->Start())*/
+		{
+			LOGGER_ERROR("Cannot start webcam !");
+			_recording = false;
+			return false;
+		}
+
+	}
 	LOGGER_VERB("Creating Video Recording Thread ! Folder : " << this->_folderRecording << " R : " << this->_RecordingNumber );
 	int ret = pthread_create(&_ThreadRecording , NULL, &(this->_threadRecord), (void *) this) ;
 	return ret == 0;
@@ -202,37 +219,26 @@ void * Webcam::_threadRecord( void * arg)
 
 	if(!initH264(thisObj->_imageHeight,thisObj->_imageWidth,thisObj->_frameRate))
 	{
-		// try 2 times to open the camera
-		if(!initH264(thisObj->_imageHeight,thisObj->_imageWidth,thisObj->_frameRate))
-		{
 			LOGGER_ERROR("Cannot init hardware H.264 encoder !");
 			thisObj->_recording = false;
 			if(fichierH264 != NULL)
 				fclose (fichierH264);
 			return NULL;
-		}
 	}
 
-	if(!thisObj->_Camera->Open() || !thisObj->_Camera->Init() || !thisObj->_Camera->Start())
+/*	if(!thisObj->_Camera->Open() || !thisObj->_Camera->Init() || !thisObj->_Camera->Start())
 	{
-        /*thisObj->_Camera->Stop();
-        thisObj->_Camera->UnInit();
-		// try 2 times to open the camera
-		LOGGER_WARN("Open webcam : Try 2 ");
-		if(!thisObj->_Camera->Open() || !thisObj->_Camera->Init() || !thisObj->_Camera->Start())*/
-		{
 			LOGGER_ERROR("Cannot start webcam !");
 			thisObj->_recording = false;
 			deinitH264();
 			if(fichierH264 != NULL)
 				fclose (fichierH264);
 			return NULL;
-		}
 
-	}
+	}*/
 
 	LOGGER_DEBUG("Recording Webcam init done, starting recording");
-	char tmpData[thisObj->_imageHeight * thisObj->_imageWidth * 3];
+	//char tmpData[thisObj->_imageHeight * thisObj->_imageWidth * 3];
 	int taille;
 
 	struct timeval now;
@@ -243,9 +249,9 @@ void * Webcam::_threadRecord( void * arg)
 	unsigned int frameCounter = 0;
 	while(thisObj->_recording)
 	{
-		thisObj->grabImage(tmpData,&taille);
-		writeImageH264(tmpData, taille,fichierH264);
-
+		thisObj->grabImage(thisObj->_frame->data,&taille);
+		writeImageH264(thisObj->_frame->data, taille,fichierH264);
+		//track(thisObj->_frame);
 		gettimeofday(&now,NULL);
 		timeAct = now.tv_sec + now.tv_usec*1e-6;
 
@@ -305,54 +311,4 @@ void * Webcam::_threadRecord( void * arg)
 	thisObj->_CurrentRecording->addFile(file);
 	return NULL;
 }
-
-/*int main(int argc, char **argv)
-  {
-  if (argc < 2)
-  {
-  printf("Usage: %s <filename>\n", argv[0]);
-  exit(1);
-  }
-  bcm_host_init();
-
-  Camera A("/dev/video0", WIDTH, HEIGHT,25);
-
-
-  initH264(argv[1],HEIGHT,WIDTH);
-
-  int a;
-  char tmpData[HEIGHT * WIDTH * 3];
-  int tmp;
-
-
-  int frameCounter = 0;
-  struct timeval now;
-  double timeAct,timePast,timeDiff,timeStart;
-  gettimeofday(&now,NULL);
-  timePast = now.tv_sec + now.tv_usec*1e-6;
-  float lastFPS = 0;
-  for(a = 0; a < 300 ; a++)
-  {
-
-  frameCounter ++;
-
-//if (frameCounter%10) // On ne verifie que les FPS que toutes les 10 images
-{
-gettimeofday(&now,NULL);
-timeAct = now.tv_sec + now.tv_usec*1e-6;
-timeStart = timeAct;
-timeDiff = timeAct -timePast;
-if ( timeDiff > 1) { // Calcul des FPS une fois par seconde
-lastFPS = (float)frameCounter/timeDiff;
-printf("FPS : %.2f \n",lastFPS);
-timePast = timeAct;
-frameCounter = 0;
-}
-}
-//		generate_test_card(tmpData,&tmp,a);
-grabImage( A,tmpData,&tmp);
-writeImage(tmpData, tmp);
-}
-return 0;
-}*/
 

@@ -29,7 +29,8 @@ typedef unsigned char BYTE ;
 #define INI_SERVER_TCP_PORT     	"tcpPort"
 #define INI_SERVER_UDP_PORT         	"udpPort"
 #define INI_SERVER_FTP_PORT		"ftpPort"
-#define INI_SERVER_FOLDER	        "FolderPath"
+#define INI_SERVER_FOLDER_TMP	        "FolderPath_Ftp"
+#define INI_SERVER_FOLDER_MEDIA		"FolderPath_Media"
 #define INI_SERVER_FTP_MAX_UPLOAD	"FTP_MAX_UPLOAD"
 #define INI_SERVER_MYSQL_DATABASE	"SQL_DATABASE"
 #define INI_SERVER_MYSQL_HOST		"SQL_HOST"
@@ -70,7 +71,7 @@ int main(int argc, const char * argv[]) {
 	CurrentApplicationConfig.TCP_serverPort = 1903;
 	CurrentApplicationConfig.UDP_serverPort = 1902;
 	CurrentApplicationConfig.FTP_serverPort = 1904;
-	CurrentApplicationConfig.FolderPath = "/Tmp";
+	CurrentApplicationConfig.FolderPathTmp = "/Tmp";
 	CurrentApplicationConfig.FTP_maxUpload = 10;
 	CurrentApplicationConfig.MysqlHost = "localhost";
 	CurrentApplicationConfig.MysqlDatabase = "mydb" ;
@@ -150,8 +151,11 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 		return false;
 	}
 
-	string s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_FOLDER,"/Temp");
-	conf.FolderPath = s.c_str();
+	string s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_FOLDER_TMP,"/Temp");
+	conf.FolderPathTmp = s.c_str();
+	
+	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_FOLDER_MEDIA,"/Temp");
+	conf.FolderPathMedia = s.c_str();
 
 	s= reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_FTP_MAX_UPLOAD,"10");
 	conf.FTP_maxUpload = strtoull(s.c_str(),NULL,10);
@@ -181,7 +185,8 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	LOGGER_CONFIG("=================START CONFIGURATION======================");
 	LOGGER_CONFIG("-------------     FTP CONFIGURATION      -----------------");
 	LOGGER_CONFIG("Port            : \t" << conf.FTP_serverPort);
-	LOGGER_CONFIG("Path            : \t" << conf.FolderPath );
+	LOGGER_CONFIG("Path FTP        : \t" << conf.FolderPathTmp );
+	LOGGER_CONFIG("Path MEDIA      : \t" << conf.FolderPathMedia );
 	LOGGER_CONFIG("Max Upload      : \t" << conf.FTP_maxUpload);
 	LOGGER_CONFIG("-------------    NETWORK CONFIGURATION   -----------------");
 	LOGGER_CONFIG("SERVER TCP PORT : \t" << conf.TCP_serverPort );
@@ -218,7 +223,7 @@ bool loadMysql( ){
 	if ( ! mysql->connect(CurrentApplicationConfig.MysqlHost , CurrentApplicationConfig.MysqlDatabase , CurrentApplicationConfig.MysqlUser , CurrentApplicationConfig.MysqlPassword ) )
 		return false;
 //	Mysql::createRoom("A465","");
-//	Mysql::createRecorder( 1 , SSTR("b827eb27f46a"));
+//	Mysql::createRecorder( 1 , SSTR("b827eb115727"));
 //	Mysql::createUserRecorder ( "GHILES" , "MOSTAFAOUI" , "PASSWD" , "gm@ucp.net" , "2015-01-01" , "2016-01-01" )
 //	Mysql::createCard( 0x3124, 1 );
 //	uint64_t idUserRecorder = Mysql::getIdUserRecorderFromTag(0x3124);

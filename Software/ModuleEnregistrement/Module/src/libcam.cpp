@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009 Giacomo Spigler
+   Copyright (C) 2009 Giacomo Spigler
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #include "Config.h"
 
 #include <stdio.h>
@@ -79,9 +79,9 @@ Camera::Camera(const char *n, int w, int h, int f)
 
 
 	/*this->Open();
-	this->Init();
-	this->Start();
-	initialised = true;*/
+	  this->Init();
+	  this->Start();
+	  initialised = true;*/
 }
 
 Camera::~Camera()
@@ -174,23 +174,23 @@ bool Camera::Init()
 
 	switch(io)
 	{
-	case IO_METHOD_READ:
-		if(!(cap.capabilities & V4L2_CAP_READWRITE))
-		{
-			LOGGER_ERROR("Init Camera : " << name << " does not support read i/o");
-			return false;
-		}
+		case IO_METHOD_READ:
+			if(!(cap.capabilities & V4L2_CAP_READWRITE))
+			{
+				LOGGER_ERROR("Init Camera : " << name << " does not support read i/o");
+				return false;
+			}
 
-		break;
+			break;
 
-	case IO_METHOD_MMAP:
-	case IO_METHOD_USERPTR:
-		if(!(cap.capabilities & V4L2_CAP_STREAMING))
-		{
-			LOGGER_ERROR("Init Camera : " << name << " does not support streaming i/o");
-			return false;
-		}
-		break;
+		case IO_METHOD_MMAP:
+		case IO_METHOD_USERPTR:
+			if(!(cap.capabilities & V4L2_CAP_STREAMING))
+			{
+				LOGGER_ERROR("Init Camera : " << name << " does not support streaming i/o");
+				return false;
+			}
+			break;
 	}
 
 
@@ -207,12 +207,12 @@ bool Camera::Init()
 		{
 			switch (errno)
 			{
-			case EINVAL:
-				/* Cropping not supported. */
-				break;
-			default:
-				/* Errors ignored. */
-				break;
+				case EINVAL:
+					/* Cropping not supported. */
+					break;
+				default:
+					/* Errors ignored. */
+					break;
 			}
 		}
 	}
@@ -229,34 +229,36 @@ bool Camera::Init()
 	fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
 	//fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
 	//fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
-
-	if(-1 == xioctl (fd, VIDIOC_S_FMT, &fmt))
+	char retry = 5;
+	int ret = xioctl (fd, VIDIOC_S_FMT, &fmt); 
+	while(retry > 0 && -1 == ret)
 	{
-	    CLEAR (fmt);
-        fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        fmt.fmt.pix.width       = width;
-        fmt.fmt.pix.height      = height;
-        fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-	    LOGGER_ERROR("Init Camera : Try 2");
 
-	    if(-1 == xioctl (fd, VIDIOC_S_FMT, &fmt))
-        {
-            LOGGER_ERROR("Init Camera : " << name << " cannot set image size : error : "<<errno << ", ("<<strerror(errno)<<")");
-            return false;
-        }
+		CLEAR (fmt);
+		fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		fmt.fmt.pix.width       = width;
+		fmt.fmt.pix.height      = height;
+		fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+		LOGGER_ERROR("Init Camera : Try "<< (int) retry);
+		retry--;
+		ret = xioctl (fd, VIDIOC_S_FMT, &fmt);
+	}
+	if(ret == -1)
+	{
+		LOGGER_ERROR("Init Camera : " << name << " cannot set image size : error : "<<errno << ", ("<<strerror(errno)<<")");
+		return false;
 	}
 
 
-
 	/*
-	  struct v4l2_standard s;
-	  s.name[0]='A';
-	  s.frameperiod.numerator=1;
-	  s.frameperiod.denominator=fps;
+	   struct v4l2_standard s;
+	   s.name[0]='A';
+	   s.frameperiod.numerator=1;
+	   s.frameperiod.denominator=fps;
 
-	  if(-1==xioctl(fd, VIDIOC_S_STD, &s))
-	  errno_exit("VIDIOC_S_STD");
-	*/
+	   if(-1==xioctl(fd, VIDIOC_S_STD, &s))
+	   errno_exit("VIDIOC_S_STD");
+	 */
 
 
 	struct v4l2_streamparm p;
@@ -440,17 +442,17 @@ bool Camera::Init()
 
 	switch(io)
 	{
-	case IO_METHOD_READ:
-		init_read(fmt.fmt.pix.sizeimage);
-		break;
+		case IO_METHOD_READ:
+			init_read(fmt.fmt.pix.sizeimage);
+			break;
 
-	case IO_METHOD_MMAP:
-		init_mmap();
-		break;
+		case IO_METHOD_MMAP:
+			init_mmap();
+			break;
 
-	case IO_METHOD_USERPTR:
-		init_userp(fmt.fmt.pix.sizeimage);
-		break;
+		case IO_METHOD_USERPTR:
+			init_userp(fmt.fmt.pix.sizeimage);
+			break;
 	}
 	initialised = true;
 	return true;
@@ -459,47 +461,47 @@ bool Camera::Init()
 void Camera::init_userp(unsigned int buffer_size)
 {
 	/*
-	  struct v4l2_requestbuffers req;
-	  unsigned int page_size;
+	   struct v4l2_requestbuffers req;
+	   unsigned int page_size;
 
-	  page_size = getpagesize();
-	  buffer_size = (buffer_size + page_size - 1) & ~(page_size - 1);
+	   page_size = getpagesize();
+	   buffer_size = (buffer_size + page_size - 1) & ~(page_size - 1);
 
-	  CLEAR (req);
+	   CLEAR (req);
 
-	  req.count               = 4;
-	  req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	  req.memory              = V4L2_MEMORY_USERPTR;
+	   req.count               = 4;
+	   req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	   req.memory              = V4L2_MEMORY_USERPTR;
 
-	  if (-1 == xioctl (fd, VIDIOC_REQBUFS, &req)) {
-	  if (EINVAL == errno) {
-	  fprintf (stderr, "%s does not support user pointer i/o\n", name);
-	  exit (EXIT_FAILURE);
-	  } else {
-	  errno_exit ("VIDIOC_REQBUFS");
-	  }
-	  }
+	   if (-1 == xioctl (fd, VIDIOC_REQBUFS, &req)) {
+	   if (EINVAL == errno) {
+	   fprintf (stderr, "%s does not support user pointer i/o\n", name);
+	//exit (EXIT_FAILURE);
+	} else {
+	errno_exit ("VIDIOC_REQBUFS");
+	}
+	}
 
-	  buffers = calloc (4, sizeof (*buffers));
+	buffers = calloc (4, sizeof (*buffers));
 
-	  if (!buffers) {
-	  fprintf (stderr, "Out of memory\n");
-	  exit (EXIT_FAILURE);
-	  }
+	if (!buffers) {
+	fprintf (stderr, "Out of memory\n");
+	exit (EXIT_FAILURE);
+	}
 
-	  for (n_buffers = 0; n_buffers < 4; ++n_buffers) {
-	  buffers[n_buffers].length = buffer_size;
-	  buffers[n_buffers].start = memalign (page_size,
-	  buffer_size);
+	for (n_buffers = 0; n_buffers < 4; ++n_buffers) {
+	buffers[n_buffers].length = buffer_size;
+	buffers[n_buffers].start = memalign (page_size,
+	buffer_size);
 
-	  if (!buffers[n_buffers].start) {
-	  fprintf (stderr, "Out of memory\n");
-	  exit (EXIT_FAILURE);
-	  }
-	  }
+	if (!buffers[n_buffers].start) {
+	fprintf (stderr, "Out of memory\n");
+	exit (EXIT_FAILURE);
+	}
+	}
 
 
-	*/
+	 */
 }
 
 void Camera::init_mmap()
@@ -562,10 +564,10 @@ void Camera::init_mmap()
 
 		buffers[n_buffers].length = buf.length;
 		buffers[n_buffers].start = mmap (NULL /* start anywhere */,
-										 buf.length,
-										 PROT_READ | PROT_WRITE /* required */,
-										 MAP_SHARED /* recommended */,
-										 fd, buf.m.offset);
+				buf.length,
+				PROT_READ | PROT_WRITE /* required */,
+				MAP_SHARED /* recommended */,
+				fd, buf.m.offset);
 
 		if(MAP_FAILED == buffers[n_buffers].start)
 		{
@@ -580,21 +582,21 @@ void Camera::init_mmap()
 void Camera::init_read (unsigned int buffer_size)
 {
 	/*
-	  buffers = calloc (1, sizeof (*buffers));
+	   buffers = calloc (1, sizeof (*buffers));
 
-	  if (!buffers) {
-	  fprintf (stderr, "Out of memory\n");
-	  exit (EXIT_FAILURE);
-	  }
+	   if (!buffers) {
+	   fprintf (stderr, "Out of memory\n");
+	   exit (EXIT_FAILURE);
+	   }
 
-	  buffers[0].length = buffer_size;
-	  buffers[0].start = malloc (buffer_size);
+	   buffers[0].length = buffer_size;
+	   buffers[0].start = malloc (buffer_size);
 
-	  if (!buffers[0].start) {
-	  fprintf (stderr, "Out of memory\n");
-	  exit (EXIT_FAILURE);
-	  }
-	*/
+	   if (!buffers[0].start) {
+	   fprintf (stderr, "Out of memory\n");
+	   exit (EXIT_FAILURE);
+	   }
+	 */
 }
 
 void Camera::UnInit()
@@ -603,24 +605,24 @@ void Camera::UnInit()
 
 	switch(io)
 	{
-	case IO_METHOD_READ:
-		free (buffers[0].start);
-		break;
+		case IO_METHOD_READ:
+			free (buffers[0].start);
+			break;
 
-	case IO_METHOD_MMAP:
-		for(i = 0; i < (unsigned int)n_buffers; ++i)
-			if(-1 == munmap (buffers[i].start, buffers[i].length))
-			{
-				LOGGER_ERROR ("munmap error : "<<errno << ", ("<<strerror(errno)<<")");
-				//fprintf (stderr, "Insufficient buffer memory on %s\n", name);
-				return;
-			}
-		break;
+		case IO_METHOD_MMAP:
+			for(i = 0; i < (unsigned int)n_buffers; ++i)
+				if(-1 == munmap (buffers[i].start, buffers[i].length))
+				{
+					LOGGER_ERROR ("munmap error : "<<errno << ", ("<<strerror(errno)<<")");
+					//fprintf (stderr, "Insufficient buffer memory on %s\n", name);
+					return;
+				}
+			break;
 
-	case IO_METHOD_USERPTR:
-		for (i = 0; i < (unsigned int)n_buffers; ++i)
-			free (buffers[i].start);
-		break;
+		case IO_METHOD_USERPTR:
+			for (i = 0; i < (unsigned int)n_buffers; ++i)
+				free (buffers[i].start);
+			break;
 	}
 
 	free (buffers);
@@ -633,55 +635,55 @@ bool Camera::Start()
 
 	switch(io)
 	{
-	case IO_METHOD_READ:
-		/* Nothing to do. */
-		break;
+		case IO_METHOD_READ:
+			/* Nothing to do. */
+			break;
 
-	case IO_METHOD_MMAP:
-		for(i = 0; i < (unsigned int)n_buffers; ++i)
-		{
-			struct v4l2_buffer buf;
+		case IO_METHOD_MMAP:
+			for(i = 0; i < (unsigned int)n_buffers; ++i)
+			{
+				struct v4l2_buffer buf;
 
-			CLEAR (buf);
+				CLEAR (buf);
 
-			buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-			buf.memory      = V4L2_MEMORY_MMAP;
-			buf.index       = i;
+				buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+				buf.memory      = V4L2_MEMORY_MMAP;
+				buf.index       = i;
 
-			if(-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+				if(-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+					return false;
+			}
+
+			type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+			if(-1 == xioctl (fd, VIDIOC_STREAMON, &type))
 				return false;
-		}
 
-		type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			break;
 
-		if(-1 == xioctl (fd, VIDIOC_STREAMON, &type))
-			return false;
+		case IO_METHOD_USERPTR:
+			for(i = 0; i < (unsigned int)n_buffers; ++i)
+			{
+				struct v4l2_buffer buf;
 
-		break;
+				CLEAR (buf);
 
-	case IO_METHOD_USERPTR:
-		for(i = 0; i < (unsigned int)n_buffers; ++i)
-		{
-			struct v4l2_buffer buf;
+				buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+				buf.memory      = V4L2_MEMORY_USERPTR;
+				buf.index       = i;
+				buf.m.userptr	= (unsigned long) buffers[i].start;
+				buf.length      = buffers[i].length;
 
-			CLEAR (buf);
+				if(-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+					return false;
+			}
 
-			buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-			buf.memory      = V4L2_MEMORY_USERPTR;
-			buf.index       = i;
-			buf.m.userptr	= (unsigned long) buffers[i].start;
-			buf.length      = buffers[i].length;
+			type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-			if(-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+			if(-1 == xioctl (fd, VIDIOC_STREAMON, &type))
 				return false;
-		}
 
-		type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-		if(-1 == xioctl (fd, VIDIOC_STREAMON, &type))
-			return false;
-
-		break;
+			break;
 	}
 	return true;
 
@@ -693,22 +695,22 @@ void Camera::Stop()
 
 	switch(io)
 	{
-	case IO_METHOD_READ:
-		/* Nothing to do. */
-		break;
+		case IO_METHOD_READ:
+			/* Nothing to do. */
+			break;
 
-	case IO_METHOD_MMAP:
-	case IO_METHOD_USERPTR:
-		type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		case IO_METHOD_MMAP:
+		case IO_METHOD_USERPTR:
+			type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-		if(-1 == xioctl (fd, VIDIOC_STREAMOFF, &type))
-		{
-			LOGGER_ERROR ("VIDIOC_STREAMOFF error : "<<errno << ", ("<<strerror(errno)<<")");
-			//fprintf (stderr, "Insufficient buffer memory on %s\n", name);
-			return;
-		}
+			if(-1 == xioctl (fd, VIDIOC_STREAMOFF, &type))
+			{
+				LOGGER_ERROR ("VIDIOC_STREAMOFF error : "<<errno << ", ("<<strerror(errno)<<")");
+				//fprintf (stderr, "Insufficient buffer memory on %s\n", name);
+				return;
+			}
 
-		break;
+			break;
 	}
 
 }
@@ -719,87 +721,87 @@ unsigned char *Camera::Get()
 
 	switch(io)
 	{
-	case IO_METHOD_READ:
-		/*
-		  if (-1 == read (fd, buffers[0].start, buffers[0].length)) {
-		  switch (errno) {
-		  case EAGAIN:
-		  return 0;
+		case IO_METHOD_READ:
+			/*
+			   if (-1 == read (fd, buffers[0].start, buffers[0].length)) {
+			   switch (errno) {
+			   case EAGAIN:
+			   return 0;
 
-		  case EIO:
+			   case EIO:
 
 
-		  default:
-		  errno_exit ("read");
-		  }
-		  }
+			   default:
+			   errno_exit ("read");
+			   }
+			   }
 
-		  process_image (buffers[0].start);
-		*/
-		break;
+			   process_image (buffers[0].start);
+			 */
+			break;
 
-	case IO_METHOD_MMAP:
-		CLEAR(buf);
+		case IO_METHOD_MMAP:
+			CLEAR(buf);
 
-		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		buf.memory = V4L2_MEMORY_MMAP;
-		if(-1 == xioctl (fd, VIDIOC_DQBUF, &buf))
-		{
-			switch (errno)
+			buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			buf.memory = V4L2_MEMORY_MMAP;
+			if(-1 == xioctl (fd, VIDIOC_DQBUF, &buf))
 			{
-			case EAGAIN:
-				return 0;
-			case EIO:
-			default:
-				return 0; //errno_exit ("VIDIOC_DQBUF");
+				switch (errno)
+				{
+					case EAGAIN:
+						return 0;
+					case EIO:
+					default:
+						return 0; //errno_exit ("VIDIOC_DQBUF");
+				}
 			}
-		}
 
-		assert(buf.index < (unsigned int)n_buffers);
+			assert(buf.index < (unsigned int)n_buffers);
 
-		memcpy(data, (unsigned char *)buffers[buf.index].start, buffers[buf.index].length);
+			memcpy(data, (unsigned char *)buffers[buf.index].start, buffers[buf.index].length);
 
-		if(-1 == xioctl (fd, VIDIOC_QBUF, &buf))
-			return 0; //errno_exit ("VIDIOC_QBUF");
+			if(-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+				return 0; //errno_exit ("VIDIOC_QBUF");
 
-		return data;
-
-
-		break;
-
-	case IO_METHOD_USERPTR:
-		/*
-		  CLEAR (buf);
-
-		  buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		  buf.memory = V4L2_MEMORY_USERPTR;
-
-		  if (-1 == xioctl (fd, VIDIOC_DQBUF, &buf)) {
-		  switch (errno) {
-		  case EAGAIN:
-		  return 0;
-
-		  case EIO:
+			return data;
 
 
-		  default:
-		  errno_exit ("VIDIOC_DQBUF");
-		  }
-		  }
+			break;
 
-		  for (i = 0; i < n_buffers; ++i)
-		  if (buf.m.userptr == (unsigned long) buffers[i].start
-		  && buf.length == buffers[i].length)
-		  break;
+		case IO_METHOD_USERPTR:
+			/*
+			   CLEAR (buf);
 
-		  assert (i < n_buffers);
+			   buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			   buf.memory = V4L2_MEMORY_USERPTR;
 
-		  process_image ((void *) buf.m.userptr);
+			   if (-1 == xioctl (fd, VIDIOC_DQBUF, &buf)) {
+			   switch (errno) {
+			   case EAGAIN:
+			   return 0;
 
-		  if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
-		  errno_exit ("VIDIOC_QBUF");
-		*/
-		break;
+			   case EIO:
+
+
+			   default:
+			   errno_exit ("VIDIOC_DQBUF");
+			   }
+			   }
+
+			   for (i = 0; i < n_buffers; ++i)
+			   if (buf.m.userptr == (unsigned long) buffers[i].start
+			   && buf.length == buffers[i].length)
+			   break;
+
+			   assert (i < n_buffers);
+
+			   process_image ((void *) buf.m.userptr);
+
+			   if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+			   errno_exit ("VIDIOC_QBUF");
+			 */
+			break;
 	}
 
 	return 0;
@@ -1048,7 +1050,7 @@ int Camera::setSaturation(int v)
 
 	if(-1 == ioctl (fd, VIDIOC_S_CTRL, &control))
 	{
-LOGGER_ERROR ("Error setting saturation error : "<<errno << ", ("<<strerror(errno)<<")");
+		LOGGER_ERROR ("Error setting saturation error : "<<errno << ", ("<<strerror(errno)<<")");
 		return -1;
 	}
 

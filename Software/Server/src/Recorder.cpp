@@ -6,6 +6,8 @@
 #include "define.h"
 #include "Recorder.h"
 #include "Communication.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "Mysql.h"
 
 
@@ -72,7 +74,6 @@ void Recorder::setTcpSocket( Tcp* s ){
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_endFilesTransfert), (int)GET_END_TRANSFERT_FILES);
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_recordingEnd), (int)GET_RecordingEnd);
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_createRecording), (int)GET_RECORDING_START );
-	SRV_TO_REC_askVisuImage(0x01);
 }
 
 void Recorder::setUdpSocket ( void* sock, int size ){
@@ -343,7 +344,7 @@ void Recorder::REC_TO_SRV_authentificationAsk( BYTE* data, unsigned long size, v
 			(uint8_t) (( rec->_IdUserRecording >> 24 ) & 0xFF),
 			(uint8_t) (( rec->_IdUserRecording >> 16 ) & 0xFF),
 			(uint8_t) (( rec->_IdUserRecording >> 8 )  & 0xFF),
-			(uint8_t) (  rec->_IdUserRecording 	  & 0xFF)
+			(uint8_t) (  rec->_IdUserRecording         & 0xFF)
 		};
 		rec->sendTcpFrame(req,10,true);
 	}
@@ -407,26 +408,83 @@ void Recorder::REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sen
  * Recieve a signal to end file transfert
  **/
 void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void *sender ){
+	if ( size == 0 || size < ( 9 + data[0] ) )
+		return;
+
 	Recorder *rec = (Recorder*) sender;
 	if ( rec->_IdRecorder == 0 )
 		return;
-
-	LOGGER_DEBUG("Get endFileTransfert CompareChksSum: ") ;
-
-	// TODO : CompareChks
-	bool sameChkSum = true;
-
+	
 	BYTE req[2]; 
 	req[0] = ANS_END_FILE_TRANSFERT;
+	req[1] = 0x00;
+	string s = "", md5 = "";
+	int i ;
+	for ( i = 2; i <= data[0] ; i++){
+		s = SSTR( s << data[i] );
+	}
+		
+	for ( i ; i < size ; i++){
+		md5 = SSTR( md5 << data[i] );
+	}
+
+	LOGGER_VERB("File transfert : " << s << " MD5: " << md5 ); 
+	
+	hashwrapper *myWrapper = new md5wrapper();
+	try
+	{
+		myWrapper->test();
+	}
+	catch(hlException &e)
+	{	
+		rec->sendTcpFrame(req,2,true);
+		return;
+	}
+
+	
+	string oldPath = SSTR ( CurrentApplicationConfig.FolderPathTmp << s);
+	string hash = "";
+	uint64_t idRecording = strtoull ( s.substr(0,s.find('/')).c_str(),NULL, 0);
+	
+	if ( idRecording == 0 ){
+		LOGGER_WARN("IdRecording error: " << s.substr(0,s.find('/')));
+		rec->sendTcpFrame(req,2,true);
+	}
+	try
+	{
+		hash = myWrapper->getHashFromFile((char*)oldPath.c_str() );
+	}
+	catch(hlException &e)
+	{
+		rec->sendTcpFrame(req,2,true);
+	}
+
+	bool sameChkSum = ( hash.compare( md5 ) == 0);
+	LOGGER_DEBUG("Ftp: Compare Checksum: " << sameChkSum );
+
+	delete myWrapper;
+	myWrapper = NULL;
+
 
 	if ( sameChkSum ){
-		LOGGER_INFO( "File OK");
-		// TODO: ADD FILE TO BDD
+		string newPath =  SSTR( CurrentApplicationConfig.FolderPathMedia << s );
+		mkdir((const char *) newPath.substr(0,newPath.find_last_of('/')).c_str(),0777);
+ 
+		if ( rename ( oldPath.c_str()  , newPath.c_str() )==0){
+			Mysql::addFileToRecording ( idRecording , newPath );
+		}
+		else{
+			LOGGER_ERROR( "Error moving file: " << errno << " " << strerror(errno));
+			cout << "Last: " << oldPath << "; New: " << newPath << endl;
+			rec->sendTcpFrame(req,2,true);
+			// TODO : DO Something ...
+			return;
+		}
 		req[1] = 0x01;
 	}
 	else{
 		LOGGER_INFO( "File error");
-		// DeleteFile
+		remove ( ( const char * ) oldPath.c_str() );
 		req[2] = 0x00;
 	}
 	rec->sendTcpFrame(req,2,true);
