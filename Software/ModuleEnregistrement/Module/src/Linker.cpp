@@ -1,5 +1,4 @@
 #include "Config.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -15,6 +14,8 @@
 #include "Communication.h"
 
 #define MAX_SIZE_UDP 1024
+#define FTP_TEST_USER "test"
+#define FTP_TEST_PASSWORD "pass"
 
 
 //// MSB FIRST
@@ -162,6 +163,11 @@ void initTcpCallBacks()
 	Tcp::_tcp->setFunction( (FuncType) &SRV_TO_REC_StorageAns, (int)GET_STORAGE_ANS );
 	Tcp::_tcp->setFunction( (FuncType) &SRV_TO_REC_FileTransfertAck, (int)ACK_FILE_SEND_TCP );
 	Tcp::_tcp->setFunction( (FuncType) &SRV_TO_REC_GetIdRecording, (int)ANS_ID_RECORDING );
+
+	// Set FTP User
+	char s[12];
+	getMac( (char * )CurrentApplicationConfig.UDP_interface.c_str() , s );
+	_FtpUser = SSTR( s );
 }
 
 
@@ -731,9 +737,12 @@ void SRV_TO_REC_StatutRequest( BYTE* data, unsigned long size )
 void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size )
 {
 	LOGGER_VERB("Get Storage Ans");
-	if ( size != 1 ) // Can't has no data
+	if ( size <= 1 ) // Can't has no data
 		return;
-
+	_FtpPassword = "";
+	for ( unsigned long i = 1; i < size ; i++ ) 
+		_FtpPassword = SSTR ( _FtpPassword << data[i] );
+	 
 	_FtpCanUploadFile = ( data[0] == 0x01 );
 	REC_TO_SRV_TcpAck(GET_STORAGE_ANS);
 /*	if ( data[0] == 0x01 )
@@ -908,7 +917,7 @@ bool ftpCheck( )
 		return false;
 	}
 
-	if ( !_Ftp->Login(_FtpUser.c_str(), _FtpPassword.c_str()) )
+	if ( !_Ftp->Login((char * )FTP_TEST_USER , (char*) FTP_TEST_PASSWORD ))
 	{
 		LOGGER_ERROR("Failed to FTP Connect. User/Password error");
 		return false;
@@ -941,7 +950,7 @@ bool ftpSendFile( )
 
 	if ( !_Ftp->Login(_FtpUser.c_str() , _FtpPassword.c_str() ) )
 	{
-		LOGGER_ERROR("Failed to FTP Connect. User/Password error");
+		LOGGER_ERROR("Failed to FTP Connect. User/Password error. " << _FtpUser << ":" << _FtpPassword );
 		return false;
 	}
 
@@ -1009,6 +1018,7 @@ void* ftpSenderThread( void* data )
 				}
 			}
 		}
+		sleep(1);
 	}
 	return NULL;
 }
