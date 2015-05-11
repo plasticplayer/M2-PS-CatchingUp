@@ -34,10 +34,11 @@ class Mysql  {
 		
 		// 
 		static void stopRecording ( uint64_t idRecording );	
+		static void RecordingTransferFinished ( uint64_t idRecording );	
 		static uint64_t createRecording ( uint64_t idRecorder , uint64_t idUserRecorder);
 		static uint64_t getIdRecorderFromMac( string mac );
 		static uint64_t getIdUserRecorderFromTag( uint64_t idCard );
-		static bool addFileToRecording ( uint64_t idRecording , string path );
+		static bool addFileToRecording ( uint64_t idRecording , string path, string type);
 	protected:
 		bool _IsInsertingRow;
 	private:

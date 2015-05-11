@@ -144,9 +144,10 @@ typedef struct _FileLesson
 {
 	string name = "FileLesson";
 	Col id {.type = MYSQL_INT,.value = "IdFileLesson"};
+	Col idChapter {.type = MYSQL_INT,.value = "IdChapter" };
 	Col fileLessonName {.type = MYSQL_STRING,.value = "NameFileLesson"};
 	Col type {.type = MYSQL_ENUM,.value = "TypeFile"};
-	Col status {.type = MYSQL_ENUM,.value = "StatusFileLesson"};
+	Col status {.type = MYSQL_ENUM,.value = "StatutsFileLesson"};
 } FileLesson;
 
 

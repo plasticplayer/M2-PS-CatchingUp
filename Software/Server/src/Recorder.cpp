@@ -1,4 +1,6 @@
 #define IMAGE_SIZE_MAX 2000
+#define PASS_SIZE 10
+#include <Ftp.h>
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
@@ -14,6 +16,14 @@
 list<Recorder *> Recorder::_Recorders;
 using namespace std;
 
+void gen_random(char *s, const int len) {
+    static const char alphanum[] ="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+    for (int i = 0; i < len-1; ++i) {
+        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+    s[len -1] = '\0';
+}
 /****************  Constructor  ****************/ 
 Recorder::Recorder ( Udp *udp, char* ip ){
 	// Init Variable
@@ -387,13 +397,19 @@ void Recorder::REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sen
 
 	// TODO : Verifiy if can send File
 	bool canSend = true;
-
 	if ( canSend ){
 		LOGGER_DEBUG("Can Send File");
-		BYTE req[2]; 
+		char pass[PASS_SIZE+1];
+		gen_random(pass, PASS_SIZE);	
+		string s = string ( pass );
+		//cout << "Rand Password: " << pass  << "::" << s << endl;
+		Ftp::_Ftp->deleteUser( SSTR ( rec->_MacAddress ).substr(0,12) );
+		Ftp::_Ftp->addUser ( SSTR ( rec->_MacAddress).substr(0,12), s ,CurrentApplicationConfig.FolderPathTmp , false ); 
+		BYTE req[2+PASS_SIZE]; 
 		req[0] = ANS_STORAGE;
 		req[1] = 0x01;
-		rec->sendTcpFrame(req,2,true);
+		memcpy(req+2,pass,PASS_SIZE);
+		rec->sendTcpFrame(req,PASS_SIZE + 2,true);
 	}
 	else{
 		LOGGER_DEBUG("Can't send file" );
@@ -415,11 +431,12 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	if ( rec->_IdRecorder == 0 )
 		return;
 	
+	Ftp::_Ftp->deleteUser( SSTR ( rec->_MacAddress ).substr(0,12) );
 	BYTE req[2]; 
 	req[0] = ANS_END_FILE_TRANSFERT;
 	req[1] = 0x00;
 	string s = "", md5 = "";
-	int i ;
+	unsigned long i ;
 	for ( i = 2; i <= data[0] ; i++){
 		s = SSTR( s << data[i] );
 	}
@@ -449,6 +466,8 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	if ( idRecording == 0 ){
 		LOGGER_WARN("IdRecording error: " << s.substr(0,s.find('/')));
 		rec->sendTcpFrame(req,2,true);
+		remove ( ( const char * ) oldPath.c_str() );
+		return;
 	}
 	try
 	{
@@ -457,6 +476,8 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	catch(hlException &e)
 	{
 		rec->sendTcpFrame(req,2,true);
+		remove ( ( const char * ) oldPath.c_str() );
+		return;
 	}
 
 	bool sameChkSum = ( hash.compare( md5 ) == 0);
@@ -470,8 +491,22 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 		string newPath =  SSTR( CurrentApplicationConfig.FolderPathMedia << s );
 		mkdir((const char *) newPath.substr(0,newPath.find_last_of('/')).c_str(),0777);
  
-		if ( rename ( oldPath.c_str()  , newPath.c_str() )==0){
-			Mysql::addFileToRecording ( idRecording , newPath );
+		string type = newPath.substr( newPath.find_last_of('.'));
+		if ( type.compare(".jpeg") == 0 )
+			type = "PHOTO_BOARD";
+		else if ( type.compare(".h264") == 0 )
+			type = "VIDEO_TRACKING";
+		else if ( type.compare(".mp3") == 0 )
+			type = "SOUND";
+		else {
+			LOGGER_WARN ( "FILE TYPE ERROR (" << type  << ") DELETE IT.");
+			remove ( ( const char * ) oldPath.c_str() );
+			req[1] = 0;
+			rec->sendTcpFrame(req,2,true);
+			return;
+		}
+		if ( rename ( oldPath.c_str()  , newPath.c_str() )==0){	
+			Mysql::addFileToRecording ( idRecording , newPath, type );
 		}
 		else{
 			LOGGER_ERROR( "Error moving file: " << errno << " " << strerror(errno));
@@ -547,7 +582,8 @@ void Recorder::REC_TO_SRV_recordingEnd( BYTE* data, unsigned long size, void *se
 
 	uint64_t idRecording = (uint64_t) ( (uint64_t) data[0] << 56 | (uint64_t) data[1] << 48 | (uint64_t )data[2] << 40 | (uint64_t) data[3] << 32 |
 			(uint64_t) data[4] << 24 | (uint64_t) data[5] << 16 | (uint64_t) data[6] << 8  | (uint64_t) data[7]);
-
+	if ( idRecording == 0 )
+		return;
 	LOGGER_INFO("Recording Finish: " << idRecording );
-	// TODO : MYSSQL SET STATE OF RECORD TO FALSE
+	Mysql::stopRecording( idRecording );
 }

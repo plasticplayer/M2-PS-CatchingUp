@@ -91,7 +91,7 @@ uint64_t Mysql::createRecording ( uint64_t idRecorder , uint64_t idUserRecorder)
 	uint64_t idRecording = 0x00;		
 
 	string req = SSTR( "INSERT INTO " << _ChapterTable.name << " ( " << _ChapterTable.status.value << ", " << _ChapterTable.date.value << " , " << _ChapterTable.idUser.value << " , " 
-		<< _ChapterTable.idRecorder.value << " ) values ( 'TRANSFER' , NOW() , " << idUserRecorder << " , " << idRecorder << " );");	
+		<< _ChapterTable.idRecorder.value << " ) values ( 'RECORDING' , NOW() , " << idUserRecorder << " , " << idRecorder << " );");	
 	LOGGER_DEBUG("Mysql create recording : " << req );
 	_DataBase->_Connection->Query( (char*) req.c_str() );
 
@@ -107,7 +107,7 @@ uint64_t Mysql::createRecording ( uint64_t idRecorder , uint64_t idUserRecorder)
 
 void Mysql::stopRecording ( uint64_t idRecording ){
 	LOGGER_INFO("Stop Recording:" << idRecording);
-	string req = SSTR("UPDATE " << _ChapterTable.name << " SET " << _ChapterTable.status.value << "='WAITINGTREATMENT' WHERE " << _ChapterTable.id.value << "=" << idRecording << "; " );
+	string req = SSTR("UPDATE " << _ChapterTable.name << " SET " << _ChapterTable.status.value << "='TRANSFER' WHERE " << _ChapterTable.id.value << "=" << idRecording << "; " );
 	_DataBase->_Connection->Query( (char*) req.c_str() );
 }
 
@@ -263,9 +263,30 @@ uint64_t Mysql::createCard ( uint64_t cardNumber, uint64_t idUser ){
 }
 
 
-bool Mysql::addFileToRecording ( uint64_t idRecording , string path ){
+bool Mysql::addFileToRecording ( uint64_t idRecording , string path, string type ){
 	// TODO:
-	LOGGER_VERB("Add file " << path << " To Record: " << idRecording);
+	string req = SSTR("INSERT INTO " << _FileLessonTable.name << " ( " << _FileLessonTable.fileLessonName.value << "," << _FileLessonTable.type.value << ","
+		<< _FileLessonTable.status.value << ", " << _FileLessonTable.idChapter.value << " ) VALUES ( '" 
+		<< path << "', '" << type << "' ,'WAITINGTREAtMENT', "  << idRecording << ");");
+	//LOGGER_VERB("Add file " << path << " To Record: " << idRecording << endl << req  );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10 );
+	_DataBase->_IsInsertingRow = true;
+
+	LOGGER_VERB("Mysql AddFile (" << path << ") " << req );
+	_DataBase->_Connection->Query( (char*) req.c_str() );
+	
+	_DataBase->_IsInsertingRow = false;
 	return true;
 }
 
+void Mysql::RecordingTransferFinished ( uint64_t idRecording ){
+	string req = SSTR ( "UPDATE " << _ChapterTable.name << " SET " << _ChapterTable.status.value << "='TRANSFER' WHERE " << _ChapterTable.id.value << "=" << idRecording << ";") ;
+	while ( _DataBase->_IsInsertingRow ) usleep( 10 );
+	_DataBase->_IsInsertingRow = true;
+
+	LOGGER_VERB("Mysql RecordingTransfer Finished (" << idRecording << ") " << req );
+	_DataBase->_Connection->Query( (char*) req.c_str() );
+	
+	_DataBase->_IsInsertingRow = false;
+}
