@@ -32,6 +32,7 @@ Webcam::Webcam(string dev,unsigned int imageWidth, unsigned int imageHeight,uint
 	if(Webcam::_instance == NULL)
 	{
 
+
 		_imageHeight = imageHeight;
 		_imageWidth = imageWidth;
 		_frameRate = frameRate;

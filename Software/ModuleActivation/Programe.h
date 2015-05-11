@@ -106,8 +106,8 @@ private :
   static LinkedList<MessageProtocol*> fileMessageWaitAck;
   static FuncChange _PtrFunction;
   static FuncResetAddr _PtrFunctionResetAddr;
-  static led ledVerte;
-  static led ledRouge;
+  static led leds;
+
  
   /*static MessageProtocol fileMessageToSend[SIZE_FILE_SEND];
    static MessageProtocol fileMessageWaitAck[SIZE_FILE_SEND];

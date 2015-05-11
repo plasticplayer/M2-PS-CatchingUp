@@ -29,6 +29,11 @@
 #include "CFtpServerGlobal.h"
 #include "logger.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <iostream>
+#include <dirent.h>
+
 /**
  * Portable function that sleeps for at least the specified interval.
  *
@@ -2719,7 +2724,7 @@ CFtpServer::CClientEntry::StoreThread (void *pvParam)
     uiBufferSize = pFtpServer->GetTransferBufferSize ();
     char *
     pBuffer = new char[uiBufferSize];
-
+	//DIR * rep = NULL;
 #ifdef CFTPSERVER_ENABLE_ZLIB
     int
     nFlush,
@@ -2746,6 +2751,15 @@ CFtpServer::CClientEntry::StoreThread (void *pvParam)
         goto endofstore;
     }
 #endif
+
+	//rep = opendir(pTransfer->szPath);
+	//if(rep == NULL)
+	//{
+	//	cout << "Must create directory : " << pTransfer->szPath;
+	//	mkdir(pTransfer->szPath, 0777);
+	//}
+
+
 
     hFile = open (pTransfer->szPath, iflags, (int) 0777);
 

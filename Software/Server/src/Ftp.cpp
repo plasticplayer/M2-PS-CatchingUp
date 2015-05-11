@@ -6,8 +6,9 @@
 //  Copyright (c) 2015 Maxime Leblanc. All rights reserved.
 //
 
-#include "../header/Config.h"
-#include "../header/Ftp.h"
+#include "Config.h"
+#include "Ftp.h"
+#include "define.h"
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
@@ -20,11 +21,11 @@
 
 
 using namespace std;
-
+Ftp* Ftp::_Ftp = NULL;
 //CFtpServer Ftp::_FtpServer;
 
 Ftp::Ftp( int port) {
-	
+	_Ftp = this;
 	_Port = port;
 
 	_FtpServer.SetServerCallback (OnServerEvent);
@@ -39,23 +40,40 @@ Ftp::Ftp( int port) {
 	//FtpServer.SetCheckPassDelay( 500 ); 	// milliseconds. Bruteforcing protection.
 
 
-	addUser( "test","pass","/tmp");
+	addUser( "test","pass",CurrentApplicationConfig.FolderPathTmp, true);
+	
 	pthread_create(&_Listenner, NULL, &listenner, ( void * ) this );
 }
 
-void Ftp::addUser( string name, string password, string path ){
-	cout << " Try Add User" << endl;
+void Ftp::addUser( string name, string password, string path, bool test ){
+	cout << " Try Add User: " << name << ":" << password << ":" << path << endl;
 	CFtpServer::CUserEntry * pUser =
 	_FtpServer.AddUser (name.c_str() , password.c_str() , path.c_str() );
 	
 	if ( pUser ){
-		pUser->SetPrivileges (CFtpServer::READFILE | CFtpServer::WRITEFILE 
-				  | CFtpServer::LIST | CFtpServer::DELETEFILE |
-				  CFtpServer::CREATEDIR | CFtpServer::DELETEDIR) ;
+		if ( ! test ) 
+		pUser->SetPrivileges ( /*CFtpServer::READFILE |*/ CFtpServer::WRITEFILE 
+				  /*| CFtpServer::LIST | CFtpServer::DELETEFILE*/ |
+				  CFtpServer::CREATEDIR  /* | CFtpServer::DELETEDIR*/) ;
+		ftpUser *e = ( ftpUser*) malloc ( sizeof( ftpUser ));
+		sprintf(e->name,"%s",name.c_str());
+		e->pUser = pUser;
+		_Users.push_front( e );
 	}
 	else cout << "addUser failed " << endl;
 }
 
+void Ftp::deleteUser ( string name ){
+	for ( list<ftpUser*>::iterator it = _Users.begin(); it != _Users.end() ; it++ ) {
+		ftpUser *f = *it;
+		if ( f != NULL && name.compare( f->name ) == 0 ){
+			_FtpServer.DeleteUser ( f->pUser);
+			_Users.remove(f);
+			LOGGER_VERB("FTP: Delete User OK");
+			return;
+		} 
+	}
+}
 void* Ftp::listenner( void *data){
 	Ftp* ftp = (Ftp*) data;
 
@@ -289,7 +307,6 @@ void OnClientEvent (int Event, CFtpServer::CClientEntry * pClient, void *pArg){
 
 					inet_ntoa (*pClient->GetIP ()),
 					(char *) pArg);
-
 			break;
 
 

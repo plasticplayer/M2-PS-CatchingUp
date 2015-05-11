@@ -14,17 +14,16 @@
 #define COUNT_BTN_LONG 5000
 #define COUNT_BTN_COURT 100
 
-#define LED_V_BLINK ledVerte.speed(500);
-#define LED_V_ON ledVerte.speed(0); \
-ledVerte.on();
-#define LED_V_OFF ledVerte.speed(0); \
-ledVerte.off();
+#define LED_V_BLINK    leds.setSlowV();
+#define LED_V_BLINK_F  leds.setFastV();
+#define LED_V_ON       leds.setOnV();
+#define LED_V_OFF      leds.setOffV();
 
-#define LED_R_BLINK ledRouge.speed(500);
-#define LED_R_ON ledRouge.speed(0); \
-ledRouge.on();
-#define LED_R_OFF ledRouge.speed(0); \
-ledRouge.off();
+#define LED_R_BLINK    leds.setSlowR();
+#define LED_R_BLINK_F  leds.setFastR();
+#define LED_R_ON       leds.setOnR();
+#define LED_R_OFF      leds.setOffR();
+
 
 
 Communication * Programe::communicationProtocol = NULL;
@@ -47,17 +46,15 @@ LinkedList<MessageProtocol*> Programe::fileMessageWaitAck = LinkedList<MessagePr
 FuncChange Programe::_PtrFunction = NULL;
 FuncResetAddr Programe::_PtrFunctionResetAddr = NULL;
 
-led Programe::ledVerte(LED_VERTE_PIN);
-led Programe::ledRouge(LED_ROUGE_PIN);
+led Programe::leds(LED_ROUGE_PIN,LED_VERTE_PIN);
 
 Programe::Programe()
 {  
   pinMode(BTN_PIN, INPUT_PULLUP);  
-  ledVerte.init();
-  ledRouge.init();
+  leds.init();
   LED_R_ON;
   LED_V_ON;
-  delay(5);
+  //delay(5);
   LED_R_OFF;
   LED_V_OFF;
   LED_V_BLINK;
@@ -104,7 +101,7 @@ void Programe::tick()
   else if(!connexionOk) // Pas connecté ?
   {
     LED_V_OFF;
-    LED_R_BLINK;
+    LED_R_BLINK_F;
   }
   else // On est connecté, on est pas en erreur et pas en cours d'enregistrement
   {
@@ -225,8 +222,7 @@ void Programe::tick()
     }
   }
 
-  ledVerte.run();
-  ledRouge.run(); 
+  leds.run(); 
 }
 boolean Programe::isNFCneeded()
 { 

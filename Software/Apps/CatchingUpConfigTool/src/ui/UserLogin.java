@@ -7,12 +7,11 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import javax.swing.JTextField;
 import javax.swing.UIManager;
 import javax.swing.JButton;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
-import javax.swing.JTextPane;
-import javax.swing.JTextArea;
 import javax.swing.JLabel;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
@@ -24,7 +23,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowEvent;
 import java.text.ParseException;
-import java.util.List;
 
 public class UserLogin extends JFrame {
 
@@ -62,13 +60,13 @@ public class UserLogin extends JFrame {
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		
-		final JTextPane tbxUser = new JTextPane();
+		final JTextField tbxUser = new JTextField();
 		
-		final JTextPane tbxPassword = new JTextPane();
+		final JTextField tbxPassword = new JTextField();
 		
-		final JLabel lblUser = new JLabel("Utilisateur:");
+		final JLabel lblUser = new JLabel("Utilisateur :");
 		
-		JLabel lblPassword = new JLabel("Mot de passe:");
+		JLabel lblPassword = new JLabel("Mot de passe :");
 		
 		final JButton btnValidate = new JButton("Valider");
 		btnValidate.addActionListener(new ActionListener() {
