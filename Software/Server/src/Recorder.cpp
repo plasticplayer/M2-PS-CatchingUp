@@ -12,8 +12,8 @@
 #include <sys/stat.h>
 #include "Mysql.h"
 
-
 list<Recorder *> Recorder::_Recorders;
+list<UnconnectedClient*> Recorder::_UnconnectedClients;
 using namespace std;
 
 void gen_random(char *s, const int len) {
@@ -35,7 +35,8 @@ Recorder::Recorder ( Udp *udp, char* ip ){
 	this->_UdpSocket = NULL;
 	this->_ImageParts = NULL;
 	this->_Tcp = NULL;
-
+	this->filesInWait = 0;
+	this->_IsRecording = false;
 	this->_IpAddr = ( char *) malloc ( strlen(ip) );
 	memcpy( _IpAddr,ip,strlen(ip) );
 
@@ -51,7 +52,12 @@ Recorder::Recorder ( Udp *udp, char* ip ){
 }
 
 
-
+void Recorder::decoTcp( void* recorder ){
+	Recorder *rec = ( Recorder*) recorder;
+	cout << "Tcp close: " << rec->_IpAddr << endl;
+	rec->_Tcp = NULL;
+	//this->_Tcp = NULL;
+}
 
 
 /****************  Getters / Setters  ****************/ 
@@ -65,8 +71,16 @@ Recorder* Recorder::findRecorderByIp( char* ip ){
 			return rec;
 	}
 	return NULL;
-}  
+} 
 
+Recorder* Recorder::getRecorderByMac ( BYTE* mac ){
+	for ( list<Recorder*>::iterator it = _Recorders.begin(); it != _Recorders.end(); ++it ){
+		Recorder *rec = *it;
+		if ( memcmp(mac,rec->_MacAddress, 12) == 0 )
+			return rec;
+	}
+	return NULL;
+}
 bool Recorder::isTcpConnected(){
 	return ( this->_Tcp != NULL );
 }
@@ -171,7 +185,29 @@ void Recorder::SRV_TO_REC_sendParring( ){
 }
 
 
-
+void Recorder::addUnconnectedClient ( BYTE* mac ){
+	UnconnectedClient *uc;
+	for ( list<UnconnectedClient*>::iterator it = Recorder::_UnconnectedClients.begin() ; it != Recorder::_UnconnectedClients.end(); ++it){
+		 uc = *it;
+		if ( memcmp(uc->_MacAddress, mac, sizeof(uc->_MacAddress) ) == 0 ){
+			return;
+		}
+	}
+	uc = ( UnconnectedClient* ) malloc ( sizeof( UnconnectedClient));
+	sprintf( (char* )uc->_MacAddress, (char *) mac );
+	Recorder::_UnconnectedClients.push_back(uc);
+}
+void Recorder::delUnconnectedClient ( BYTE* mac ){
+	UnconnectedClient *uc;
+	for ( list<UnconnectedClient*>::iterator it = Recorder::_UnconnectedClients.begin() ; it != Recorder::_UnconnectedClients.end(); ++it){
+		uc = *it;
+		if ( memcmp(uc->_MacAddress, mac, sizeof( uc->_MacAddress) ) == 0 ){
+			Recorder::_UnconnectedClients.remove(uc);
+			free ( uc );
+			return;
+		}
+	}
+}
 
 /****************  Udp Callbacks  ****************/
 /** REC_TO_SRV_getMacAddress
@@ -186,9 +222,10 @@ void Recorder::REC_TO_SRV_getMacAddress( BYTE* data, unsigned long size, void *s
 
 	if ( rec->_IdRecorder == 0 ){
 		LOGGER_WARN("Recorder Unkown : " << rec->_MacAddress << ". Ignore Request");
+		addUnconnectedClient ( rec->_MacAddress );
 		return;
 	}
-
+	delUnconnectedClient ( rec->_MacAddress );
 	BYTE req[] = { 0x42 , (BYTE)(CurrentApplicationConfig.TCP_serverPort >> 8),
 		(BYTE)(CurrentApplicationConfig.TCP_serverPort & 0xFF),
 		(BYTE)(CurrentApplicationConfig.FTP_serverPort >> 8), 
@@ -391,10 +428,10 @@ void Recorder::REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sen
 	if ( rec->_IdRecorder == 0 )
 		return;
 
-	long fileInWait = 0;
-	for ( unsigned long  i = 0; i < size; i++ ) fileInWait = ( fileInWait << 8) | data[i];
-	LOGGER_DEBUG( "Storage Ask from: " << rec->_IdRecorder << " Files in wait: " << fileInWait );
-
+	rec->filesInWait = 0;
+	for ( unsigned long  i = 0; i < size; i++ ) rec->filesInWait = ( rec->filesInWait << 8) | data[i];
+	LOGGER_DEBUG( "Storage Ask from: " << rec->_IdRecorder << " Files in wait: " << rec->filesInWait );
+	
 	// TODO : Verifiy if can send File
 	bool canSend = true;
 	if ( canSend ){
@@ -515,6 +552,7 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 			// TODO : DO Something ...
 			return;
 		}
+		rec->filesInWait--;
 		req[1] = 0x01;
 	}
 	else{
@@ -569,12 +607,15 @@ void Recorder::REC_TO_SRV_createRecording( BYTE* data, unsigned long size, void 
 		(uint8_t) (  idRecording	 & 0xFF)
 	};
 	rec->sendTcpFrame(req,9,true);
+	rec->_IsRecording = true;
 }
+
 
 /** REC_TO_SRV_recordingEnd
  * Get signal for the end of the recording
  **/
 void Recorder::REC_TO_SRV_recordingEnd( BYTE* data, unsigned long size, void *sender ){
+	Recorder * rec = ( Recorder*) sender;
 	if ( size != 8 ){
 		cout << "lenght error getRecordingEnd: " << size  << endl;
 		return;
@@ -584,6 +625,11 @@ void Recorder::REC_TO_SRV_recordingEnd( BYTE* data, unsigned long size, void *se
 			(uint64_t) data[4] << 24 | (uint64_t) data[5] << 16 | (uint64_t) data[6] << 8  | (uint64_t) data[7]);
 	if ( idRecording == 0 )
 		return;
+	rec->_IsRecording = false;
 	LOGGER_INFO("Recording Finish: " << idRecording );
 	Mysql::stopRecording( idRecording );
+}
+
+bool Recorder::isRecording ( ){
+	return _IsRecording;
 }

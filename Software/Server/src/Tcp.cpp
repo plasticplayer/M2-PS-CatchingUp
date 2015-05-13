@@ -18,15 +18,20 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
-#include "../header/Tcp.h"
-#include "../header/Config.h"
+#include "Tcp.h"
+//#include "Config.h"
 
 #define SIZE_BUFFER 128
 using namespace std;
 
 
 /// construtors
+#ifdef SSL_ENABLE
+Tcp::Tcp( int socket, void* recorder, SSL *ssl ){
+	this->_Ssl = ssl;
+#else
 Tcp::Tcp( int socket, void* recorder ){
+#endif
 	this->_Recorder = recorder;
 	this->_Socket = socket;
 	this->_Communication = new Communication( 0x10, 0x22, 0x20, 256 );
@@ -49,8 +54,12 @@ void* Tcp::listen( void* a){
 
 	//char tmp[250];
 	//Receive a message from client
-	LOGGER_VERB("Tcp listen from recorder: ");
-	while( (read_size = recv( tcp->_Socket , client_message , SIZE_BUFFER , 0)) > 0 )
+	LOGGER_VERB("Tcp listen from recorder ");
+	#ifdef SSL_ENABLE
+	while ( (read_size = SSL_read(tcp->_Ssl, client_message, SIZE_BUFFER )) > 0 )
+	#else
+	while( (read_size  = recv( tcp->_Socket , client_message , SIZE_BUFFER , 0)) > 0 )
+	#endif
 	{
 		LOGGER_DEBUG("TCP : GET FRAME " << read_size );
 		//memset(tmp,'\0',sizeof(tmp));
@@ -60,8 +69,8 @@ void* Tcp::listen( void* a){
 		tcp->_Communication->recieveData((BYTE*)client_message,  (unsigned long ) read_size, tcp->_Recorder );
 	}
 	LOGGER_DEBUG("TCP : Close socket");
-	cout << " " << endl;
-
+	tcp->deco[0]( tcp->_Recorder );
+	delete tcp;
 	fflush(stdout);
 	return NULL;
 }
@@ -83,7 +92,11 @@ void Tcp::sendTcp( BYTE* data, int size , bool needAck){
 	// Send Frames
 	BYTE* Datas = NULL;
 	int res = _Communication->encodeData(data,&Datas,(unsigned long)size);
+	#ifdef SSL_ENABLE
+	if ( SSL_write ( _Ssl, (char*) Datas, res ) < 0 )
+	#else
 	if( send( getSocket() , (char*)Datas , res ,0) < 0)
+	#endif
 	{
 		perror("Send failed : ");
 		free(Datas);

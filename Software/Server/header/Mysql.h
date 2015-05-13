@@ -26,6 +26,8 @@ class Mysql  {
 		bool connect(string host, string database, string user, string password );
 		
 		// Administration
+		static Result* getRecorders ( );
+
 		static uint64_t createUserRecorder ( string firstName, string lastName, string password, string email , string dateBegin, string dateEnd );
 		static uint64_t createRecorder ( uint64_t idRoom, string addressMac );
 		static uint64_t createRoom ( string roomName, string description );

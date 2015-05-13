@@ -290,3 +290,15 @@ void Mysql::RecordingTransferFinished ( uint64_t idRecording ){
 	
 	_DataBase->_IsInsertingRow = false;
 }
+
+
+Result* Mysql::getRecorders ( ){
+	string req = SSTR ( 
+			"SELECT " << _RecorderTable.idRecorder.value << "," << _RoomTable.roomName.value << "," << _RecordingTable.adressMAC.value
+			<< " FROM " << _RecorderTable.name << " r," << _RoomTable.name << " ro," << _RecordingTable.name << " re WHERE r."
+			<< _RecorderTable.idRecordingModule.value  << "=re." << _RecordingTable.id.value << " AND r." << _RecorderTable.idRoom.value << "=ro." 
+			<< _RoomTable.id.value << ";"
+	);
+	
+	return _DataBase->_Connection->Query(( char*) req.c_str()  );
+}

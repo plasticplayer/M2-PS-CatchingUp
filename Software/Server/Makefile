@@ -12,7 +12,7 @@ INCLUDE_DIRS = -I/opt/vc/include -I/opt/vc/include/interface/vcos/ -I/opt/vc/inc
 
 # Les différentes options de compilations, soyons strictes !
 #CFLAGS= -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"
-CFLAGS= -I$(HEADDIR) -Wall -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"  `mysql_config --libs`  -std=gnu++11
+CFLAGS= -I$(HEADDIR) -Wall -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"  `mysql_config --libs`  -std=gnu++11 -lssl -lcrypto
 # Les différents FrameWorks et bibliothèques pour le linkage
 GLLIBS = -lm -lpthread
 

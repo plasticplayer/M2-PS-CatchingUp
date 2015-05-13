@@ -11,11 +11,12 @@
 #include "Config.h"
 #include <sys/signal.h> 
 #include "INIReader.h"
-#include "../header/Udp.h"
-#include "../header/Ftp.h"
-#include "../header/define.h"
-#include "../header/Tcp_Socket_Server.h"
-#include "../header/CFtpServer.h"
+#include "Udp.h"
+#include "Ftp.h"
+#include "define.h"
+#include "Tcp_Socket_Server.h"
+#include "CFtpServer.h"
+#include "ConfigAppli.h"
 
 #include <getopt.h>
 #include <iostream>
@@ -36,6 +37,7 @@ typedef unsigned char BYTE ;
 #define INI_SERVER_MYSQL_HOST		"SQL_HOST"
 #define INI_SERVER_MYSQL_USER		"SQL_USER"
 #define INI_SERVER_MYSQL_PASSWORD	"SQL_PASSWORD"	
+#define INI_SERVER_APPLI_CONF_TCP_PORT	"tcpport_appliconf"
 
 Udp *_Udp = NULL;
 Ftp *_Ftp;
@@ -53,6 +55,7 @@ bool loadUdpServer( int port );
 bool loadTcpServer( int port );
 bool loadFtpServer( int port );
 bool loadMysql( );
+bool loadAppliConfig();
 
 void signal_handler(int signal_number)
 {
@@ -68,9 +71,10 @@ int main(int argc, const char * argv[]) {
 	CurrentApplicationConfig.iniFileName  = FILE_INI;
 	CurrentApplicationConfig.f_Verbose = true;
 	CurrentApplicationConfig.f_Debug = false;
-	CurrentApplicationConfig.TCP_serverPort = 1903;
+	CurrentApplicationConfig.TCP_serverPort = 1901;
 	CurrentApplicationConfig.UDP_serverPort = 1902;
-	CurrentApplicationConfig.FTP_serverPort = 1904;
+	CurrentApplicationConfig.FTP_serverPort = 1903;
+	CurrentApplicationConfig.TCP_APPLI_PORT = 1904;
 	CurrentApplicationConfig.FolderPathTmp = "/Tmp";
 	CurrentApplicationConfig.FTP_maxUpload = 10;
 	CurrentApplicationConfig.MysqlHost = "localhost";
@@ -110,6 +114,12 @@ int main(int argc, const char * argv[]) {
 	else {
 		LOGGER_INFO("MySql connection OK");
 	}
+
+	if ( !loadAppliConfig() ){
+		LOGGER_ERROR( "Cannot load AppliConfig");
+		return -1;
+	}
+	
 	
 	if ( !loadUdpServer( CurrentApplicationConfig.UDP_serverPort ) ){
 		LOGGER_ERROR("Cannot Start Udp Server");
@@ -137,6 +147,7 @@ int main(int argc, const char * argv[]) {
 
 	while ( true ){
 		sleep(60);
+		ConfigAppli::getRecorders();
 	}
 	return 0;
 }
@@ -160,7 +171,7 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s= reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_FTP_MAX_UPLOAD,"10");
 	conf.FTP_maxUpload = strtoull(s.c_str(),NULL,10);
 
-	s = reader.Get(INI_CONFIG_SECTION_NAME, INI_SERVER_FTP_PORT,"1904");
+	s = reader.Get(INI_CONFIG_SECTION_NAME, INI_SERVER_FTP_PORT,"1901");
 	conf.FTP_serverPort = strtoull(s.c_str(),NULL,10);
 
 	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_UDP_PORT,"1902");
@@ -169,6 +180,9 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_TCP_PORT,"1903");
 	conf.TCP_serverPort = strtoull(s.c_str(), NULL, 10);
 
+	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_APPLI_CONF_TCP_PORT,"1904");
+	conf.TCP_APPLI_PORT = strtoull(s.c_str(), NULL, 10);
+	
 	s = reader.Get(INI_CONFIG_SECTION_NAME , INI_SERVER_MYSQL_HOST , conf.MysqlHost);
 	conf.MysqlHost = s.c_str();
 	
@@ -216,6 +230,10 @@ bool loadTcpServer( int port ){
 	_TcpSocketSrv = new Tcp_Socket_Server( port );
 	_TcpSocketSrv->start();
 	return true;
+}
+
+bool loadAppliConfig(){
+	return ConfigAppli::run();
 }
 
 bool loadMysql( ){	
