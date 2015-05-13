@@ -87,10 +87,10 @@ void Webcam::close()
 	deinitH264();
 }
 
-void Webcam::generate_test_card(char *buf, int32_t * filledLen, int frame)
+void Webcam::generate_test_card(unsigned char *buf, int32_t * filledLen, int frame)
 {
 	unsigned int i, j;
-	char *b = buf, *g = b+1, *r = g+1;
+	unsigned char *b = buf, *g = b+1, *r = g+1;
 	for (j = 0; j <_imageHeight ; j++)
 	{
 		b = buf + j*3 * _imageWidth;

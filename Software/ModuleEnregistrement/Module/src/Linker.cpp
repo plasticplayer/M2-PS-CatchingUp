@@ -819,7 +819,6 @@ bool startRecording( uint64_t idRecording )
 		if(!cam->isRecording() && !still->isRecording() && !sound->isRecording())
 		{
 			LOGGER_VERB("Starting Cameras and sound recording");
-			isRecording &= sound->startRecording(_CurrentRecording);
 			isRecording &= cam->startRecording(_CurrentRecording);
 			isRecording &= still->startRecording(_CurrentRecording);
 			isRecording &= sound->startRecording(_CurrentRecording);
