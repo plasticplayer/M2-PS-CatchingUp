@@ -5,14 +5,15 @@ SRCDIR=./src/
 HEADDIR=./header/
 LIBDIR=obj
 BINDIR=bin
+DEPDIR=depend
  
-INCLUDE_DIRS = -I/opt/vc/include -I/opt/vc/include/interface/vcos/ -I/opt/vc/include/interface/vcos/pthreads -I/opt/vc/include/interface/vmcs_host/linux -I/opt/vc/include/interface/vmcs_host -I/opt/vc/include/interface/vchi -I/usr/include/SDL 
+INCLUDE_DIRS =  
 
 # GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
 
 # Les différentes options de compilations, soyons strictes !
 #CFLAGS= -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"
-CFLAGS= -I$(HEADDIR) -Wall -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"  `mysql_config --libs`  -std=gnu++11 -lssl -lcrypto
+CFLAGS= -I$(HEADDIR) -O3 -Wall -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"  `mysql_config --libs` -std=gnu++11 -lssl -lcrypto 
 # Les différents FrameWorks et bibliothèques pour le linkage
 GLLIBS = -lm -lpthread
 
@@ -24,29 +25,42 @@ OBJ= $(SRC:$(SRCDIR)/%.c=$(LIBDIR)/%.o)
 SRCPP= $(wildcard $(SRCDIR)/*.cpp)
 OBJCPP= $(SRCPP:$(SRCDIR)/%.cpp=$(LIBDIR)/%.o)
  
+DEPLIST= $(wildcard $(DEPDIR)/*.depend)
+
 all: dir app
- 
-#Création de l'exécutable
+
+# Création de l'exécutable
 app: $(OBJ) $(OBJCPP)
-	$(CPP) -o $(BINDIR)/$@ $^ $(CFLAGS) $(GLLIBS)
-	
- 
+	@echo "-- Linking App"
+	@$(CPP) -o $(BINDIR)/$@ $^ $(CFLAGS) $(GLLIBS)
+	@echo "-- End"  
+
 # Création des différents *.o à partir des *.c
-$(LIBDIR)/%.o: $(SRCDIR)/%.c  
+$(LIBDIR)/%.o: $(SRCDIR)/%.c
+	@echo "-- Compiling $<"  
 	@$(CC) -o $@ -c $< $(CFLAGS) 
- 
+	@echo "-- Generating Dependencies for $<"
+	@$(CC) $(CFLAGS) -MT '$@' -MM $< > $(DEPDIR)/$(notdir $<).depend
+
+
 # Création des différents *.o à partir des *.cpp
-$(LIBDIR)/%.o: $(SRCDIR)/%.cpp 
-	@$(CPP) -o $@ -c $< $(CFLAGS) 
- 
+$(LIBDIR)/%.o: $(SRCDIR)/%.cpp
+	@echo "-- Compiling $<" 
+	@$(CPP) -o $@ -c $< $(CFLAGS)
+	@echo "-- Generating Dependencies for $<"
+	@$(CPP) $(CFLAGS) -MT '$@' -MM $< > $(DEPDIR)/$(notdir $<).depend
+
+
 # Nettoyage des objets => Tout sera recompiler !
 clean:
 	-@rm -f $(LIBDIR)/*.o
- 
+	-@rm -f $(DEPDIR)/*.depend 
+
 # Nettoyage complet => clean + effacement du l'exécutable
 Clean: clean
 	-@rm -f $(BINDIR)/*
-
+ 
+ 
 cpConf:
 	@for file in config_*; do \
 		cp "$$file" $(BINDIR)/ -f; \
@@ -55,6 +69,19 @@ cpConf:
 cppCheck:
 	cppcheck -j 4 --enable=all --inconclusive --xml --xml-version=2 $(SRCDIR) $(HEADDIR) 2> cppcheck-result.xml
 
+
+cert:
+	@echo "-- Creating Certificates"
+	openssl req -new -x509 -out  mycert.pem -days 0 -nodes -batch
+	@cat privkey.pem >> mycert.pem
+	@rm -f privkey.pem
+	@echo "-- Done Creating Certificates"
+
 dir:
 	@mkdir -p $(LIBDIR)
 	@mkdir -p $(BINDIR)
+	@mkdir -p $(SRCDIR)
+	@mkdir -p $(HEADDIR)
+	@mkdir -p $(DEPDIR)
+
+-include $(DEPLIST)
