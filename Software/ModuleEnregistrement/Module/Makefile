@@ -14,7 +14,7 @@ INCLUDE_DIRS = -I/opt/vc/src/hello_pi/libs/ilclient -I/opt/vc/include -I/opt/vc/
 CFLAGS= -I$(HEADDIR) -O3 -Wall $(INCLUDE_DIRS) -DGIT_VERSION=\"$(GIT_VERSION)\" -march=armv7-a -pthread
 # Les différents FrameWorks et bibliothèques pour le linkage
 GLLIBS = -L/opt/vc/lib -L/opt/vc/src/hello_pi/libs/ilclient 
-GLLIBS += -lopenmaxil -lbcm_host -lvchiq_arm -lilclient -lrt -lm -lmmal_core -lmmal_util -lmmal_vc_client -lvcos -lGLESv2 -lEGL
+GLLIBS += -lopenmaxil -lbcm_host -lvchiq_arm -lilclient -lrt -lm -lmmal_core -lmmal_util -lmmal_vc_client -lvcos -lGLESv2 -lEGL -lssl -lcrypto
 # GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
 
 # Où trouver les différents sources *.c qu'il faudra compiler pour créer les objets correspondants

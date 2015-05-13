@@ -10,7 +10,7 @@
 
 
 #define DEBUG_ENABLED
-
+#define SSL_ENABLE 1
 //#define DEBUG_WITH_FUNCT_NAME
 
 #ifdef DEBUG_ENABLED

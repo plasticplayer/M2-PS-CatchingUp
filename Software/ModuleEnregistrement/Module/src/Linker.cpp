@@ -165,8 +165,9 @@ void initTcpCallBacks()
 	Tcp::_tcp->setFunction( (FuncType) &SRV_TO_REC_GetIdRecording, (int)ANS_ID_RECORDING );
 
 	// Set FTP User
-	char s[12];
+	char s[13];
 	getMac( (char * )CurrentApplicationConfig.UDP_interface.c_str() , s );
+	s[12] = 0;
 	_FtpUser = SSTR( s );
 }
 
