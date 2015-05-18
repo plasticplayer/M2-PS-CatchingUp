@@ -1,5 +1,5 @@
 #include "Config.h"
-
+#include <pthread.h>
 #ifdef DEBUG_IMAGE
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>

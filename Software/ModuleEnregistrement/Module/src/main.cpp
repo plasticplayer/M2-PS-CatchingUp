@@ -130,6 +130,7 @@ void signal_handler(int signal_number)
 			sound->stopRecording();
 		}
 	}
+	LOGGER_STOP();
 exit(255);
 }
 
@@ -332,6 +333,8 @@ int main(int argc, char * argv[])
 		}
 		fflush(stdin);
 	}
+
+	LOGGER_STOP();
 	return EXIT_SUCCESS;
 }
 
