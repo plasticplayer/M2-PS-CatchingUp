@@ -85,8 +85,12 @@ void* ConfigAppli::run( void* d){
 	{
 		LOGGER_DEBUG("Connection accepted from Api Configuration");
 
-		while( (read_size  = recv( _Socket , client_message , SIZE_BUFFER , 0)) > 0 )
+		while( (read_size  = recv( client_sock , client_message , SIZE_BUFFER , 0)) > 0 )
+		{
+			LOGGER_VERB("Admin API : " << client_message);
 			decodeRequest( client_message );
+		}
+		LOGGER_VERB("Out Recv");
 	}
 
 	LOGGER_DEBUG("TCP : Close socket");

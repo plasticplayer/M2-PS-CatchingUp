@@ -1,8 +1,8 @@
 CC=gcc
 CPP=g++
 
-SRCDIR=./src/
-HEADDIR=./header/
+SRCDIR=./src
+HEADDIR=./header
 LIBDIR=obj
 BINDIR=bin
 DEPDIR=depend
@@ -27,7 +27,7 @@ OBJCPP= $(SRCPP:$(SRCDIR)/%.cpp=$(LIBDIR)/%.o)
  
 DEPLIST= $(wildcard $(DEPDIR)/*.depend)
 
-all: dir app
+all: dir app cpConf
 
 # Création de l'exécutable
 app: $(OBJ) $(OBJCPP)
@@ -62,7 +62,7 @@ Clean: clean
  
  
 cpConf:
-	@for file in config_*; do \
+	@for file in *.ini; do \
 		cp "$$file" $(BINDIR)/ -f; \
 	done
 	
