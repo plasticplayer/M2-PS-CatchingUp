@@ -835,9 +835,6 @@ bool startRecording( uint64_t idRecording )
 
 bool stopRecording()
 {
-	_CurrentRecording->stopRecord();
-	_CurrentRecording = NULL;
-
 	if(Webcam::isInUse())
 	{
 		Webcam * cam = Webcam::getWebcam();
@@ -852,6 +849,7 @@ bool stopRecording()
 	}
 	SoundRecord * sound = SoundRecord::getSoundRecord();
 	
+
 	if(sound != NULL && sound->isRecording())
 		sound->stopRecording();
 	if(_CurrentRecording != NULL)
@@ -862,7 +860,10 @@ bool stopRecording()
 		isRecording = false;
 	}
 
-
+	_CurrentRecording = NULL;
+	_IdUserRecorder = 0x00;
+	_IdRecording = 0x00;
+	
 	return true;
 }
 
@@ -956,7 +957,7 @@ bool ftpSendFile( )
 	}
 
 	_Ftp->SetConnmode(ftplib::pasv);
-	int mkdirRes = _Ftp->Mkdir( SSTR("/" << fileInUpload->idRecording << "/").c_str());
+	/*int mkdirRes = */_Ftp->Mkdir( SSTR("/" << fileInUpload->idRecording << "/").c_str());
 	int uploadRes = _Ftp->Put( fileInUpload->path.c_str() ,(char *)_FtpSendFileName.c_str(), ftplib::image );
 	if ( uploadRes == 1 ){
 		int size = _FtpSendFileName.length();

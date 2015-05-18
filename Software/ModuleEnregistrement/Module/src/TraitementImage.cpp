@@ -1,29 +1,34 @@
 #include "Config.h"
 
+#ifdef DEBUG_IMAGE
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#endif
+
 #include "TraitementImage.h"
 bool RefOk = false;
 
 Mat frameRef;
 Mat diff;
 
-bool track(Mat * frame)
+using namespace std;
+
+void track(Mat * frame)
 {
 	if(!RefOk)
 	{
 		RefOk = true;
-		cout << "New imageRef" << endl;
-		//frameRef = frame.clone();
-		//diff = frame.clone();
 
 		frameRef.clone(*frame);
 		diff.clone(*frame);
+
 	}
 	else
 	{
 		// Taille de l'image
 		unsigned int sizeImage = frameRef.cols*frameRef.rows;
 		unsigned int widthImage = frameRef.cols;
-		unsigned int sizePixels = sizeImage *frameRef.channels ;
+		//unsigned int sizePixels = sizeImage *frameRef.channels ;
 
 		// pointeurs vers les données de l'image
 		unsigned char *pixReference = (unsigned char*)(frameRef.data);
@@ -91,13 +96,13 @@ bool track(Mat * frame)
 
 
 			if(tmpData == 255) // Pixel courant allumé
-			{	
+			{
 
 				// Si on est pas sur la pemiere ligne et la premiere collonne
 				//if(i > widthImage && (i%widthImage) > 0)
 				{
 
-					/*_B 
+					/*_B
 					  AC */
 
 					indexPixA = i - 1;
@@ -114,14 +119,14 @@ bool track(Mat * frame)
 
 					if(valPixC == valPixA && valPixC != valPixB)
 					{
-						matEtiquette[i] = matEtiquette[indexPixA];		
+						matEtiquette[i] = matEtiquette[indexPixA];
 					}
 
 					/*si pix(c)=pix(b) et pix(c)!=pix(a)
 					  ->e(c)=e(b)*/
 					else if(valPixC == valPixB && valPixC != valPixA)
-					{	
-						matEtiquette[i] = matEtiquette[indexPixB];		
+					{
+						matEtiquette[i] = matEtiquette[indexPixB];
 					}
 
 					/*si pix(c)!=pix(b) et pix(c) !=pix(a)
@@ -156,11 +161,14 @@ bool track(Mat * frame)
 		unsigned int cpt_nb_eti = 1;
 		unsigned int posX,posY;
 
-		for(unsigned int cpt_tab=1;cpt_tab <= currentEtiquette;cpt_tab++) {
-			if(corrEtiquette[cpt_tab]==cpt_tab) {
+		for(unsigned int cpt_tab=1; cpt_tab <= currentEtiquette; cpt_tab++)
+		{
+			if(corrEtiquette[cpt_tab]==cpt_tab)
+			{
 				corrEtiquette[cpt_tab]=cpt_nb_eti++;
 			}
-			else {
+			else
+			{
 				corrEtiquette[cpt_tab]=corrEtiquette[corrEtiquette[cpt_tab]];
 			}
 		}
@@ -186,8 +194,8 @@ bool track(Mat * frame)
 				if(tabEtiquettes[tmpData].id != tmpData)
 				{
 					tabEtiquettes[tmpData].id = tmpData;
-					tabEtiquettes[tmpData].pixelCount = 1; 
-					tabEtiquettes[tmpData].color = 0xFFFFFF;//rand() & 0xFFFFFF;
+					tabEtiquettes[tmpData].pixelCount = 1;
+					tabEtiquettes[tmpData].color =rand() & 0xFFFFFF;
 					tabEtiquettes[tmpData].minX = posX;
 					tabEtiquettes[tmpData].maxX = posX;
 					tabEtiquettes[tmpData].minY = posY;
@@ -195,7 +203,7 @@ bool track(Mat * frame)
 				}
 				else
 				{
-					tabEtiquettes[tmpData].pixelCount++; 
+					tabEtiquettes[tmpData].pixelCount++;
 					if(tabEtiquettes[tmpData].minX > posX)
 						tabEtiquettes[tmpData].minX = posX;
 					else if(tabEtiquettes[tmpData].maxX < posX)
@@ -204,7 +212,7 @@ bool track(Mat * frame)
 					if(tabEtiquettes[tmpData].minY > posY)
 						tabEtiquettes[tmpData].minY = posY;
 					else if(tabEtiquettes[tmpData].maxY < posY)
-						tabEtiquettes[tmpData].maxY = posY;	
+						tabEtiquettes[tmpData].maxY = posY;
 
 					if(indexMaxEti == -1 || tabEtiquettes[tmpData].pixelCount > tabEtiquettes[indexMaxEti].pixelCount)
 						indexMaxEti = tmpData;
@@ -225,13 +233,13 @@ bool track(Mat * frame)
 
 
 		if(indexMaxEti != -1)
-		{ 
+		{
 			LOGGER_VERB("Traking : Xmin :" << tabEtiquettes[indexMaxEti].minX<< " Xmax :" <<tabEtiquettes[indexMaxEti].maxX << " Ymin : " << tabEtiquettes[indexMaxEti].minY<< " Ymax : " <<tabEtiquettes[indexMaxEti].maxY);
 			for( unsigned int i =0,indexB = 0; i < sizeImage; i++,indexB += 3)
 			{
 				posX = i%widthImage;
 				posY = i/widthImage;
-				if(posX > tabEtiquettes[indexMaxEti].minX && posX < tabEtiquettes[indexMaxEti].maxX && 
+				if(posX > tabEtiquettes[indexMaxEti].minX && posX < tabEtiquettes[indexMaxEti].maxX &&
 						posY > tabEtiquettes[indexMaxEti].minY && posY < tabEtiquettes[indexMaxEti].maxY )
 				{
 					//pixOutput[indexB] = 0;
@@ -246,7 +254,7 @@ bool track(Mat * frame)
 					pixOutput[indexB+1] = 0;
 					pixOutput[indexB+2] = 255;
 				}
-				else if((posX < tabEtiquettes[indexMaxEti].minX -10  || posX > tabEtiquettes[indexMaxEti].maxX +10) /* ^ 
+				else if((posX < tabEtiquettes[indexMaxEti].minX -10  || posX > tabEtiquettes[indexMaxEti].maxX +10) /* ^
 																       (posY < tabEtiquettes[indexMaxEti].minY -10  || posY > tabEtiquettes[indexMaxEti].maxY +10)*/)
 				{
 					pixReference[indexB] =   (0.9 * pixReference[indexB]) +   ( 0.1* pixFrame[indexB]);
@@ -273,6 +281,70 @@ bool track(Mat * frame)
 
 			  }*/
 
+
+			unsigned int centerX = (tabEtiquettes[indexMaxEti].maxX + tabEtiquettes[indexMaxEti].minX) /2;
+			unsigned int centerY = (tabEtiquettes[indexMaxEti].maxY + tabEtiquettes[indexMaxEti].minY) /2;
+			LOGGER_VERB("Moyenne : X" << centerX << " Y " << centerY );
+			unsigned int thresholdLowX = ((frameRef.cols * 25) / 100); // 10 %
+			unsigned int thresholdHighX = frameRef.cols - thresholdLowX; // 1 - 10%
+
+#ifdef DEBUG_IMAGE
+			cv::Mat image;
+			image = cv::Mat(frame->rows, frame->cols, CV_8UC3 /*,&frame->data*/);
+			for( unsigned int x = 0; x < frame->rows  ; x++)
+			{
+				for( unsigned int y = 0; y < frame->cols ; y++)
+				{
+					unsigned char * out = (pixOutput   + (x * frame->cols + y)*3);
+					if(x == centerY || y == centerX)
+					{
+						*((image.data) + (x * frame->cols + y) * 3 +0) = 255;
+						*((image.data) + (x * frame->cols + y) * 3 +1) = 255;
+						*((image.data) + (x * frame->cols + y) * 3 +2) = 255;
+					}
+					else
+					{
+						if(*out == 0)
+							*((image.data) + (x * frame->cols + y) * 3) =  *(pixFrame + (x * frame->cols + y)*3);
+						else
+							*((image.data) + (x * frame->cols + y) * 3) =  *out;
+
+						if( y == thresholdLowX || y == thresholdHighX)
+							*((image.data) + (x * frame->cols + y) * 3 +2 ) = 255;
+						else
+							*((image.data) + (x * frame->cols + y) * 3 +2 ) = *(pixOutput   + (x * frame->cols + y)*3+ 2);
+
+						*((image.data) + (x * frame->cols + y) * 3 +1 ) = *out;
+					}
+				}
+			}
+			cv::imshow( "Display window", image );
+			cv::waitKey(1);
+#endif
+			if(tabEtiquettes[indexMaxEti].pixelCount > 100)
+			{
+
+
+				if( centerX > thresholdHighX )
+				{
+					string command = SSTR("echo 0=+1 > /dev/servoblaster");
+					system(command.c_str());
+					//memset(pixReference,0,widthImage*3);
+					RefOk = false;
+					cout << "++++ "  <<endl;
+				}
+				else if(centerX < thresholdLowX)
+				{
+					string command = SSTR("echo 0=-1 > /dev/servoblaster");
+					system(command.c_str());
+					// memset(pixReference,0,widthImage*3);
+					RefOk = false; // Will copy
+					cout << "--- "  <<endl;
+				}
+			}
+
+
 		}
 	}
+
 }
