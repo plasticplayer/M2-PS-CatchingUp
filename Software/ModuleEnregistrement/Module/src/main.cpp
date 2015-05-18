@@ -7,7 +7,7 @@
 
 
 //#define EXIT_ON_ERROR 1
-#define ENABLE_CAMERA 1
+//#define ENABLE_CAMERA 1
 #define ENABLE_COMM 1
 
 #include "Config.h"

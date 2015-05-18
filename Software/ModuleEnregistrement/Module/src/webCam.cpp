@@ -116,7 +116,7 @@ void Webcam::grabImage(unsigned char *buf, int32_t * filledLen)
 	{
 		usleep(10);   	// get the image
 	}
-	char *Y ,*Cb, *Cr, *Y2; 
+	char *Y ,*Cb, *Cr, *Y2;
 	unsigned char *r,*g,*b;
 
 	unsigned int pix = 0;
@@ -247,11 +247,17 @@ void * Webcam::_threadRecord( void * arg)
 	timePast = now.tv_sec + now.tv_usec*1e-6;
 	timeLastSplit = timePast;
 	unsigned int frameCounter = 0;
+	unsigned int frameCounterCompute = 0;
 	while(thisObj->_recording)
 	{
 		thisObj->grabImage(thisObj->_frame->data,&taille);
 		writeImageH264(thisObj->_frame->data, taille,fichierH264);
-		//track(thisObj->_frame);
+		if((++ frameCounterCompute % 5) == 0)
+        {
+            frameCounterCompute =0;
+             track(thisObj->_frame);
+        }
+
 		gettimeofday(&now,NULL);
 		timeAct = now.tv_sec + now.tv_usec*1e-6;
 

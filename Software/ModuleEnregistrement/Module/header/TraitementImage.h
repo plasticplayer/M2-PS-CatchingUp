@@ -48,14 +48,13 @@ public :
 		this->rows = src.rows;
 		this->channels = src.channels;
 		this->data = new unsigned char[cols*rows*channels];
-		printf("Clonning Matrix\n");
 		memcpy(this->data,src.data,(cols * rows * channels));
 	}
 /*	static Mat clone(Mat& src)
 	{
 		Mat m();
 		m.clone(src);
-		return m; 
+		return m;
 	}*/
 	unsigned int cols;
 	unsigned int rows;
@@ -64,6 +63,6 @@ public :
 };
 
 
-bool track(Mat * frame);
+void track(Mat * frame);
 
 #endif
