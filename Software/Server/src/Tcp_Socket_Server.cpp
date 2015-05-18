@@ -132,7 +132,7 @@ void* Tcp_Socket_Server::listenner( void* data){
 	#ifdef SSL_ENABLE
 	SSL_library_init();
 	SSL_CTX *ctx = InitServerCTX();        /* initialize SSL */
-    LoadCertificates(ctx, "mycert.pem", "mycert.pem"); /* load certs */
+    	LoadCertificates(ctx, (char*) "mycert.pem", (char*) "mycert.pem"); /* load certs */
 	SSL *ssl;
 	#endif
 	

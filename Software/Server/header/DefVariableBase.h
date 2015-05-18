@@ -55,7 +55,6 @@ typedef struct _Historic
 	Col dateTimeBegin {.type = MYSQL_DATETIME,.value = "DateTimeBegin"};
 	Col dateTimeEnd {.type = MYSQL_DATETIME,.value = "DateTimeEnd"};
 	Col authorization {.type = MYSQL_BOOLEAN,.value = "Authorization"};
-
 } Historic;
 
 typedef struct _RecordingModule

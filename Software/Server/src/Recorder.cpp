@@ -461,7 +461,7 @@ void Recorder::REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sen
  * Recieve a signal to end file transfert
  **/
 void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void *sender ){
-	if ( size == 0 || size < ( 9 + data[0] ) )
+	if ( size == 0 || size < (unsigned long) ( 9 + data[0] ) )
 		return;
 
 	Recorder *rec = (Recorder*) sender;
@@ -478,7 +478,7 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 		s = SSTR( s << data[i] );
 	}
 		
-	for ( i ; i < size ; i++){
+	for (  ; i < size ; i++){
 		md5 = SSTR( md5 << data[i] );
 	}
 
@@ -558,7 +558,7 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	else{
 		LOGGER_INFO( "File error");
 		remove ( ( const char * ) oldPath.c_str() );
-		req[2] = 0x00;
+		req[1] = 0x00;
 	}
 	rec->sendTcpFrame(req,2,true);
 }

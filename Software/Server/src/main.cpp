@@ -55,7 +55,7 @@ bool loadUdpServer( int port );
 bool loadTcpServer( int port );
 bool loadFtpServer( int port );
 bool loadMysql( );
-bool loadAppliConfig();
+bool loadAppliConfig( int port );
 
 void signal_handler(int signal_number)
 {
@@ -115,7 +115,7 @@ int main(int argc, const char * argv[]) {
 		LOGGER_INFO("MySql connection OK");
 	}
 
-	if ( !loadAppliConfig() ){
+	if ( !loadAppliConfig( CurrentApplicationConfig.TCP_APPLI_PORT) ){
 		LOGGER_ERROR( "Cannot load AppliConfig");
 		return -1;
 	}
@@ -145,9 +145,27 @@ int main(int argc, const char * argv[]) {
 #endif
 	}
 
+	sleep( 5 );
 	while ( true ){
+		//ConfigAppli::decodeRequest( (char*) "<type>need_rooms</type>" );
+		//ConfigAppli::decodeRequest( (char*) "<type>create_rooms</type>\n<name>A465></name><description>test</description>\n<name>A466></name><description></description>");
+		//ConfigAppli::decodeRequest( (char*) "<type>need_users_website</type>");
+		
+		//ConfigAppli::decodeRequest( (char*) "<type>update_rooms</type>\n<id>1</id><description>Update3</description>");
+		//ConfigAppli::decodeRequest( (char*) "<type>need_rooms</type>" );
+		
+		//cout << endl << "/****** GET RECORDERS ******/" << endl;
+		//ConfigAppli::getRecorders();
+		//cout << endl << "/****** GET Users Recorders ******/" << endl;
+		//ConfigAppli::getUsersRecorders();
+		//cout << endl << "/****** GET Users WebSite ******/" << endl;
+		//ConfigAppli::getUsersWebsite();
+		//cout << endl << "/****** GET Rooms ******/" << endl;
+		//ConfigAppli::getRooms();
+		//cout << endl << "/****** GET Cards ******/" << endl;
+		//ConfigAppli::getCards();
 		sleep(60);
-		ConfigAppli::getRecorders();
+		
 	}
 	return 0;
 }
@@ -204,6 +222,7 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	LOGGER_CONFIG("Max Upload      : \t" << conf.FTP_maxUpload);
 	LOGGER_CONFIG("-------------    NETWORK CONFIGURATION   -----------------");
 	LOGGER_CONFIG("SERVER TCP PORT : \t" << conf.TCP_serverPort );
+	LOGGER_CONFIG("CONFIG TCP PORT : \t" << conf.TCP_APPLI_PORT );
 	LOGGER_CONFIG("SERVER UDP PORT : \t" << conf.UDP_serverPort );
 	LOGGER_CONFIG("-------------    DATABASE CONFIGURATION   -----------------");
 	LOGGER_CONFIG("HOST            : \t" << conf.MysqlHost );
@@ -232,8 +251,10 @@ bool loadTcpServer( int port ){
 	return true;
 }
 
-bool loadAppliConfig(){
-	return ConfigAppli::run();
+bool loadAppliConfig( int port ){
+	new ConfigAppli( port );
+	bool res = ConfigAppli::createSocket();
+	return res;
 }
 
 bool loadMysql( ){	

@@ -13,18 +13,43 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <sys/types.h>
+#include <pthread.h>
 
 typedef unsigned char BYTE ;
 using namespace std;
 
 class ConfigAppli{
 	public:
-		ConfigAppli ( );
-		static bool run( );
-		static void getRecorders();
+		ConfigAppli ( int port );
+		static bool createSocket();	
+		static void* run( void* d );
+		static void decodeRequest ( char *req );
+		
+		static void getRecorders( );
+		static void getUsersRecorders( );
+		static void getUsersWebsite( );
+		static void getRooms( );
+		static void getCards( );
+		
+		static void createRooms( string req );
+		static void createCards( string req );
+		static void createRecorders( string req );
+		static void createUsersWebSite( string req );
+		static void createUsersRecorder( string req );
+		
+		static void updateRooms( string req );
+		static void updateCards( string req );
+		static void updateRecorders( string req );
+		static void updateUsersWebSite( string req );
+		static void updateUsersRecorder( string req );
+		
 	private:
-
+		static bool sendData( string data );
+		static int _Port;
+		static int _Socket;
+		static struct sockaddr_in _server , _client;
+		static pthread_t _ThreadListenner;
 	protected:
 };
 
