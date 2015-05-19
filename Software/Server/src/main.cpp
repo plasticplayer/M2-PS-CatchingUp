@@ -88,7 +88,16 @@ int main(int argc, const char * argv[]) {
 		loggerLevel = Logger::VERB;
 	if ( CurrentApplicationConfig.f_Debug )
 		loggerLevel = Logger::DEBUG;
-
+	
+	/* Change directory to be inside the folder of the executable (in case of starting like "bin/app") */
+	char *dirsep = strrchr( argv[0], '/' );
+	if( dirsep != NULL )
+		*dirsep = 0;
+	if(chdir(argv[0]) == 0)
+		LOGGER_DEBUG("Changing Directory to "<< argv[0]);
+	else
+		LOGGER_WARN("Failed to change directory to "<< argv[0]);
+	
 	LOGGER_START(loggerLevel,"log.log",true);
 
 
