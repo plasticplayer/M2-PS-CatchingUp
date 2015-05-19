@@ -17,6 +17,12 @@ int ConfigAppli::_Socket;
 struct sockaddr_in ConfigAppli::_server , ConfigAppli::_client;
 pthread_t ConfigAppli::_ThreadListenner;
 
+
+inline string prepareString ( string req ){
+	// TODO : Remove Special Caracters
+	return req;
+}
+
 string getValue ( string req, string id, int* err ){
 	int start = req.find( SSTR("<" << id << ">") ) , stop = req.find( SSTR("</" << id << ">") );
 	if ( start != -1  && stop != -1 ){
@@ -129,6 +135,9 @@ void ConfigAppli::decodeRequest ( char *req ){
 	/// Create
 	else if ( type.compare( "create_rooms" ) == 0 )
 		createRooms( req );
+	
+	else if (  type.compare( "create_userrecorder" ) == 0 )
+		createUsersRecorder( req );
 		
 	else if (  type.compare( "create_userwebsite" ) == 0 )
 		createUsersWebSite( req );
@@ -166,17 +175,17 @@ void ConfigAppli::getCards(){
 	if ( res == NULL ) 
 		return;
 
-	string sRes = "<type>GET_CARDS</type>";
+	string sRes = "<type>GET_CARDS</type><cards>";
 	string idCard, iduser, number;
 
 	while ( res->Next() ){
 		idCard    = res->GetCurrentRow()->GetField(1);
 		iduser    = res->GetCurrentRow()->GetField(1);
-		number  = res->GetCurrentRow()->GetField(2);
+		number    = res->GetCurrentRow()->GetField(2);
 
-		sRes = SSTR( sRes << endl << "<id>" << idCard << "</id><iduser>" << iduser << "</roomname><number>" << number << "</number>");
+		sRes = SSTR( sRes << endl << "<card> <id>" << idCard << "</id><iduser>" << iduser << "</roomname><number>" << number << "</number> </card>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR(sRes << "</cards>") );
 }
 
 void ConfigAppli::getRooms(){
@@ -184,18 +193,18 @@ void ConfigAppli::getRooms(){
 	if ( res == NULL ) 
 		return;
 
-	string sRes = "<type>GET_ROOMS</type>";
+	string sRes = "<type>GET_ROOMS</type><rooms>";
 	uint64_t idRoom ;
 	string roomName, description;
 
 	while ( res->Next() ){
-		idRoom    = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
-		roomName = res->GetCurrentRow()->GetField(2);
+		idRoom   	= strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+		roomName  	= res->GetCurrentRow()->GetField(2);
 		description = res->GetCurrentRow()->GetField(3);
 
-		sRes = SSTR( 	sRes << endl << "<id>" << idRoom << "</id><roomname>" << roomName << "</roomname><description>" << description << "</description>");
+		sRes = SSTR( 	sRes << endl << "<room><id>" << idRoom << "</id><roomname>" << roomName << "</roomname><description>" << description << "</description></room>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</rooms>") );
 }
 
 void ConfigAppli::getRecorders(){
@@ -203,7 +212,7 @@ void ConfigAppli::getRecorders(){
 	if ( res == NULL ) 
 		return;
 
-	string sRes = "<type>GET_RECORDERS</type>";
+	string sRes = "<type>GET_RECORDERS</type><recorders>";
 
 	//bool isRecording;
 	string idRec, idRoom, idCModule, idRModule, roomName, mac, status, ip ;
@@ -222,21 +231,23 @@ void ConfigAppli::getRecorders(){
 		status = ( rec != NULL && rec->isTcpConnected() ) ? "CONNECTED" : "UNCONNECTED" ;
 		ip = ( rec != NULL ) ? rec->_IpAddr : "" ;
 
-		sRes = SSTR ( 	sRes << endl << "<id>" << idRec  << "</id><status>" << status << "</status><mac>" 
-				<< mac << "</mac><ip>" << ip << "</ip><idCModule>" << idCModule << "</idCModule><idRModule>" << idRModule << "</idRModule><roomid>" 
-				<< idRoom << "</roomid><roomname>" << roomName << "</roomname>"
-			    );
 
-		if ( status.compare("CONNECTED") == 0 ){
-			sRes = SSTR ( sRes << "<filesinqueue>" << rec->filesInWait << "</filesinqueue><isRecording>" << rec->isRecording() << "</isRecording>" );
-		} 
+		sRes = SSTR ( 	sRes << endl << "<recorder><id>" << idRec  << "</id><status>" << status << "</status><mac>" 
+				<< mac << "</mac><ip>" << ip << "</ip><idCModule>" << idCModule << "</idCModule><idRModule>" << idRModule << "</idRModule><roomid>" 
+				<< idRoom << "</roomid><roomname>" << roomName << "</roomname>" );
+		
+		 
+		if ( status.compare("CONNECTED") == 0 )
+			sRes = SSTR( sRes <<"<filesinqueue>" << rec->filesInWait << "</filesinqueue><isRecording>" << rec->isRecording() << "</isRecording></recorder>");
+		else
+			sRes = SSTR ( sRes << "</recorder>" );
 	}
 
 	for ( list<UnconnectedClient*>::iterator it = Recorder::_UnconnectedClients.begin() ; it != Recorder::_UnconnectedClients.end(); ++it){
 		UnconnectedClient * uc = *it;
-		sRes = SSTR ( sRes << endl << "<status>UNASSOCIATED</status><mac>" << uc->_MacAddress << "</mac>" );
+		sRes = SSTR ( sRes << endl << "<recorder><status>UNASSOCIATED</status><mac>" << uc->_MacAddress << "</mac></recorder>" );
 	}
-	sendData( sRes );
+	sendData( SSTR( sRes << "</recorders>") );
 }
 
 void ConfigAppli::getUsersWebsite(){
@@ -244,7 +255,7 @@ void ConfigAppli::getUsersWebsite(){
 	if ( res == NULL ) 
 		return;
 
-	string sRes = "<type>GET_USERS_WEBSITE</type>";
+	string sRes = "<type>GET_USERS_WEBSITE</type><userswebsite>";
 
 	uint64_t idUser ;
 	string firstName, lastName, email;
@@ -256,11 +267,11 @@ void ConfigAppli::getUsersWebsite(){
 		lastName = res->GetCurrentRow()->GetField(3);
 		dateRegistration = res->GetCurrentRow()->GetField(4);
 
-		sRes = SSTR( sRes << endl << "<id>" << idUser << "</id><firstname>" << firstName << "</firstname><lastname>" << lastName << "</lastname><email>" << email << "</email><dateregistration>"
-				<< dateRegistration << "</dateregistration>"
+		sRes = SSTR( sRes << endl << "<user><id>" << idUser << "</id><firstname>" << firstName << "</firstname><lastname>" << lastName << "</lastname><email>" << email << "</email><dateregistration>"
+				<< dateRegistration << "</dateregistration></user>"
 			   );
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</userswebsite>") );
 }
 
 void ConfigAppli::getUsersRecorders(){
@@ -268,7 +279,7 @@ void ConfigAppli::getUsersRecorders(){
 	if ( res == NULL ) 
 		return;
 
-	string sRes = "<type>GET_USERS_RECORDERS</type>";
+	string sRes = "<type>GET_USERS_RECORDERS</type><usersrecorder>";
 	uint64_t idUser ;
 	string firstName, lastName, email;
 	string dateBegin, dateEnd;
@@ -281,244 +292,284 @@ void ConfigAppli::getUsersRecorders(){
 		dateBegin = res->GetCurrentRow()->GetField(5);
 		dateEnd   = res->GetCurrentRow()->GetField(6);
 
-		sRes = SSTR( 	sRes << endl << "<id>" << idUser << "</id><firstname>" << firstName << "</firstname><lastname>" << lastName << "</lastname><email>" << email << "</email><datebegin>"
-				<< dateBegin << "</datebegin><dateend>" << dateEnd << "</dateend>"
+		sRes = SSTR( 	sRes << endl << "<user><id>" << idUser << "</id><firstname>" << firstName << "</firstname><lastname>" << lastName << "</lastname><email>" << email << "</email><datebegin>"
+				<< dateBegin << "</datebegin><dateend>" << dateEnd << "</dateend></user>"
 			   );
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</usersrecorder>"));
 }
+
 
 
 /****************  Creates ****************/
 void ConfigAppli::createRooms( string req ){
-	string sRes = "<type>CREATE_ROOMS</type>";
+	string sRes = "<type>CREATE_ROOMS</type><rooms>";
 	istringstream f( req );
-	string tmp, roomName, roomDescription;
+	string tmp, roomName, roomDescription, line;
 	uint64_t idRoom;
 	int ok = 0;
 	while ( getline(f,tmp) ){
-		roomName = getValue(tmp,(string)"name", &ok );
+		line = getValue( tmp, (string) "room", &ok);
+		if ( ok == 0 )
+			continue;
+			
+		roomName = getValue(line,(string)"name", &ok );
 		if ( ok == 0 ) continue;
-		roomDescription = getValue(tmp,(string) "description", &ok);
-
+		roomDescription = getValue(line,(string) "description", &ok);
+	
+		roomName = prepareString(roomName);
+		roomDescription = prepareString(roomDescription);
+		
 		idRoom = Mysql::createRoom ( roomName, roomDescription );
-		sRes = SSTR ( sRes << endl << "<idRoom>" << idRoom << "</idRoom><roomname>" << roomName << "</roomname>");
+		sRes = SSTR ( sRes << endl << "<room><idRoom>" << idRoom << "</idRoom><roomname>" << roomName << "</roomname></room>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</rooms>" ));
 }
 
 void ConfigAppli::createRecorders( string req ){
-	string sRes = "<type>CREATE_RECORDERS</type>";
+	string sRes = "<type>CREATE_RECORDERS</type><recorders>";
 	istringstream f( req );
 	string tmp, sidRoom, addressMac;
 	uint64_t idRoom, idRecorder;
 	int ok = 0;
 	
 	while ( getline(f,tmp) ){
-		addressMac = getValue(tmp,(string)"mac", &ok );
+		addressMac = prepareString(getValue(tmp,(string)"mac", &ok ));
 		if ( ok == 0 ) continue;
+		
 		sidRoom = getValue(tmp,(string)"idroom", &ok );
 		idRoom = strtoull( sidRoom.c_str(), NULL, 0 );
 		if ( ok == 0 || idRoom == 0 ) continue;
 
 		idRecorder = Mysql::createRecorder( idRoom, addressMac );
-		sRes = SSTR ( sRes << endl << "<idrecorder>" << idRecorder << "</idrecorder><mac>" << addressMac << "</mac>");
+		sRes = SSTR ( sRes << endl << "<recorder><idrecorder>" << idRecorder << "</idrecorder><mac>" << addressMac << "</mac></recorder>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</recorders>") );
 }
 
 void ConfigAppli::createUsersWebSite( string req ){
-	string sRes = "<type>CREATE_USERSWEBSITE</type>";
+	string sRes = "<type>CREATE_USERSWEBSITE</type><userswebsite>";
 	istringstream f( req );
-	string tmp, firstName, lastName, password, email, DateRegistration;
+	string tmp, firstName, lastName, password, email, DateRegistration, line;
 	uint64_t idUser = 0;
 	int ok = 0;
 	
 	while ( getline(f,tmp) ){
-		firstName = getValue(tmp,(string)"fistname", &ok );
+		line = getValue( tmp, (string) "user",&ok);
+		if ( ok == 0 )
+			continue;
+			
+		firstName = prepareString(getValue(line,(string)"fistname", &ok ));
 		if ( ok == 0 ) continue;
 		
-		lastName = getValue(tmp,(string)"lastname", &ok );
+		lastName = prepareString(getValue(line,(string)"lastname", &ok ));
 		if ( ok == 0 ) continue;
 		
-		password = getValue(tmp,(string)"password", &ok );
+		password = prepareString(getValue(line,(string)"password", &ok ));
 		if ( ok == 0 ) continue;
 		
-		email = getValue(tmp,(string)"email", &ok );
+		email = prepareString(getValue(line,(string)"email", &ok ));
 		if ( ok == 0 ) continue;
 		
-		DateRegistration = getValue(tmp,(string)"dateregistration", &ok );
+		DateRegistration = getValue(line,(string)"dateregistration", &ok );
 		if ( ok == 0 ) continue;
 
 		idUser = Mysql::createUserWebSite ( firstName, lastName, password, email , DateRegistration );
-		sRes = SSTR ( sRes << endl << "<iduser>" << idUser << "</iduser><email>" << email << "</email>");
+		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><email>" << email << "</email></user>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</userswebsite>") );
 }
 
 void ConfigAppli::createUsersRecorder( string req ){
-	string sRes = "<type>CREATE_USERSRECORDER</type>";
+	string sRes = "<type>CREATE_USERSRECORDER</type><usersrecorder>";
 	istringstream f( req );
-	string tmp, firstName, lastName, password, email, dateBegin, dateEnd;
+	string tmp, firstName, lastName, password, email, dateBegin, dateEnd, line;
 	int ok = 0;
 	uint64_t idUser = 0;
 	
 	while ( getline(f,tmp) ){
-		firstName = getValue(tmp,(string)"fistname", &ok );
+		line = getValue(tmp, (string) "user", &ok );
+		if ( ok == 0 )
+			continue;
+			
+		firstName = prepareString(getValue(line,(string)"fistname", &ok ));
 		if ( ok == 0 ) continue;
 		
-		lastName = getValue(tmp,(string)"lastname", &ok );
+		lastName = prepareString(getValue(line,(string)"lastname", &ok ));
 		if ( ok == 0 ) continue;
 		
-		password = getValue(tmp,(string)"password", &ok );
+		password = prepareString(getValue(line,(string)"password", &ok ));
 		if ( ok == 0 ) continue;
 		
-		email = getValue(tmp,(string)"email", &ok );
+		email = prepareString(getValue(line,(string)"email", &ok ));
 		if ( ok == 0 ) continue;
 		
-		dateBegin = getValue(tmp,(string)"datebegin", &ok );
+		dateBegin = getValue(line,(string)"datebegin", &ok );
 		if ( ok == 0 ) continue;
 		
-		dateEnd = getValue(tmp,(string)"dateend", &ok );
+		dateEnd = getValue(line,(string)"dateend", &ok );
 		if ( ok == 0 ) continue;
 
+		
 		idUser = Mysql::createUserRecorder ( firstName, lastName, password, email , dateBegin, dateEnd );
-		sRes = SSTR ( sRes << endl << "<iduser>" << idUser << "</iduser><email>" << email << "</email>");
+		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><email>" << email << "</email></user>");
 	}
-	sendData ( sRes );
+
+	sendData ( SSTR(sRes << "</usersrecorder>" ));
 }
 
 void ConfigAppli::createCards( string req ){
-	string sRes = "<type>CREATE_CARDS</type>";
+	string sRes = "<type>CREATE_CARDS</type><cards>";
 	istringstream f( req );
-	string tmp, sidUser, snumber;
+	string tmp, sidUser, snumber, line;
 	int ok = 0;
 	uint64_t idUser = 0, idCard, number;
 	
 	while ( getline(f,tmp) ){
-		snumber = getValue(tmp,(string)"number", &ok );
+		line = getValue( tmp, (string) "card",&ok);
 		if ( ok == 0 ) continue;
 		
-		sidUser = getValue(tmp,(string)"iduser", &ok );
+		snumber = prepareString(getValue(line,(string)"number", &ok ));
+		if ( ok == 0 ) continue;
+		
+		sidUser = getValue(line,(string)"iduser", &ok );
 		
 		idUser = strtoull( sidUser.c_str(), NULL, 0);
 		number = strtoull( snumber.c_str(), NULL, 0);
 
 		idCard = Mysql::createCard ( number , idUser );
-		sRes = SSTR ( sRes << endl << "<idcard>" << (( idCard == 0x00 ) ? -1: idCard) << "</idcard><number>" << snumber << "</number>");
+		sRes = SSTR ( sRes << endl << "<card><idcard>" << (( idCard == 0x00 ) ? -1: idCard) << "</idcard><number>" << snumber << "</number></card>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</cards>") );
 }
+
 
 
 /****************  Updates ****************/
 void ConfigAppli::updateRooms( string req ){
-	string sRes = "<type>UPDATES_ROOMS</type>";
+	string sRes = "<type>UPDATES_ROOMS</type><rooms>";
 	istringstream f( req );
-	string tmp, roomName, roomDescription, id;
+	string tmp, roomName, roomDescription, id, line;
 	bool verif;
 	uint64_t idRoom;
 	int ok = 0, Ename = 0, Edescription = 0;
 	while ( getline(f,tmp) ){
-		id = getValue(tmp,(string)"id", &ok );
+		line = getValue( tmp, (string) "room", &ok);
+		if ( ok == 0 ) continue;
+		
+		id = getValue(line,(string)"id", &ok );
 		idRoom = strtoull( id.c_str() , NULL, 0 );
 		if ( ok == 0 || idRoom == 0 ) continue;
 		
-		roomName = getValue(tmp,(string)"name", &Ename );
-		if ( ok == 0 ) continue;
-		roomDescription = getValue(tmp,(string) "description", &Edescription);
+		roomName = prepareString(getValue(line,(string)"name", &Ename ));
+		
+		roomDescription = prepareString(getValue(line,(string) "description", &Edescription));
 
 		verif = Mysql::updateRoom ( idRoom , (Ename == 1), roomName, ( Edescription == 1), roomDescription );
-		sRes = SSTR ( sRes << endl << "<idRoom>" << idRoom << "</idRoom><succes>" << verif << "</succes>");
+		sRes = SSTR ( sRes << endl << "<room><idRoom>" << idRoom << "</idRoom><succes>" << verif << "</succes></room>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</rooms>" ));
 }
 
 void ConfigAppli::updateUsersWebSite( string req ){
-	string sRes = "<type>UPDATES_USERSWEBSITE</type>";
+	string sRes = "<type>UPDATES_USERSWEBSITE</type><userswebsite>";
 	istringstream f( req );
-	string tmp, id, fName, lName, pwd, email;
+	string tmp, id, fName, lName, pwd, email, line;
 	bool verif;
 	uint64_t idUser;
 	int ok = 0, eFName = 0, eLName = 0, ePwd = 0, eMail = 0;
 	
 	while ( getline(f,tmp) ){
-		id = getValue(tmp,(string)"id", &ok );
+		line = getValue( tmp, (string ) "user", &ok);
+		if ( ok == 0 )
+			continue;
+			
+		id = getValue(line,(string)"id", &ok );
 		idUser = strtoull( id.c_str() , NULL, 0 );
 		if ( ok == 0 || idUser == 0 ) continue;
 		
-		fName = getValue(tmp,(string)"firstname", &eFName );
-		lName = getValue(tmp,(string)"lastname", &eLName );
-		pwd   = getValue(tmp,(string)"password", &ePwd   );
-		email = getValue(tmp,(string)"email", &eMail  );
+		fName = prepareString(getValue(line,(string)"firstname", &eFName ));
+		lName = prepareString(getValue(line,(string)"lastname" , &eLName ));
+		pwd   = prepareString(getValue(line,(string)"password" , &ePwd   ));
+		email = prepareString(getValue(line,(string)"email"    , &eMail  ));
 
 		verif = Mysql::updateUserTable ( idUser, ( eFName == 1 ), fName, ( eLName == 1) , lName, ( ePwd == 1 ), pwd, ( eMail == 1) , email );
-		sRes = SSTR ( sRes << endl << "<iduser>" << idUser << "</iduser><succes>" << verif << "</succes>");
+		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><succes>" << verif << "</succes></user>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR ( sRes << "</userswebsite>") );
 }
 
 void ConfigAppli::updateUsersRecorder( string req ){
-	string sRes = "<type>UPDATES_USERSWEBSITE</type>";
+	string sRes = "<type>UPDATES_USERSWEBSITE</type><usersrecorder>";
 	istringstream f( req );
-	string tmp, id, fName, lName, pwd, email ,dateBegin, dateEnd;
+	string tmp, id, fName, lName, pwd, email ,dateBegin, dateEnd, line;
 	bool verif;
 	uint64_t idUser;
 	int ok = 0, eFName = 0, eLName = 0, ePwd = 0, eMail = 0, eBegin = 0, eEnd = 0;
 	
 	while ( getline(f,tmp) ){
-		id = getValue(tmp,(string)"id", &ok );
+		line = getValue( tmp, (string) "user", &ok);
+		if ( ok == 0 ) continue;
+		
+		id = getValue(line,(string)"id", &ok );
 		idUser = strtoull( id.c_str() , NULL, 0 );
 		if ( ok == 0 || idUser == 0 ) continue;
 		
-		fName = getValue(tmp,(string)"firstname", &eFName );
-		lName = getValue(tmp,(string)"lastname", &eLName );
-		pwd   = getValue(tmp,(string)"password", &ePwd   );
-		email = getValue(tmp,(string)"email", &eMail  );
-		dateBegin = getValue(tmp,(string)"email", &eBegin  );
-		dateEnd = getValue(tmp,(string)"email", &eEnd  );
+		fName = prepareString(getValue(line,(string)"firstname", &eFName ));
+		lName = prepareString(getValue(line,(string)"lastname", &eLName ));
+		pwd   = prepareString(getValue(line,(string)"password", &ePwd   ));
+		email = prepareString(getValue(line,(string)"email", &eMail  ));
+		dateBegin = getValue(line,(string)"email", &eBegin  );
+		dateEnd = getValue(line,(string)"email", &eEnd  );
 
 		verif  = Mysql::updateUserTable ( idUser, ( eFName == 1 ), fName, ( eLName == 1) , lName, ( ePwd == 1 ), pwd, ( eMail == 1) , email );
 		verif |= Mysql::updateUserRecorderTable ( idUser, ( eBegin == 1) , dateBegin, ( eEnd == 1) , dateEnd );
 		
-		sRes = SSTR ( sRes << endl << "<iduser>" << idUser << "</iduser><succes>" << verif << "</succes>");
+		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><succes>" << verif << "</succes></user>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR(sRes << "</usersrecorder>") );
 }
 
 void ConfigAppli::updateCards( string req ){
-	string sRes = "<type>UPDATE_CARDS</type>";
+	string sRes = "<type>UPDATE_CARDS</type><cards>";
 	istringstream f( req );
-	string tmp, sidCard, sidUser;
+	string tmp, sidCard, sidUser, line;
 	int ok = 0;
 	uint64_t idUser = 0, idCard;
 	bool verif;
 	
 	while ( getline(f,tmp) ){
-		sidCard = getValue(tmp,(string)"idcard", &ok );
+		line = getValue ( tmp , (string) "card", &ok);
+		if ( ok == 0) continue;
+		
+		sidCard = getValue(line,(string)"idcard", &ok );
 		if ( ok == 0 ) continue;
 		
-		sidUser = getValue(tmp,(string)"iduser", &ok );
+		sidUser = getValue(line,(string)"iduser", &ok );
 		if ( ok == 0 ) continue; 
 		
 		idUser = strtoull( sidUser.c_str(), NULL, 0);
 		idCard = strtoull( sidCard.c_str(), NULL, 0);
 
 		verif = Mysql::updateCard ( idCard , idUser );
-		sRes = SSTR ( sRes << endl << "<idcard>" << idCard << "</idcard><success>" << verif << "</success>");
+		sRes = SSTR ( sRes << endl << "<card><idcard>" << idCard << "</idcard><success>" << verif << "</success></card>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR (sRes << "</cards>") );
 }
 
 void ConfigAppli::updateRecorders( string req ){
-	string sRes = "<type>UPDATE_RECORDERS</type>";
+	string sRes = "<type>UPDATE_RECORDERS</type><recorders>";
 	istringstream f( req );
-	string tmp, sidRoom, sIdRecorder;
+	string tmp, sidRoom, sIdRecorder, line;
 	uint64_t idRoom, idRecorder;
 	int ok = 0;
 	bool succes;
 	
 	while ( getline(f,tmp) ){
+		line = getValue( tmp, (string) "recorder",&ok );
+		if ( ok == 0 )
+			continue;
+			
 		sIdRecorder = getValue(tmp,(string)"idrecorder", &ok );
 		idRecorder = strtoull ( sIdRecorder.c_str(), NULL, 0);
 		if ( ok == 0 || idRecorder == 0) continue;
@@ -528,9 +579,10 @@ void ConfigAppli::updateRecorders( string req ){
 		if ( ok == 0 || idRoom == 0 ) continue;
 		
 		succes = Mysql::updateRecorder ( idRecorder , idRoom );
-		sRes = SSTR ( sRes << endl << "<idrecorder>" << idRecorder << "</idrecorder><success>" << succes << "</success>");
+		sRes = SSTR ( sRes << endl << "<recorder><idrecorder>" << idRecorder << "</idrecorder><success>" << succes << "</success></recorder>");
 	}
-	sendData ( sRes );
+	sendData ( SSTR( sRes << "</recorders>" ));
 }
+
 
 /****************  Deletes ****************/

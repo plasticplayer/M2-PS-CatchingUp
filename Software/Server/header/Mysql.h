@@ -62,6 +62,7 @@ class Mysql  {
 	protected:
 		bool _IsInsertingRow;
 	private:
+		bool verifyTables();
 		static uint64_t countUpdatedRows(); 
 		Connection *_Connection;
 		static uint64_t getIdFromTagNumber ( uint64_t cardNumber );

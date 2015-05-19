@@ -90,7 +90,7 @@ int main(int argc, const char * argv[]) {
 		loggerLevel = Logger::DEBUG;
 	
 	/* Change directory to be inside the folder of the executable (in case of starting like "bin/app") */
-	char *dirsep = strrchr( argv[0], '/' );
+	char *dirsep = (char*) strrchr( argv[0], '/' );
 	if( dirsep != NULL )
 		*dirsep = 0;
 	if(chdir(argv[0]) == 0)
