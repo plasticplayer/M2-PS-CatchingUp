@@ -11,11 +11,21 @@
 
 #define DEBUG_ENABLED
 
+/** Toggle function name and line in file printing for debugging **/
 //#define DEBUG_WITH_FUNCT_NAME
 
+/** Definie if OpenCV is used to view image of the tracking algorithm (must link with openCV)**/
+//#define DEBUG_IMAGE
+
+/** Set if SSL support is enabled */
+//#define SSL_ENABLE 1
+
+
+
+
+
+
 #ifdef DEBUG_ENABLED
-
-
 #define LOGGER_START(MIN_PRIORITY, ...) Logger::Start(MIN_PRIORITY, __VA_ARGS__)
 //#define LOGGER_START(MIN_PRIORITY, FILE, BOTH) Logger::Start(MIN_PRIORITY, FILE, BOTH)
 #define LOGGER_STOP() Logger::Stop()

@@ -13,10 +13,13 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include "logger.h"
+#include "define.h"
 #include "Communication.h"
 
-
+#ifdef SSL_ENABLE
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#endif
 
 typedef unsigned char BYTE ;
 
@@ -32,6 +35,10 @@ protected:
 
 
 private:
+	#ifdef SSL_ENABLE
+	SSL_CTX *_Ctx;
+	SSL *_Ssl;
+	#endif
 	static void *listen ( void * data );
 	int _Sock;
 	pthread_t _Listenner;

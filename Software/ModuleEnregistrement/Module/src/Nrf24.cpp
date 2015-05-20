@@ -121,7 +121,7 @@ void* Nrf24::getData( void * r ){
 
 				nrf->_Connected = false;
 
-				//radio->printDetails();
+				radio->printDetails();
 
 				nrf->_UpdateAddr = false;
 			}

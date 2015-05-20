@@ -55,7 +55,6 @@ typedef struct _Historic
 	Col dateTimeBegin {.type = MYSQL_DATETIME,.value = "DateTimeBegin"};
 	Col dateTimeEnd {.type = MYSQL_DATETIME,.value = "DateTimeEnd"};
 	Col authorization {.type = MYSQL_BOOLEAN,.value = "Authorization"};
-
 } Historic;
 
 typedef struct _RecordingModule
@@ -144,9 +143,10 @@ typedef struct _FileLesson
 {
 	string name = "FileLesson";
 	Col id {.type = MYSQL_INT,.value = "IdFileLesson"};
+	Col idChapter {.type = MYSQL_INT,.value = "IdChapter" };
 	Col fileLessonName {.type = MYSQL_STRING,.value = "NameFileLesson"};
 	Col type {.type = MYSQL_ENUM,.value = "TypeFile"};
-	Col status {.type = MYSQL_ENUM,.value = "StatusFileLesson"};
+	Col status {.type = MYSQL_ENUM,.value = "StatutsFileLesson"};
 } FileLesson;
 
 

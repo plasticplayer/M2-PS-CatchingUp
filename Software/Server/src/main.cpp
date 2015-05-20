@@ -11,11 +11,12 @@
 #include "Config.h"
 #include <sys/signal.h> 
 #include "INIReader.h"
-#include "../header/Udp.h"
-#include "../header/Ftp.h"
-#include "../header/define.h"
-#include "../header/Tcp_Socket_Server.h"
-#include "../header/CFtpServer.h"
+#include "Udp.h"
+#include "Ftp.h"
+#include "define.h"
+#include "Tcp_Socket_Server.h"
+#include "CFtpServer.h"
+#include "ConfigAppli.h"
 
 #include <getopt.h>
 #include <iostream>
@@ -36,6 +37,7 @@ typedef unsigned char BYTE ;
 #define INI_SERVER_MYSQL_HOST		"SQL_HOST"
 #define INI_SERVER_MYSQL_USER		"SQL_USER"
 #define INI_SERVER_MYSQL_PASSWORD	"SQL_PASSWORD"	
+#define INI_SERVER_APPLI_CONF_TCP_PORT	"tcpport_appliconf"
 
 Udp *_Udp = NULL;
 Ftp *_Ftp;
@@ -53,6 +55,7 @@ bool loadUdpServer( int port );
 bool loadTcpServer( int port );
 bool loadFtpServer( int port );
 bool loadMysql( );
+bool loadAppliConfig( int port );
 
 void signal_handler(int signal_number)
 {
@@ -68,9 +71,10 @@ int main(int argc, const char * argv[]) {
 	CurrentApplicationConfig.iniFileName  = FILE_INI;
 	CurrentApplicationConfig.f_Verbose = true;
 	CurrentApplicationConfig.f_Debug = false;
-	CurrentApplicationConfig.TCP_serverPort = 1903;
+	CurrentApplicationConfig.TCP_serverPort = 1901;
 	CurrentApplicationConfig.UDP_serverPort = 1902;
-	CurrentApplicationConfig.FTP_serverPort = 1904;
+	CurrentApplicationConfig.FTP_serverPort = 1903;
+	CurrentApplicationConfig.TCP_APPLI_PORT = 1904;
 	CurrentApplicationConfig.FolderPathTmp = "/Tmp";
 	CurrentApplicationConfig.FTP_maxUpload = 10;
 	CurrentApplicationConfig.MysqlHost = "localhost";
@@ -84,7 +88,16 @@ int main(int argc, const char * argv[]) {
 		loggerLevel = Logger::VERB;
 	if ( CurrentApplicationConfig.f_Debug )
 		loggerLevel = Logger::DEBUG;
-
+	
+	/* Change directory to be inside the folder of the executable (in case of starting like "bin/app") */
+	char *dirsep = (char*) strrchr( argv[0], '/' );
+	if( dirsep != NULL )
+		*dirsep = 0;
+	if(chdir(argv[0]) == 0)
+		LOGGER_DEBUG("Changing Directory to "<< argv[0]);
+	else
+		LOGGER_WARN("Failed to change directory to "<< argv[0]);
+	
 	LOGGER_START(loggerLevel,"log.log",true);
 
 
@@ -110,6 +123,12 @@ int main(int argc, const char * argv[]) {
 	else {
 		LOGGER_INFO("MySql connection OK");
 	}
+
+	if ( !loadAppliConfig( CurrentApplicationConfig.TCP_APPLI_PORT) ){
+		LOGGER_ERROR( "Cannot load AppliConfig");
+		return -1;
+	}
+	
 	
 	if ( !loadUdpServer( CurrentApplicationConfig.UDP_serverPort ) ){
 		LOGGER_ERROR("Cannot Start Udp Server");
@@ -135,8 +154,27 @@ int main(int argc, const char * argv[]) {
 #endif
 	}
 
+	sleep( 5 );
 	while ( true ){
+		//ConfigAppli::decodeRequest( (char*) "<type>need_rooms</type>" );
+		//ConfigAppli::decodeRequest( (char*) "<type>create_rooms</type>\n<name>A465></name><description>test</description>\n<name>A466></name><description></description>");
+		//ConfigAppli::decodeRequest( (char*) "<type>need_users_website</type>");
+		
+		//ConfigAppli::decodeRequest( (char*) "<type>update_rooms</type>\n<id>1</id><description>Update3</description>");
+		//ConfigAppli::decodeRequest( (char*) "<type>need_rooms</type>" );
+		
+		//cout << endl << "/****** GET RECORDERS ******/" << endl;
+		//ConfigAppli::getRecorders();
+		//cout << endl << "/****** GET Users Recorders ******/" << endl;
+		//ConfigAppli::getUsersRecorders();
+		//cout << endl << "/****** GET Users WebSite ******/" << endl;
+		//ConfigAppli::getUsersWebsite();
+		//cout << endl << "/****** GET Rooms ******/" << endl;
+		//ConfigAppli::getRooms();
+		//cout << endl << "/****** GET Cards ******/" << endl;
+		//ConfigAppli::getCards();
 		sleep(60);
+		
 	}
 	return 0;
 }
@@ -160,7 +198,7 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s= reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_FTP_MAX_UPLOAD,"10");
 	conf.FTP_maxUpload = strtoull(s.c_str(),NULL,10);
 
-	s = reader.Get(INI_CONFIG_SECTION_NAME, INI_SERVER_FTP_PORT,"1904");
+	s = reader.Get(INI_CONFIG_SECTION_NAME, INI_SERVER_FTP_PORT,"1901");
 	conf.FTP_serverPort = strtoull(s.c_str(),NULL,10);
 
 	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_UDP_PORT,"1902");
@@ -169,6 +207,9 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_TCP_PORT,"1903");
 	conf.TCP_serverPort = strtoull(s.c_str(), NULL, 10);
 
+	s = reader.Get(INI_CONFIG_SECTION_NAME,INI_SERVER_APPLI_CONF_TCP_PORT,"1904");
+	conf.TCP_APPLI_PORT = strtoull(s.c_str(), NULL, 10);
+	
 	s = reader.Get(INI_CONFIG_SECTION_NAME , INI_SERVER_MYSQL_HOST , conf.MysqlHost);
 	conf.MysqlHost = s.c_str();
 	
@@ -190,6 +231,7 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	LOGGER_CONFIG("Max Upload      : \t" << conf.FTP_maxUpload);
 	LOGGER_CONFIG("-------------    NETWORK CONFIGURATION   -----------------");
 	LOGGER_CONFIG("SERVER TCP PORT : \t" << conf.TCP_serverPort );
+	LOGGER_CONFIG("CONFIG TCP PORT : \t" << conf.TCP_APPLI_PORT );
 	LOGGER_CONFIG("SERVER UDP PORT : \t" << conf.UDP_serverPort );
 	LOGGER_CONFIG("-------------    DATABASE CONFIGURATION   -----------------");
 	LOGGER_CONFIG("HOST            : \t" << conf.MysqlHost );
@@ -216,6 +258,12 @@ bool loadTcpServer( int port ){
 	_TcpSocketSrv = new Tcp_Socket_Server( port );
 	_TcpSocketSrv->start();
 	return true;
+}
+
+bool loadAppliConfig( int port ){
+	new ConfigAppli( port );
+	bool res = ConfigAppli::createSocket();
+	return res;
 }
 
 bool loadMysql( ){	

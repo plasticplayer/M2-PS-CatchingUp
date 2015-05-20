@@ -87,10 +87,10 @@ void Webcam::close()
 	deinitH264();
 }
 
-void Webcam::generate_test_card(char *buf, int32_t * filledLen, int frame)
+void Webcam::generate_test_card(unsigned char *buf, int32_t * filledLen, int frame)
 {
 	unsigned int i, j;
-	char *b = buf, *g = b+1, *r = g+1;
+	unsigned char *b = buf, *g = b+1, *r = g+1;
 	for (j = 0; j <_imageHeight ; j++)
 	{
 		b = buf + j*3 * _imageWidth;
@@ -116,7 +116,7 @@ void Webcam::grabImage(unsigned char *buf, int32_t * filledLen)
 	{
 		usleep(10);   	// get the image
 	}
-	char *Y ,*Cb, *Cr, *Y2; 
+	char *Y ,*Cb, *Cr, *Y2;
 	unsigned char *r,*g,*b;
 
 	unsigned int pix = 0;
@@ -247,11 +247,17 @@ void * Webcam::_threadRecord( void * arg)
 	timePast = now.tv_sec + now.tv_usec*1e-6;
 	timeLastSplit = timePast;
 	unsigned int frameCounter = 0;
+	unsigned int frameCounterCompute = 0;
 	while(thisObj->_recording)
 	{
 		thisObj->grabImage(thisObj->_frame->data,&taille);
 		writeImageH264(thisObj->_frame->data, taille,fichierH264);
-		//track(thisObj->_frame);
+		if((++ frameCounterCompute % 5) == 0)
+        {
+            frameCounterCompute =0;
+             track(thisObj->_frame);
+        }
+
 		gettimeofday(&now,NULL);
 		timeAct = now.tv_sec + now.tv_usec*1e-6;
 
