@@ -19,14 +19,11 @@ import java.awt.Component;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
-public class SpeakerUpdate extends JDialog {
+public class SpeakerCreation extends JDialog {
 	private String firstName;
 	private String lastName;
 	private String password;
 	private String email;
-	private String dateBegin;
-	private String dateEnd;
-	
 
 	private final JPanel contentPanel = new JPanel();
 	private JTextField txtBoxFirstname;
@@ -40,14 +37,8 @@ public class SpeakerUpdate extends JDialog {
 	/**
 	 * Create the dialog.
 	 */
-	public SpeakerUpdate(String firstName, String lastName, String email, String dateBegin, String dateEnd) {
-		setTitle("Modification intervenant");
-		this.firstName = firstName;
-		this.lastName = lastName;
-		this.password = password;
-		this.email = email;
-		this.dateBegin = dateBegin;
-		this.dateEnd = dateEnd;
+	public SpeakerCreation() {
+		setTitle("Création intervenant");
 		
 		setBounds(100, 100, 735, 491);
 		getContentPane().setLayout(new BorderLayout());
@@ -140,7 +131,7 @@ public class SpeakerUpdate extends JDialog {
 		calendarGridLayout.add(dateEndPanel);
 		dateEndPanel.setLayout(new BorderLayout(0, 0));
 		
-		JLabel lblDateEnd = new JLabel("Date de d\u00E9but :");
+		JLabel lblDateEnd = new JLabel("Date de fin :");
 		dateEndPanel.add(lblDateEnd, BorderLayout.NORTH);
 		calendar calEnd = new calendar();
 		dateEndPanel.add(calEnd);
@@ -177,5 +168,22 @@ public class SpeakerUpdate extends JDialog {
 				getRootPane().setDefaultButton(okButton);
 			}
 		}
+		
+
+		/*
+		JLabel lblDateBegin = new JLabel("Date de d\u00E9but :");
+		rightContentPanel.add(lblDateBegin);
+		txtBoxDateBegin = new JTextField(dateBegin);
+		txtBoxDateBegin.setHorizontalAlignment(SwingConstants.CENTER);
+		rightContentPanel.add(txtBoxDateBegin);
+		txtBoxDateBegin.setColumns(10);
+		
+		JLabel lblDateEnd = new JLabel("Date de fin :");
+		lblDateEnd.setHorizontalAlignment(SwingConstants.CENTER);
+		rightContentPanel.add(lblDateEnd);
+		txtBoxDateEnd = new JTextField(dateEnd);
+		txtBoxDateEnd.setHorizontalAlignment(SwingConstants.CENTER);
+		rightContentPanel.add(txtBoxDateEnd);
+		txtBoxDateEnd.setColumns(10);*/
 	}
 }
