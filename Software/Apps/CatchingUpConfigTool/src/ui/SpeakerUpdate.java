@@ -3,30 +3,19 @@ package ui;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
-import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.border.EmptyBorder;
 
 import java.awt.GridLayout;
 
 import javax.swing.SwingConstants;
-import javax.swing.BoxLayout;
 
 import java.awt.Component;
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-
-import net.miginfocom.swing.MigLayout;
-
-import java.awt.CardLayout;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
@@ -44,8 +33,6 @@ public class SpeakerUpdate extends JDialog {
 	private JTextField txtBoxLastname;
 	private JPasswordField passwordFieldPassword;
 	private JTextField txtBoxEmail;
-	private JTextField txtBoxDateBegin;
-	private JTextField txtBoxDateEnd;
 	private JPasswordField passwordFieldConfirmPassword;
 	private JButton okButton;
 	private JButton cancelButton;
@@ -190,22 +177,5 @@ public class SpeakerUpdate extends JDialog {
 				getRootPane().setDefaultButton(okButton);
 			}
 		}
-		
-
-		/*
-		JLabel lblDateBegin = new JLabel("Date de d\u00E9but :");
-		rightContentPanel.add(lblDateBegin);
-		txtBoxDateBegin = new JTextField(dateBegin);
-		txtBoxDateBegin.setHorizontalAlignment(SwingConstants.CENTER);
-		rightContentPanel.add(txtBoxDateBegin);
-		txtBoxDateBegin.setColumns(10);
-		
-		JLabel lblDateEnd = new JLabel("Date de fin :");
-		lblDateEnd.setHorizontalAlignment(SwingConstants.CENTER);
-		rightContentPanel.add(lblDateEnd);
-		txtBoxDateEnd = new JTextField(dateEnd);
-		txtBoxDateEnd.setHorizontalAlignment(SwingConstants.CENTER);
-		rightContentPanel.add(txtBoxDateEnd);
-		txtBoxDateEnd.setColumns(10);*/
 	}
 }
