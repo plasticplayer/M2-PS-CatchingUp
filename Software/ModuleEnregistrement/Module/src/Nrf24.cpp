@@ -45,12 +45,12 @@ Nrf24::Nrf24( ) : Communication( 0x10,0x22,0x20 ){
 
 	_Radio->openWritingPipe( ADDR_PARKING_RX );
 	_Radio->openReadingPipe(1,ADDR_PARKING_TX);
-		
-		
 
-	_Radio->printDetails();
-		if(_Radio->getChannel() == 75)
-			_NFRok = true;
+
+
+		_Radio->printDetails();
+	if(_Radio->getChannel() == 75)
+		_NFRok = true;
 }
 bool Nrf24::isOk()
 {
@@ -162,7 +162,8 @@ void* Nrf24::getData( void * r ){
 						sprintf(tmp,"%s %02X",tmp, f.data[i]);
 							LOGGER_VERB("RF--> " << tmp);
 
-				radio->write( (f.data), f.size );
+				int s = radio->write( (f.data), f.size );
+				LOGGER_VERB("Written :"<<s);
 				radio->startListening();
 				_Acks->pop_front();
 			}
@@ -171,15 +172,15 @@ void* Nrf24::getData( void * r ){
 				Frame f = llist->front();
 				if ( isTime( f.lastSend ) > TIME_RETRY ){
 					radio->stopListening();
-					
-						char tmp[250];
-						tmp[0] = '\0';
-						for(int i = 0; i < f.size; i++)
-							sprintf(tmp,"%s %02X",tmp, f.data[i]);
-								LOGGER_VERB("RF--> " << tmp);
 
-								radio->write( (f.data), f.size );
+					char tmp[250];
+					tmp[0] = '\0';
+					for(int i = 0; i < f.size; i++)
+						sprintf(tmp,"%s %02X",tmp, f.data[i]);
+					LOGGER_VERB("RF--> " << tmp);
 
+					int s2 = radio->write( (f.data), f.size );
+					LOGGER_VERB("Written 1 "<<s2);
 					radio->startListening();
 					llist->pop_front();
 

@@ -79,7 +79,17 @@ bool Webcam::testWebcam()
 	_Camera->StopCam();
 	return st;
 }
-
+bool Webcam::initCamera()
+{
+	if(!_Camera->Open() || !_Camera->Init() || !_Camera->Start())
+		return false;
+	else
+		return true;
+}
+void Webcam::deInitCamera()
+{
+	_Camera->StopCam();
+}
 void Webcam::close()
 {
 	LOGGER_DEBUG("Closing webcam");
@@ -255,12 +265,12 @@ void * Webcam::_threadRecord( void * arg)
 		if((++ frameCounterCompute % 5) == 0)
         {
             frameCounterCompute =0;
-             track(thisObj->_frame);
+            track(thisObj->_frame);
         }
 
 		gettimeofday(&now,NULL);
 		timeAct = now.tv_sec + now.tv_usec*1e-6;
-
+#ifndef DEBUG_IMAGE
 		if(thisObj->_splitTimeSeconds > 0)
 		{
 			timeDiff = timeAct - timeLastSplit;
@@ -289,6 +299,7 @@ void * Webcam::_threadRecord( void * arg)
 				}
 			}
 		}
+		#endif
 		frameCounter ++;
 
 		//if (frameCounter%10) // On ne verifie que les FPS que toutes les 10 images
@@ -317,4 +328,7 @@ void * Webcam::_threadRecord( void * arg)
 	thisObj->_CurrentRecording->addFile(file);
 	return NULL;
 }
-
+void Webcam::initImageRef()
+{
+	initImageRefs();
+}

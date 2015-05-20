@@ -740,9 +740,9 @@ void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size )
 	if ( size <= 1 ) // Can't has no data
 		return;
 	_FtpPassword = "";
-	for ( unsigned long i = 1; i < size ; i++ ) 
+	for ( unsigned long i = 1; i < size ; i++ )
 		_FtpPassword = SSTR ( _FtpPassword << data[i] );
-	 
+
 	_FtpCanUploadFile = ( data[0] == 0x01 );
 	REC_TO_SRV_TcpAck(GET_STORAGE_ANS);
 /*	if ( data[0] == 0x01 )
@@ -750,7 +750,7 @@ void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size )
 		// TODO : Upload One File
 		LOGGER_DEBUG ( "Can upload one file" ) ;
 		//ftpSendFile();
-	}*/	
+	}*/
 	_FtpWaitStorageAns = false;
 }
 
@@ -821,8 +821,10 @@ bool startRecording( uint64_t idRecording )
 		{
 			LOGGER_VERB("Starting Cameras and sound recording");
 			isRecording &= cam->startRecording(_CurrentRecording);
-			isRecording &= still->startRecording(_CurrentRecording);
+			#ifndef DEBUG_IMAGE
+            isRecording &= still->startRecording(_CurrentRecording);
 			isRecording &= sound->startRecording(_CurrentRecording);
+			#endif
 
 		}
 		else
@@ -848,7 +850,7 @@ bool stopRecording()
 			cam->stopRecording();
 	}
 	SoundRecord * sound = SoundRecord::getSoundRecord();
-	
+
 
 	if(sound != NULL && sound->isRecording())
 		sound->stopRecording();
@@ -863,7 +865,7 @@ bool stopRecording()
 	_CurrentRecording = NULL;
 	_IdUserRecorder = 0x00;
 	_IdRecording = 0x00;
-	
+
 	return true;
 }
 
@@ -973,7 +975,7 @@ bool ftpSendFile( )
 void* ftpSenderThread( void* data )
 {
 	LOGGER_DEBUG("Ftp Client Start : Start Sender Thread ");
-	
+
 	/** Register signal handler for SIGPIPE **/
 	signal(SIGPIPE, sigpipe_handler);
 	sleep(15);
@@ -987,7 +989,7 @@ void* ftpSenderThread( void* data )
 				sleep( 60 );
 			continue;
 		}
-		fileInUpload->generateChksum();	
+		fileInUpload->generateChksum();
 		LOGGER_VERB("SEND TCP REQUEST");
 		_FtpWaitStorageAns = true;
 		_FtpCanUploadFile = false;

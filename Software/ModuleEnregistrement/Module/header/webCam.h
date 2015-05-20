@@ -13,13 +13,18 @@ class Webcam
 		void grabImage(unsigned char *buf, int32_t * filledLen);
 		bool testWebcam();
 
+		bool initCamera();
+		void deInitCamera();
 		void setSplitTime(unsigned int seconds); // Set the split time for each file
 		bool startRecording(Recording * recording);
 		bool stopRecording();
 		bool isRecording();
 		void close();
+	void initImageRef();
 		static bool isInUse();
 		static Webcam * getWebcam();
+		unsigned int getHeight(){return _imageHeight;}
+		unsigned int getWidth() {return _imageWidth; }
 	protected :
 
 	private :

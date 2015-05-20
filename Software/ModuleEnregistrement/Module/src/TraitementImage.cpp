@@ -6,32 +6,110 @@
 #endif
 
 #include "TraitementImage.h"
+#include "webCam.h"
 bool RefOk = false;
 
-Mat frameRef;
+
 Mat diff;
 
-using namespace std;
+#define NB_IMAGE_REF	5
 
+unsigned char servoPanID = 0;
+unsigned char servoTiltId = 1;
+
+unsigned char listPanServo[NB_IMAGE_REF] = {200,210,220,230,240};
+unsigned char * listImages[NB_IMAGE_REF];
+unsigned char indexRef = 2;
+pthread_t * _TreadTrack = NULL;
+using namespace std;
+void showImage(Mat * img,string name);
+void initImageRefs()
+{
+	Webcam * cam = Webcam::getWebcam();
+	//(cam->initCamera())
+	{
+		unsigned int height = cam->getHeight();
+		unsigned int width = cam->getWidth();
+		int sizeImage = 0;
+		for(unsigned int currentIndex = 0; currentIndex < NB_IMAGE_REF ; currentIndex++)
+		{
+			setCameraPan(listPanServo[currentIndex]);
+			usleep(1000000); // 1s
+			cam->initCamera();
+			unsigned char * imageData = new unsigned char[height * width * 3];
+			cam->grabImage(imageData,&sizeImage);
+			cam->deInitCamera();
+			LOGGER_VERB("Capturing Image : " << currentIndex );
+			listImages[currentIndex] = imageData; // Copy pointer to data
+			//Mat i(width,height,3,imageData);
+			//showImage(&i,SSTR(currentIndex));
+		}
+		diff = *(new Mat(width,height,3));
+	}
+	indexRef = 2;
+	setCameraPan(listPanServo[indexRef]);
+
+	/*else
+		LOGGER_WARN("Cannot init camera for setting imageRef");*/
+
+}
+void setCameraPan(unsigned char step)
+{
+	if(step < 50 )
+		step = 50;
+	if(step > 250)
+		step = 250;
+
+	string command = SSTR("echo "<< (int)servoPanID <<"=" << (int)step <<" > /dev/servoblaster");
+	system(command.c_str());
+	LOGGER_VERB("Setting PanServo to : "<< (int) step << "(" << command <<")");
+}
+
+void showImage(Mat * img,string name)
+{
+#ifdef DEBUG_IMAGE
+	cv::Mat *image;
+	image = new cv::Mat(img->rows, img->cols, CV_8UC3 /*,&img->data*/);
+	for( unsigned int x = 0; x < img->rows  ; x++)
+	{
+		for( unsigned int y = 0; y < img->cols ; y++)
+		{
+			unsigned char * out = (img->data   + (x * img->cols + y)*3);
+			unsigned char * show = ((image->data)   + (x * img->cols + y)*3);
+			*(show) = *out;
+			*(show+1) = *(out+1);
+			*(show+2) = *(out+2);
+
+		}
+	}
+	cv::imshow( name.c_str(), *image );
+	cv::waitKey(1);
+#endif
+}
 void track(Mat * frame)
 {
-	if(!RefOk)
+        if
+
+}
+void track_thread(Mat * frame)
+{
+	/*if(!RefOk)
 	{
 		RefOk = true;
 
 		frameRef.clone(*frame);
 		diff.clone(*frame);
 
-	}
-	else
+	}*/
+	//else
 	{
 		// Taille de l'image
-		unsigned int sizeImage = frameRef.cols*frameRef.rows;
-		unsigned int widthImage = frameRef.cols;
+		unsigned int sizeImage =frame->cols*frame->rows;
+		unsigned int widthImage = frame->cols;
 		//unsigned int sizePixels = sizeImage *frameRef.channels ;
 
 		// pointeurs vers les données de l'image
-		unsigned char *pixReference = (unsigned char*)(frameRef.data);
+		unsigned char *pixReference = (listImages[indexRef]);
 		unsigned char *pixFrame = (unsigned char*)(frame->data);
 		unsigned char *pixOutput = (unsigned char*)(diff.data);
 
@@ -285,8 +363,8 @@ void track(Mat * frame)
 			unsigned int centerX = (tabEtiquettes[indexMaxEti].maxX + tabEtiquettes[indexMaxEti].minX) /2;
 			unsigned int centerY = (tabEtiquettes[indexMaxEti].maxY + tabEtiquettes[indexMaxEti].minY) /2;
 			LOGGER_VERB("Moyenne : X" << centerX << " Y " << centerY );
-			unsigned int thresholdLowX = ((frameRef.cols * 25) / 100); // 10 %
-			unsigned int thresholdHighX = frameRef.cols - thresholdLowX; // 1 - 10%
+			unsigned int thresholdLowX = ((frame->cols * 33) / 100); // 10 %
+			unsigned int thresholdHighX = frame->cols - thresholdLowX; // 1 - 10%
 
 #ifdef DEBUG_IMAGE
 			cv::Mat image;
@@ -319,6 +397,13 @@ void track(Mat * frame)
 				}
 			}
 			cv::imshow( "Display window", image );
+
+			//for(unsigned int currentIndex = 0; currentIndex < NB_IMAGE_REF ; currentIndex++)
+			//{
+				Mat i(frame->cols,frame->rows,3,listImages[indexRef]);
+				showImage(&i,"REF");
+			//}
+
 			cv::waitKey(1);
 #endif
 			if(tabEtiquettes[indexMaxEti].pixelCount > 100)
@@ -327,20 +412,36 @@ void track(Mat * frame)
 
 				if( centerX > thresholdHighX )
 				{
-					string command = SSTR("echo 0=+1 > /dev/servoblaster");
-					system(command.c_str());
+					if(indexRef != NB_IMAGE_REF -1)
+					{
+
+						indexRef++;
+						//indexRef = min(NB_IMAGE_REF-1,indexRef+1);
+
+//					idPan++;
+						setCameraPan(listPanServo[indexRef]);
+						usleep(500000); // 1s
+					}
 					//memset(pixReference,0,widthImage*3);
-					RefOk = false;
-					cout << "++++ "  <<endl;
+					//RefOk = false;
+					//cout << "++++ "  <<endl;
 				}
 				else if(centerX < thresholdLowX)
 				{
-					string command = SSTR("echo 0=-1 > /dev/servoblaster");
-					system(command.c_str());
-					// memset(pixReference,0,widthImage*3);
-					RefOk = false; // Will copy
-					cout << "--- "  <<endl;
+					if(indexRef != 0)
+					{
+
+
+						indexRef--;
+						//LOGGER_VERB("Image Ref : " << indexRef);
+						setCameraPan(listPanServo[indexRef]);
+						usleep(500000); // 1s
+					}
+//					setCameraPan();
+					//RefOk = false; // Will copy
+					//cout << "--- "  <<endl;
 				}
+LOGGER_VERB("Image Ref : " << (int)indexRef);
 			}
 
 

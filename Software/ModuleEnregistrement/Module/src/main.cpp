@@ -7,8 +7,8 @@
 
 
 //#define EXIT_ON_ERROR 1
-//#define ENABLE_CAMERA 1
-#define ENABLE_COMM 1
+#define ENABLE_CAMERA 1
+//#define ENABLE_COMM 1
 
 #include "Config.h"
 #include "define.h"
@@ -311,7 +311,8 @@ int main(int argc, char * argv[])
 	else
 		LOGGER_DEBUG("Sound OK");
 
-
+    LOGGER_INFO("Program started !");
+    forceStartRecording();
 	while ( char c = getchar() )
 	{
 		switch ( c )
@@ -512,6 +513,7 @@ bool startWebCam(applicationConfiguration& conf)
 		Webcam * cam = new Webcam(conf.webcam.device,conf.webcam.width, conf.webcam.height,conf.webcam.fps);
 		cam->setSplitTime(conf.webcam.split);
 		resultTest = cam->testWebcam();
+		cam->initImageRef();
 		//cam->startRecording(CurrentApplicationConfig.Data_path);
 	}
 

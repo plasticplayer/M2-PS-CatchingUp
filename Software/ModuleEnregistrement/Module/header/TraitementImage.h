@@ -35,6 +35,15 @@ public :
 		this->channels = _channels;
 		this->data = new unsigned char[cols*rows*channels];
 	}
+	Mat(unsigned int _cols,unsigned int _rows, unsigned char _channels,unsigned char * data)
+	{
+		this->cols = _cols;
+		this->rows = _rows;
+		this->channels = _channels;
+		this->data = new unsigned char[cols*rows*channels];
+		memcpy(this->data,data,(cols*rows*channels));
+
+	}
 	~Mat()
 	{
 		if(data != NULL)
@@ -63,6 +72,8 @@ public :
 };
 
 
+void initImageRefs();
+void setCameraPan(unsigned char step);
 void track(Mat * frame);
 
 #endif

@@ -15,7 +15,7 @@
 //#define DEBUG_WITH_FUNCT_NAME
 
 /** Definie if OpenCV is used to view image of the tracking algorithm (must link with openCV)**/
-//#define DEBUG_IMAGE
+#define DEBUG_IMAGE
 
 /** Set if SSL support is enabled */
 //#define SSL_ENABLE 1
