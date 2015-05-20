@@ -1,4 +1,4 @@
-#ifndef __define_applicatiR
+#ifndef __define_applicationconfiguration
 #define __define_applicationconfiguration
 #include <stdint.h>
 #include <string.h>
@@ -38,4 +38,6 @@ extern applicationConfiguration CurrentApplicationConfig;
 void signal_handler(int signal_number);
 void sigpipe_handler(int signal_number);
 void exit_handler(void );
+
+
 #endif

@@ -2724,7 +2724,7 @@ CFtpServer::CClientEntry::StoreThread (void *pvParam)
     uiBufferSize = pFtpServer->GetTransferBufferSize ();
     char *
     pBuffer = new char[uiBufferSize];
-	DIR * rep = NULL;
+	//DIR * rep = NULL;
 #ifdef CFTPSERVER_ENABLE_ZLIB
     int
     nFlush,

@@ -1,9 +1,6 @@
 #ifndef __CallBack__Communication__
 #define __CallBack__Communication__
 
-#define ADDR_PARKING_TX 0xF2000000LL
-#define ADDR_PARKING_RX 0xF1000000LL
-
 #include "Udp.h"
 #include "Tcp.h"
 

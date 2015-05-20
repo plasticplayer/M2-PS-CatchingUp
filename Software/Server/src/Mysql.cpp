@@ -38,14 +38,66 @@ Mysql::Mysql(  ){
 
 bool Mysql::connect(string host, string database, string user, string password ){
 	try{
-                _Connection = new Connection( ( char*) host.c_str() , (char *) database.c_str() , (char*) user.c_str() , (char*) password.c_str() );
-        }
-        catch ( exception e  ){
-                LOGGER_ERROR("MySql parameters Error");
-		return false;
-        }
+		_Connection = new Connection( ( char*) host.c_str() , (char *) database.c_str() , (char*) user.c_str() , (char*) password.c_str() );
+	}
+	catch ( exception e  ){
+			LOGGER_ERROR("MySql parameters Error");
+	return false;
+	}
+	return verifyTables();
+}
+
+bool Mysql::verifyTables(){
+	while ( _DataBase->_IsInsertingRow ) { usleep(10 ); }
+	_DataBase->_IsInsertingRow = true;
+	string req;
+	try{
+		/// USERS
+		req = SSTR ( "SELECT " << _UserTable.id.value << "," <<  _UserTable.firstName.value << "," << _UserTable.lastName.value 
+					<< "," << _UserTable.password.value << "," << _UserTable.email.value << " FROM " << _UserTable.name << " LIMIT 0;");
+		
+		LOGGER_VERB("Verify Table: " << _UserTable.name );
+		_DataBase->_Connection->Query( (char*) req.c_str() );
+		
+		
+		/// USERS RECORDERS
+		req = SSTR ( "SELECT " << _RecorderUserTable.id.value << "," <<  _RecorderUserTable.dateBegin.value << "," << _RecorderUserTable.dateEnd.value 
+					<< " FROM " << _RecorderUserTable.name << " LIMIT 0;" );
+		
+		LOGGER_VERB("Verify Table: " << _RecorderUserTable.name );
+		_DataBase->_Connection->Query( (char*) req.c_str() );
+		
+		/// USERS WebSite
+		req = SSTR ( "SELECT " << _WebsiteUserTable.id.value << "," <<  _WebsiteUserTable.registration.value << " FROM " << _WebsiteUserTable.name << " LIMIT 0;");
+		
+		LOGGER_VERB("Verify Table: " << _WebsiteUserTable.name );
+		_DataBase->_Connection->Query( (char*) req.c_str() );
+		
+		// TODO : ADD OTHERS TABLE
+	}
+	catch ( exception e  ){
+			cout << req << endl;
+			LOGGER_ERROR("MySql DB format Error");
+			_DataBase->_IsInsertingRow = false;
+			return false;
+	}
+	_DataBase->_IsInsertingRow = false;
+	
+	LOGGER_INFO("MYSQL DATABASE OK");
 	return true;
 }
+
+
+uint64_t Mysql::countUpdatedRows(){
+	Result* res = _DataBase->_Connection->Query( (char*) "SELECT ROW_COUNT();" );
+	if ( res->Next() ){
+		return strtoull( res->GetCurrentRow()->GetField(1),NULL,0);
+	}
+	return ( uint64_t) 0;
+} 
+
+
+
 
 uint64_t Mysql::getIdRecorderFromMac( string mac ){
 	uint64_t idRecorder = 0;
@@ -91,7 +143,7 @@ uint64_t Mysql::createRecording ( uint64_t idRecorder , uint64_t idUserRecorder)
 	uint64_t idRecording = 0x00;		
 
 	string req = SSTR( "INSERT INTO " << _ChapterTable.name << " ( " << _ChapterTable.status.value << ", " << _ChapterTable.date.value << " , " << _ChapterTable.idUser.value << " , " 
-		<< _ChapterTable.idRecorder.value << " ) values ( 'TRANSFER' , NOW() , " << idUserRecorder << " , " << idRecorder << " );");	
+		<< _ChapterTable.idRecorder.value << " ) values ( 'RECORDING' , NOW() , " << idUserRecorder << " , " << idRecorder << " );");	
 	LOGGER_DEBUG("Mysql create recording : " << req );
 	_DataBase->_Connection->Query( (char*) req.c_str() );
 
@@ -107,62 +159,11 @@ uint64_t Mysql::createRecording ( uint64_t idRecorder , uint64_t idUserRecorder)
 
 void Mysql::stopRecording ( uint64_t idRecording ){
 	LOGGER_INFO("Stop Recording:" << idRecording);
-	string req = SSTR("UPDATE " << _ChapterTable.name << " SET " << _ChapterTable.status.value << "='WAITINGTREATMENT' WHERE " << _ChapterTable.id.value << "=" << idRecording << "; " );
+	string req = SSTR("UPDATE " << _ChapterTable.name << " SET " << _ChapterTable.status.value << "='TRANSFER' WHERE " << _ChapterTable.id.value << "=" << idRecording << "; " );
 	_DataBase->_Connection->Query( (char*) req.c_str() );
 }
 
 
-uint64_t Mysql::createRecorder ( uint64_t idRoom, string addressMac ){
-	if ( getIdRecorderFromMac( addressMac) != 0x00 ) {
-		LOGGER_WARN( "Record already exist with Mac. Request ignore");
-		return 0;
-	}
-
-	uint64_t idRecorder = 0x00, idRecordingModule = 0x00, idConnectingModule = 0x00;
-	string req;
-
-	LOGGER_INFO("Create Recorder");
-	while ( _DataBase->_IsInsertingRow ) usleep(10);
-	_DataBase->_IsInsertingRow = true;
-	
-	// Create ConnectingModule	
-	req = SSTR("INSERT INTO " << _ConnectingModuleTable.name << " ( " << _ConnectingModuleTable.idNetwork.value << ") values ( 0 );");
-	LOGGER_VERB ( "Mysql Create connecting Module: " << req );
-	_DataBase->_Connection->Query( ( char*) req.c_str());
-	
-	Result *res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
-	if ( res->Next() ){
-		idConnectingModule = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
-	}
-
-
-	// Create Recording Module
-	req = SSTR("INSERT INTO " << _RecordingTable.name << " ( " <<  _RecordingTable.adressMAC.value << " ) values ( '" << addressMac << "');" );
-	LOGGER_VERB( "Mysql Create Recording Module: " << req );
-	_DataBase->_Connection->Query(( char*) req.c_str() );
-
-	res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
-	if ( res->Next() ){
-		idRecordingModule = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
-	}
-
-
-	// Create recorder
-	req = SSTR ( "INSERT INTO " << _RecorderTable.name << "( " << _RecorderTable.idRecordingModule.value << " , " << _RecorderTable.idConnectingModule.value << " , " << _RecorderTable.idRoom.value << " ) values ( "
-		<< idRecordingModule << " , " << idConnectingModule << " , " << idRoom << " );");
-	LOGGER_VERB("Myslq create recorder: " << req ) ;
-	_DataBase->_Connection->Query( (char* ) req.c_str() );
-
-	res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
-	if ( res->Next() ){
-		idRecorder = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
-	}
-
-	
-	_DataBase->_IsInsertingRow = false;
-	LOGGER_INFO("Create Recoder: " << idRecorder << " | idConnectingModule: " << idConnectingModule << " | idRecordingModule " << idRecordingModule );
-	return idRecorder;
-}
 
 
 bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *act ){
@@ -174,54 +175,6 @@ bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *a
 	return true; // RETURN TRUE IF RECORDER EXIST
 }
 
-uint64_t Mysql::createRoom ( string roomName, string description ){
-	uint64_t idRoom = 0;
-	
-	while ( _DataBase->_IsInsertingRow ) usleep(10);
-        _DataBase->_IsInsertingRow = true;
-
-	string req = SSTR ( "INSERT INTO " << _RoomTable.name << "( " << _RoomTable.roomName.value << " , " << _RoomTable.description.value << " ) values ( '"
-                << roomName  << "' , '" << description  << "' );");
-        LOGGER_VERB("Myslq create room: " << req ) ;
-        _DataBase->_Connection->Query( (char* ) req.c_str() );
-
-        Result *res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
-        if ( res->Next() ){
-                idRoom = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
-        }
-
-        _DataBase->_IsInsertingRow = false;
-	LOGGER_INFO("Create Room:" << roomName << " :" << idRoom);
-	return idRoom;	
-}
-
-uint64_t Mysql::createUserRecorder ( string firstName, string lastName, string password, string email, string dateBegin, string dateEnd ){
-	uint64_t idUserRecorder = 0;
-	
-	while ( _DataBase->_IsInsertingRow ) usleep(10);
-        _DataBase->_IsInsertingRow = true;
-
-	string req = SSTR ( "INSERT INTO " << _UserTable.name << "( " << _UserTable.firstName.value << " , " << _UserTable.lastName.value << " , " << _UserTable.password.value << "," << _UserTable.email.value << " ) values ( '"
-			  << firstName << "' , '" << lastName << "' , '" << password << "' , '" << email << "' );");  
-        LOGGER_VERB("Mysql create userRecorder : " << req );
- 
-	_DataBase->_Connection->Query ( (char*) req.c_str());
-	Result *res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
-        if ( res->Next() ){
-                idUserRecorder = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
-        }
-
-
-	req = SSTR ( "INSERT INTO " << _RecorderUserTable.name << "( " << _RecorderUserTable.id.value << " , " << _RecorderUserTable.dateBegin.value << " , " << _RecorderUserTable.dateEnd.value << " ) values ( " << idUserRecorder  << " , '" << dateBegin << "' , '" << dateEnd << "' );");  
-        LOGGER_VERB("Myslq create userRecorder: " << req ) ;
-	
-	_DataBase->_Connection->Query( (char* ) req.c_str() );
-
-	_DataBase->_IsInsertingRow = false;
-        LOGGER_INFO("Create UserRecorder:" << firstName << "," << lastName << ":" << idUserRecorder );
-        return idUserRecorder;
-}
-
 uint64_t Mysql::getIdFromTagNumber ( uint64_t cardNumber ){
 	uint64_t idCard = 0x00;
 	string req = SSTR ( "SELECT " << _CardTable.idcard.value << " FROM " << _CardTable.name << " WHERE " << _CardTable.number.value << "='" << cardNumber <<"';") ;	
@@ -230,6 +183,121 @@ uint64_t Mysql::getIdFromTagNumber ( uint64_t cardNumber ){
                 idCard = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
         }
 	return idCard;
+}
+
+
+
+
+bool Mysql::addFileToRecording ( uint64_t idRecording , string path, string type ){
+	// TODO:
+	string req = SSTR("INSERT INTO " << _FileLessonTable.name << " ( " << _FileLessonTable.fileLessonName.value << "," << _FileLessonTable.type.value << ","
+		<< _FileLessonTable.status.value << ", " << _FileLessonTable.idChapter.value << " ) VALUES ( '" 
+		<< path << "', '" << type << "' ,'WAITINGTREAtMENT', "  << idRecording << ");");
+	//LOGGER_VERB("Add file " << path << " To Record: " << idRecording << endl << req  );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10 );
+	_DataBase->_IsInsertingRow = true;
+
+	LOGGER_VERB("Mysql AddFile (" << path << ") " << req );
+	_DataBase->_Connection->Query( (char*) req.c_str() );
+	
+	_DataBase->_IsInsertingRow = false;
+	return true;
+}
+
+void Mysql::RecordingTransferFinished ( uint64_t idRecording ){
+	string req = SSTR ( "UPDATE " << _ChapterTable.name << " SET " << _ChapterTable.status.value << "='TRANSFER' WHERE " << _ChapterTable.id.value << "=" << idRecording << ";") ;
+	while ( _DataBase->_IsInsertingRow ) usleep( 10 );
+	_DataBase->_IsInsertingRow = true;
+
+	LOGGER_VERB("Mysql RecordingTransfer Finished (" << idRecording << ") " << req );
+	_DataBase->_Connection->Query( (char*) req.c_str() );
+	
+	_DataBase->_IsInsertingRow = false;
+}
+
+
+
+/****************  Administration - Getters ****************/
+Result* Mysql::getUsers(){
+	string req = SSTR (
+			"SELECT u." << _UserTable.id.value << ",u." << _UserTable.firstName.value << ",u." << _UserTable.lastName.value << ",u." << _UserTable.email.value 
+			<< ",w." << _WebsiteUserTable.registration.value
+			<< " FROM " << _UserTable.name << " u, " << _WebsiteUserTable.name << " w WHERE u." << _UserTable.id.value << "=w." << _RecorderUserTable.id.value << ";"
+	);
+	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+}
+
+Result* Mysql::getRooms(){
+	string req = SSTR (
+			"SELECT " << _RoomTable.id.value << "," << _RoomTable.roomName.value << "," << _RoomTable.description.value
+			<< " FROM " << _RoomTable.name << ";"
+	);
+
+	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+}
+
+Result* Mysql::getCards(){
+	string req = SSTR (
+			"SELECT " << _CardTable.idcard.value << "," << _CardTable.iduser.value << "," << _CardTable.number.value
+			<< " FROM " << _CardTable.name << ";"
+	);
+
+	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+}
+
+Result* Mysql::getRecorders(){
+	string req = SSTR ( 
+			"SELECT " << _RecorderTable.idRecorder.value << ",ro." << _RoomTable.id.value << "," << _RoomTable.roomName.value << "," << _RecordingTable.adressMAC.value
+			<< ",r." << _RecorderTable.idConnectingModule.value << ",r." << _RecorderTable.idRecordingModule.value
+			<< " FROM " << _RecorderTable.name << " r," << _RoomTable.name << " ro," << _RecordingTable.name << " re WHERE r."
+			<< _RecorderTable.idRecordingModule.value  << "=re." << _RecordingTable.id.value << " AND r." << _RecorderTable.idRoom.value << "=ro." 
+			<< _RoomTable.id.value << ";"
+	);
+	
+	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+}
+
+Result* Mysql::getUsersRecorders(){
+	string req = SSTR (
+			"SELECT u." << _UserTable.id.value << ",u." << _UserTable.firstName.value << ",u." << _UserTable.lastName.value << ",u." << _UserTable.email.value 
+			<< ",r." << _RecorderUserTable.dateBegin.value << ",r." << _RecorderUserTable.dateEnd.value
+			<< " FROM " << _UserTable.name << " u, " << _RecorderUserTable.name << " r WHERE u." << _UserTable.id.value << "=r." << _RecorderUserTable.id.value << ";"
+	);
+
+	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+}
+
+
+
+/****************  Administration - Create ****************/
+uint64_t Mysql::createRoom ( string roomName, string description ){
+	uint64_t idRoom = 0;
+	
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+        _DataBase->_IsInsertingRow = true;
+
+	string req = SSTR ( "INSERT INTO " << _RoomTable.name << "( " << _RoomTable.roomName.value << " , " << _RoomTable.description.value << " ) values ( '"
+                << roomName  << "' , '" << description  << "' );");
+				
+	LOGGER_VERB("Myslq create room: " << req ) ;
+	try{
+		_DataBase->_Connection->Query( (char* ) req.c_str() );
+	
+		Result *res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
+		if ( res->Next() ){
+				idRoom = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+		}
+	}
+	catch ( ... ){
+		LOGGER_ERROR("MYSQL failed -> Insert Room");
+		_DataBase->_IsInsertingRow = false;
+		return 0x00;
+	}
+    
+	_DataBase->_IsInsertingRow = false;
+	LOGGER_INFO("Create Room:" << roomName << " :" << idRoom);
+	return idRoom;	
 }
 
 uint64_t Mysql::createCard ( uint64_t cardNumber, uint64_t idUser ){
@@ -249,23 +317,303 @@ uint64_t Mysql::createCard ( uint64_t cardNumber, uint64_t idUser ){
 	while ( _DataBase->_IsInsertingRow ) usleep( 10 );
 	_DataBase->_IsInsertingRow = true;
 
-	LOGGER_VERB("Mysql create Card " << req );
-	_DataBase->_Connection->Query( (char*) req.c_str() );
+	//LOGGER_VERB("Mysql create Card " << req );
+	
+	try{
+		_DataBase->_Connection->Query( (char*) req.c_str() );
 
-	Result *res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
-        if ( res->Next() ){
-                idCard = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
-        }
+		Result *res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
+		if ( res->Next() ){
+				idCard = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+		}
+	}
+	catch ( ... ) {
+		LOGGER_ERROR("MYSQL failed -> Insert card");
+		_DataBase->_IsInsertingRow = false;
+		return 0x00;
+	}
 
 	_DataBase->_IsInsertingRow = false;
 	LOGGER_INFO ( "Card create: " << std::hex << cardNumber << ":" << idUser <<":" << idCard );
 	return idCard;
 }
 
+uint64_t Mysql::createRecorder( uint64_t idRoom, string addressMac ){
+	if ( getIdRecorderFromMac( addressMac) != 0x00 ) {
+		LOGGER_WARN( "Record already exist with Mac. Request ignore");
+		return 0;
+	}
 
-bool Mysql::addFileToRecording ( uint64_t idRecording , string path ){
-	// TODO:
-	LOGGER_VERB("Add file " << path << " To Record: " << idRecording);
-	return true;
+	uint64_t idRecorder = 0x00, idRecordingModule = 0x00, idConnectingModule = 0x00;
+	string req;
+
+	LOGGER_INFO("Create Recorder");
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+	_DataBase->_IsInsertingRow = true;
+	
+	// Create ConnectingModule	
+	req = SSTR("INSERT INTO " << _ConnectingModuleTable.name << " ( " << _ConnectingModuleTable.idNetwork.value << ") values ( 0 );");
+	//LOGGER_VERB ( "Mysql Create connecting Module: " << req );
+	Result* res;	
+	try{
+		_DataBase->_Connection->Query( ( char*) req.c_str());
+		
+		res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
+		if ( res->Next() ){
+			idConnectingModule = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+		}
+	}
+	catch ( ... ){
+		LOGGER_ERROR("MYSQL failed -> Insert ConnectingModule");
+		_DataBase->_IsInsertingRow = false;
+		return 0x00;
+	}
+
+	// Create Recording Module
+	req = SSTR("INSERT INTO " << _RecordingTable.name << " ( " <<  _RecordingTable.adressMAC.value << " ) values ( '" << addressMac << "');" );
+	//LOGGER_VERB( "Mysql Create Recording Module: " << req );
+	
+	try{
+		_DataBase->_Connection->Query(( char*) req.c_str() );
+
+		res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
+		if ( res->Next() ){
+			idRecordingModule = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+		}
+	}
+	catch ( ... ){
+		// TODO: Delete ConnectingModule
+		LOGGER_ERROR("MYSQL failed -> Insert RecordingModule");
+		_DataBase->_IsInsertingRow = false;
+		return 0x00;
+	}
+
+	// Create recorder
+	req = SSTR ( "INSERT INTO " << _RecorderTable.name << "( " << _RecorderTable.idRecordingModule.value << " , " << _RecorderTable.idConnectingModule.value << " , " << _RecorderTable.idRoom.value << " ) values ( "
+		<< idRecordingModule << " , " << idConnectingModule << " , " << idRoom << " );");
+	//LOGGER_VERB("Myslq create recorder: " << req ) ;
+	
+	try{
+		_DataBase->_Connection->Query( (char* ) req.c_str() );
+
+		res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
+		if ( res->Next() ){
+			idRecorder = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+		}
+	}
+	catch ( ... ) {
+		// TODO: Delete ConnectingModule && RecordingModule
+		LOGGER_ERROR("MYSQL failed -> Insert _RecorderTable");
+		_DataBase->_IsInsertingRow = false;
+		return 0x00;
+	}
+	
+	_DataBase->_IsInsertingRow = false;
+	LOGGER_INFO("Create Recoder: " << idRecorder << " | idConnectingModule: " << idConnectingModule << " | idRecordingModule " << idRecordingModule );
+	return idRecorder;
 }
 
+uint64_t Mysql::createUserWebSite ( string firstName, string lastName, string password, string email , string DateRegistration){
+	uint64_t idUserWebSite = 0;
+	
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+        _DataBase->_IsInsertingRow = true;
+		
+	string req = SSTR ( "INSERT INTO " << _UserTable.name << "( " << _UserTable.firstName.value << " , " << _UserTable.lastName.value << " , " << _UserTable.password.value << "," << _UserTable.email.value << " ) values ( '"
+			  << firstName << "' , '" << lastName << "' , '" << password << "' , '" << email << "' );");  
+    LOGGER_VERB("Mysql create userRecorder : " << req );
+ 
+	_DataBase->_Connection->Query ( (char*) req.c_str());
+	Result *res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
+    if ( res->Next() ){
+			idUserWebSite = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+	}
+	req = SSTR ( "INSERT INTO " << _WebsiteUserTable.name << "( " << _WebsiteUserTable.id.value << " , " << _WebsiteUserTable.registration.value << " ) values ( " << idUserWebSite  << " , '" << DateRegistration << "');");  
+    LOGGER_VERB("Myslq create UserWebSite: " << req ) ;
+	
+	_DataBase->_Connection->Query( (char* ) req.c_str() );
+
+	_DataBase->_IsInsertingRow = false;
+	
+    LOGGER_INFO("Create UserWebSite:" << firstName << "," << lastName << ":" << idUserWebSite );
+    return idUserWebSite;
+}
+
+uint64_t Mysql::createUserRecorder ( string firstName, string lastName, string password, string email, string dateBegin, string dateEnd){
+	uint64_t idUserRecorder = 0;
+	
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+        _DataBase->_IsInsertingRow = true;
+
+	string req = SSTR ( "INSERT INTO " << _UserTable.name << "( " << _UserTable.firstName.value << " , " << _UserTable.lastName.value << " , " << _UserTable.password.value << "," << _UserTable.email.value << " ) values ( '"
+			  << firstName << "' , '" << lastName << "' , '" << password << "' , '" << email << "' );");  
+    LOGGER_VERB("Mysql create userRecorder");
+ 
+	try{
+		_DataBase->_Connection->Query ( (char*) req.c_str());
+		Result *res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
+		if ( res->Next() ){
+				idUserRecorder = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+		}
+	}
+	catch ( ... ) {
+		LOGGER_ERROR("Mysql failed -> Insert User Table");
+		_DataBase->_IsInsertingRow = false;
+		return 0x00;
+	}
+
+	req = SSTR ( "INSERT INTO " << _RecorderUserTable.name << "( " << _RecorderUserTable.id.value << " , " << _RecorderUserTable.dateBegin.value << " , " << _RecorderUserTable.dateEnd.value << " ) values ( " << idUserRecorder  << " , '" << dateBegin << "' , '" << dateEnd << "' );");  
+	try{
+		_DataBase->_Connection->Query ( (char*) req.c_str());
+	}
+	catch ( ... ) {
+		LOGGER_ERROR("Mysql failed -> Insert UserRecorder Table");
+		// TODO: DELETE FROM USER TABLE
+		_DataBase->_IsInsertingRow = false;
+		return 0x00;
+	}
+
+	_DataBase->_IsInsertingRow = false;
+    LOGGER_INFO("Create UserRecorder:" << firstName << "," << lastName << ":" << idUserRecorder );
+	
+    return idUserRecorder;
+}
+
+
+
+/****************  Administration - Updates ****************/
+bool Mysql::updateCard ( uint64_t idCard , uint64_t idUser ){
+	if ( idCard == 0 )
+		return false;
+	
+	string req = SSTR ( "UPDATE " << _CardTable.name << " SET " << _CardTable.iduser.value << "=" << idUser << " WHERE " << _CardTable.idcard.value << "=" << idCard << ";" );
+	
+	bool succes = false;
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+	 _DataBase->_IsInsertingRow = true;
+	try{
+		_DataBase->_Connection->Query(( char*) req.c_str()  );
+		succes = (countUpdatedRows() == 1); 	
+	}
+	catch ( ... ){
+		LOGGER_ERROR("MYSQL failed -> Update card");
+	}
+	
+	_DataBase->_IsInsertingRow = false;
+	return succes;
+}
+
+bool Mysql::updateRecorder ( uint64_t idRecorder , uint64_t idRoom ){
+	string req = SSTR ( "UPDATE " << _RecorderTable.name << " SET " << _RecorderTable.idRoom.value << "=" << idRoom << " WHERE " << _RecorderTable.idRecorder.value << "=" << idRecorder << ";" );
+
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+   	_DataBase->_IsInsertingRow = true;
+	bool succes = false;
+	
+	try{
+		_DataBase->_Connection->Query(( char*) req.c_str()  );
+		succes = ( countUpdatedRows() == 1);
+	}
+	catch ( ... ){
+		LOGGER_ERROR("MYSQL failed -> Update card");
+	}
+	_DataBase->_IsInsertingRow = false;
+	return succes;
+}
+
+bool Mysql::updateUserRecorderTable ( uint64_t Id, bool eDBegin, string dateBegin, bool eDEnd, string dateEnd ){
+	if ( Id == 0 || (!eDBegin && !eDEnd ) )
+		return false;
+	
+	string req = SSTR ( "UPDATE " << _RecorderUserTable.name << " SET " );
+	if ( eDBegin ) 
+		req = SSTR ( req << _RecorderUserTable.dateBegin.value << "='" << dateBegin << "'," );
+	
+	if ( eDEnd ) 
+		req = SSTR ( req << _RecorderUserTable.dateEnd.value << "='" << dateEnd << "'," );
+
+	
+	req = SSTR ( req.substr(0,req.length()-1) << " WHERE " << _UserTable.id.value << "=" << Id << ";" );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+   	_DataBase->_IsInsertingRow = true;
+	bool succes = false;
+	try{
+		_DataBase->_Connection->Query(( char*) req.c_str()  );
+		succes = ( countUpdatedRows() == 1);
+	}
+	catch ( ... ){
+		LOGGER_ERROR("MYSQL failed -> Update userRecorder");
+	}
+	
+	_DataBase->_IsInsertingRow = false;
+	return succes;
+}
+
+bool Mysql::updateRoom ( uint64_t roomId, bool enableName, string name, bool enableDescription, string description ){
+	if ( roomId == 0 || (!enableName && !enableDescription) )
+		return false;
+	
+	string req = SSTR ( "UPDATE " << _RoomTable.name << " SET " );
+	if ( enableName ) {
+		req = SSTR ( req << _RoomTable.roomName.value << "='" << name << "'," );
+	}
+	if ( enableDescription ) {
+		req = SSTR ( req << _RoomTable.description.value << "='" << description << "'," );
+	}
+	req = SSTR ( req.substr(0,req.length()-1) << " WHERE " << _RoomTable.id.value << "=" << roomId << ";" );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+	 _DataBase->_IsInsertingRow = true;
+	bool succes = false;
+	
+	try{
+		_DataBase->_Connection->Query(( char*) req.c_str()  );
+		succes = (countUpdatedRows() == 1);
+	}
+	catch ( ... ) {
+		LOGGER_ERROR("MYSQL failed -> Update room");
+	}
+	
+	_DataBase->_IsInsertingRow = false;
+	return succes;
+}
+
+bool Mysql::updateUserTable ( uint64_t Id, bool eFName, string fName, bool eLName, string lName, bool ePwd, string pwd, bool eMail, string email ){
+	if ( Id == 0 || (!eFName && !eLName && !ePwd && !eMail ) )
+		return false;
+	
+	string req = SSTR ( "UPDATE " << _UserTable.name << " SET " );
+	if ( eFName ) 
+		req = SSTR ( req << _UserTable.firstName.value << "='" << fName << "'," );
+	
+	if ( eLName ) 
+		req = SSTR ( req << _UserTable.lastName.value << "='" << lName << "'," );
+	
+	if ( ePwd )
+		req = SSTR ( req << _UserTable.password.value << "='" << pwd << "'," );
+	
+	if ( eMail )
+		req = SSTR ( req << _UserTable.email.value << "='" << email << "'," );
+
+	
+	req = SSTR ( req.substr(0,req.length()-1) << " WHERE " << _UserTable.id.value << "=" << Id << ";" );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep(10);
+   	_DataBase->_IsInsertingRow = true;
+	
+	bool succes =  false;
+	try{
+		_DataBase->_Connection->Query(( char*) req.c_str()  );
+		succes = ( countUpdatedRows() == 1);
+	}
+	catch( ...  ){
+		LOGGER_ERROR("MYSQL failed -> Update User");
+	}
+	
+	_DataBase->_IsInsertingRow = false;
+	return succes;
+}
+
+/*
+*/

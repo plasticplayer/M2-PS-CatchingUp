@@ -23,13 +23,26 @@
 
 
 typedef unsigned char BYTE ;
+
+typedef struct UnconnectedClient{
+	BYTE _MacAddress[12];
+} UnconnectedClient ;
+
+typedef void (*FuncDeco)( void * recorder );
+
 using namespace std;
+
+
 class Recorder{
 	public:
 		Recorder ( Udp *udp, char* ip );
 		//	~Recorder();
+
+		static void decoTcp( void* recorder );
 		void getFrameUdp( BYTE* data, unsigned long size );
 		void setUdpSocket ( void* sock,  int size );
+		bool isRecording();
+		uint16_t filesInWait;
 		static Recorder* findRecorderByIp( char* ip );
 
 		bool isTcpConnected();
@@ -40,8 +53,13 @@ class Recorder{
 		void SRV_TO_REC_sendParring( );
 		char**_Image;
 		
+		char *_IpAddr;
 		void Parring();
+		static list<UnconnectedClient*> _UnconnectedClients;
+		static Recorder* getRecorderByMac ( BYTE* mac );
 	private:
+		static void addUnconnectedClient ( BYTE* mac );
+		static void delUnconnectedClient ( BYTE* mac );
 		static list<Recorder *> _Recorders;
 
 
@@ -67,11 +85,10 @@ class Recorder{
 		bool sendTcpFrame( BYTE* data , int size, bool needAck);
 		Tcp *_Tcp;
 		Communication *_CommunicationUdp;
-
+		bool _IsRecording;
 		Udp *_UdpSrv;
 		void* _UdpSocket;
 		BYTE _MacAddress[12];
-		char *_IpAddr;
 
 		int _Count, _SizeImage;
 		//int _TcpSocket;
@@ -80,5 +97,4 @@ class Recorder{
 
 		uint64_t _IdRecorder, _IdUserRecording;
 };
-
 #endif /* defined(__server__Recorder__) */

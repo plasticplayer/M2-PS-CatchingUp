@@ -1,49 +1,66 @@
 #include <Arduino.h>
 #include "led.h"
 
-led::led(int pin){
-  pinMode(pin,OUTPUT);
-  pinLed = pin;
+led::led(int pinR,int pinV){
+  pinMode(pinR,OUTPUT);
+  pinMode(pinV,OUTPUT);
+  pinLedR = pinR;
+  pinLedV = pinV;
+  init();
 }
 void led::init(){
-  timeLed = 0;
-  off();
+  lastRunFast = 0;
+  lastRunSlow = 0;
+  speedR =0;
+  speedV =0;
+  digitalWrite(pinLedV,LOW);
+  digitalWrite(pinLedR,LOW);
 }
-
-void led::speed(int time){
-  timeLed = time;
+void led::setFastR(){
+  speedR = 2;
 }
-
-void led::run(){
-  
-  if ( timeLed == 0 ){
-      //if ( ledLastValue != 0 )
-      //  off();
-        
-     return;
+void led::setFastV(){
+  speedV = 2;
+}
+void led::setSlowR(){
+  speedR = 1;
+}
+void led::setSlowV(){
+  speedV = 1;
+}
+void led::setOnV(){
+  speedV = 0;
+  digitalWrite(pinLedV,HIGH);
+}
+void led::setOnR(){
+  speedR = 0;
+  digitalWrite(pinLedR,HIGH);
+}
+void led::setOffV(){
+  speedV = 0;
+  digitalWrite(pinLedV,LOW);
+}
+void led::setOffR(){
+  speedR = 0;
+  digitalWrite(pinLedR,LOW);
+}
+void led::run(){ 
+  long curr = millis();
+  if( curr - lastRunFast >= SPEED_FAST)
+  {
+    lastRunFast += SPEED_FAST;
+    if(speedR == 2)
+        digitalWrite(pinLedR,!digitalRead(pinLedR));
+    if(speedV == 2)
+        digitalWrite(pinLedV,!digitalRead(pinLedV));
   }
- 
-  long diff = millis() - lastCall;
-  if ( diff >= timeLed ) {
-    toggle();
-  }
-  
+  if( curr - lastRunSlow >= SPEED_SLOW)
+  {
+    lastRunSlow += SPEED_SLOW;
+    if(speedR == 1)
+        digitalWrite(pinLedR,!digitalRead(pinLedR));
+    if(speedV == 1)
+        digitalWrite(pinLedV,!digitalRead(pinLedV));
+  } 
 }
   
- 
-void led::on(){
-  digitalWrite(pinLed,HIGH);
-  ledLastValue = 1;
-  lastCall = millis();
-}
-void led::off(){
-  digitalWrite(pinLed,LOW);
-  ledLastValue = 0;
-  lastCall = millis();
-}
-void led::toggle(){
-  if ( ledLastValue == 1)
-    off();
-  else
-    on();
-}

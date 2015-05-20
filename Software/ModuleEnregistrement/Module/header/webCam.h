@@ -5,12 +5,11 @@
 #include "libcam.h"
 #include "Recording.h"
 #include "TraitementImage.h"
-
 class Webcam
 {
 	public :
 		Webcam(string dev,unsigned int imageWidth, unsigned int imageHeight,uint8_t frameRate);
-		void generate_test_card(char *buf, int32_t * filledLen, int frame);
+		void generate_test_card(unsigned char *buf, int32_t * filledLen, int frame);
 		void grabImage(unsigned char *buf, int32_t * filledLen);
 		bool testWebcam();
 
@@ -31,7 +30,7 @@ class Webcam
 		unsigned int _imageHeight;
 		unsigned int _imageWidth;
 		uint8_t _frameRate;
-		Mat * _frame;		
+		Mat * _frame;
 		Camera  * _Camera;
 		unsigned int _splitTimeSeconds;
 		pthread_t _ThreadRecording;
