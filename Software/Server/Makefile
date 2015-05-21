@@ -13,7 +13,7 @@ INCLUDE_DIRS =
 
 # Les différentes options de compilations, soyons strictes !
 #CFLAGS= -I$(HEADDIR) -Wall $(INCLUDE_DIRS) -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"
-CFLAGS= -I$(HEADDIR) -O3 -Wall -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"  `mysql_config --libs` -std=gnu++11 -lssl -lcrypto 
+CFLAGS= -I$(HEADDIR) -g -Wall -D_REENTRANT -DGIT_VERSION=\"$(GIT_VERSION)\"  `mysql_config --libs` -std=gnu++11 -lssl -lcrypto 
 # Les différents FrameWorks et bibliothèques pour le linkage
 GLLIBS = -lm -lpthread
 
