@@ -312,7 +312,9 @@ int main(int argc, char * argv[])
 		LOGGER_DEBUG("Sound OK");
 
     LOGGER_INFO("Program started !");
-    forceStartRecording();
+#ifdef ENABLE_CAMERA
+	    forceStartRecording();
+#endif
 	while ( char c = getchar() )
 	{
 		switch ( c )

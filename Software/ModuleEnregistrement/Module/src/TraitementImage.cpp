@@ -21,8 +21,12 @@ unsigned char listPanServo[NB_IMAGE_REF] = {200,210,220,230,240};
 unsigned char * listImages[NB_IMAGE_REF];
 unsigned char indexRef = 2;
 pthread_t * _TreadTrack = NULL;
+volatile bool _threadImageWritable = true;
+Mat _frameInterThread;
 using namespace std;
+
 void showImage(Mat * img,string name);
+void * track_thread(void * d);
 void initImageRefs()
 {
 	Webcam * cam = Webcam::getWebcam();
@@ -45,6 +49,7 @@ void initImageRefs()
 			//showImage(&i,SSTR(currentIndex));
 		}
 		diff = *(new Mat(width,height,3));
+		_frameInterThread = *(new Mat(width,height,3));
 	}
 	indexRef = 2;
 	setCameraPan(listPanServo[indexRef]);
@@ -88,10 +93,19 @@ void showImage(Mat * img,string name)
 }
 void track(Mat * frame)
 {
-        if
+        if(_TreadTrack == NULL)
+        {
+            _TreadTrack = new pthread_t();
+            pthread_create(_TreadTrack,0,track_thread,(void * )NULL);
+        }
+        if(_threadImageWritable)
+        {
+            _frameInterThread.clone(*frame);
+            _threadImageWritable = false;
+        }
 
 }
-void track_thread(Mat * frame)
+void * track_thread(void * d)
 {
 	/*if(!RefOk)
 	{
@@ -102,7 +116,11 @@ void track_thread(Mat * frame)
 
 	}*/
 	//else
+	while(true)
 	{
+
+	    while(_threadImageWritable){usleep(1000);} // Wait for new image
+        Mat * frame = &_frameInterThread;
 		// Taille de l'image
 		unsigned int sizeImage =frame->cols*frame->rows;
 		unsigned int widthImage = frame->cols;
@@ -441,11 +459,10 @@ void track_thread(Mat * frame)
 					//RefOk = false; // Will copy
 					//cout << "--- "  <<endl;
 				}
-LOGGER_VERB("Image Ref : " << (int)indexRef);
+                LOGGER_VERB("Image Ref : " << (int)indexRef);
 			}
-
-
 		}
+		_threadImageWritable = true;
 	}
 
 }
