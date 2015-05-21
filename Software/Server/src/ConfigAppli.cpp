@@ -8,12 +8,13 @@
 #include "Mysql.h"
 #include "Recorder.h"
 
-#define SIZE_BUFFER 1024
+#define SIZE_BUFFER 4096
 
 using namespace std;
-
+int ConfigAppli::client_sock;
 int ConfigAppli::_Port;
 int ConfigAppli::_Socket;
+char* ConfigAppli::_DataBuffer = NULL;
 struct sockaddr_in ConfigAppli::_server , ConfigAppli::_client;
 pthread_t ConfigAppli::_ThreadListenner;
 
@@ -23,10 +24,27 @@ inline string prepareString ( string req ){
 	return req;
 }
 
-string getValue ( string req, string id, int* err ){
-	int start = req.find( SSTR("<" << id << ">") ) , stop = req.find( SSTR("</" << id << ">") );
+string getValue ( string req, string id, int* err  ){
+//	LOGGER_VERB("getValue: " << req << " search " << id );
+	int start = req.find( SSTR("<" << id << ">") ) ,
+	stop = req.find( SSTR("</" << id << ">") );
+//	cout << "start: " << start << " stop " << stop << endl;
 	if ( start != -1  && stop != -1 ){
 		*err = 1;
+		return req.substr( start + 2 + id.length()  , stop - start - 2 - id.length() );
+	}
+	*err = 0;
+	return "";
+
+}
+string getValue ( string req, string id, int* err , int* pos ){
+//	LOGGER_VERB("getValue: " << req );
+	int start = req.find( SSTR("<" << id << ">"), *pos ) ,
+	stop = req.find( SSTR("</" << id << ">") , *pos );
+	//cout << "Pos " << *pos << " Start: " << start << " Stop: " << stop << endl;
+	if ( start != -1  && stop != -1 ){
+		*err = 1;
+		*pos = ( stop + 1 );
 		return req.substr( start + 2 + id.length()  , stop - start - 2 - id.length() );
 	}
 	*err = 0;
@@ -64,7 +82,7 @@ bool ConfigAppli::createSocket(){
 		LOGGER_ERROR("Tcp bind failed. Error");
 		return false;
 	}
-	LOGGER_DEBUG("TCP : Bind done");
+	LOGGER_DEBUG("TCP : Bind done API CONFIG" << _Port );
 
 
 	if( pthread_create( &_ThreadListenner , NULL ,  &run , NULL ) < 0)
@@ -75,26 +93,36 @@ bool ConfigAppli::createSocket(){
 }
 
 void* ConfigAppli::run( void* d){
-	int client_sock;
 	//Listen
 	listen(_Socket , 3);
 
 	//Accept and incoming connection
-	LOGGER_DEBUG("Tcp : Waiting for incoming connections...");
+	LOGGER_DEBUG("Tcp : Waiting for incoming connections... CONFIG APPI");
 	int c = sizeof(struct sockaddr_in);
 
 
 	int read_size;
 	char client_message[SIZE_BUFFER];
+	memset( client_message, 0, SIZE_BUFFER);
+	_DataBuffer = (char*) malloc(sizeof(char)*SIZE_BUFFER) ;
 
+	string line;
+	int ok;
 	while( ( client_sock = accept( _Socket, (struct sockaddr *)&_client, (socklen_t*)&c)) )
 	{
 		LOGGER_DEBUG("Connection accepted from Api Configuration");
 
 		while( (read_size  = recv( client_sock , client_message , SIZE_BUFFER , 0)) > 0 )
 		{
-			LOGGER_VERB("Admin API : " << client_message);
-			decodeRequest( client_message );
+			//cout << "Tmp: " << client_message << endl << endl;
+			//tmp = SSTR ( tmp << client_message );
+			line = getValue( client_message, "request" , &ok);
+			if ( ok == 0 )
+				continue;
+			//cout << line << endl;  
+			decodeRequest( (char*) line.c_str() );
+			
+			memset( client_message, 0, read_size);
 		}
 		LOGGER_VERB("Out Recv");
 	}
@@ -104,7 +132,8 @@ void* ConfigAppli::run( void* d){
 }
 
 bool ConfigAppli::sendData( string data ){
-	cout << data << endl;
+//	cout << data << endl;
+	cout << "Send: " << send( client_sock , (char*)data.c_str() , data.length() ,0)<< endl;
 	return true;
 }
 
@@ -185,7 +214,7 @@ void ConfigAppli::getCards(){
 
 		sRes = SSTR( sRes << endl << "<card> <id>" << idCard << "</id><iduser>" << iduser << "</roomname><number>" << number << "</number> </card>");
 	}
-	sendData ( SSTR(sRes << "</cards>") );
+	sendData ( SSTR(sRes << "</cards>" << endl ) );
 }
 
 void ConfigAppli::getRooms(){
@@ -204,7 +233,7 @@ void ConfigAppli::getRooms(){
 
 		sRes = SSTR( 	sRes << endl << "<room><id>" << idRoom << "</id><roomname>" << roomName << "</roomname><description>" << description << "</description></room>");
 	}
-	sendData ( SSTR( sRes << "</rooms>") );
+	sendData ( SSTR( sRes << "</rooms>" << endl) );
 }
 
 void ConfigAppli::getRecorders(){
@@ -247,7 +276,7 @@ void ConfigAppli::getRecorders(){
 		UnconnectedClient * uc = *it;
 		sRes = SSTR ( sRes << endl << "<recorder><status>UNASSOCIATED</status><mac>" << uc->_MacAddress << "</mac></recorder>" );
 	}
-	sendData( SSTR( sRes << "</recorders>") );
+	sendData( SSTR( sRes << "</recorders>" << endl) );
 }
 
 void ConfigAppli::getUsersWebsite(){
@@ -271,7 +300,7 @@ void ConfigAppli::getUsersWebsite(){
 				<< dateRegistration << "</dateregistration></user>"
 			   );
 	}
-	sendData ( SSTR( sRes << "</userswebsite>") );
+	sendData ( SSTR( sRes << "</userswebsite>" << endl) );
 }
 
 void ConfigAppli::getUsersRecorders(){
@@ -296,7 +325,7 @@ void ConfigAppli::getUsersRecorders(){
 				<< dateBegin << "</datebegin><dateend>" << dateEnd << "</dateend></user>"
 			   );
 	}
-	sendData ( SSTR( sRes << "</usersrecorder>"));
+	sendData ( SSTR( sRes << "</usersrecorder>" << endl));
 }
 
 
@@ -305,13 +334,14 @@ void ConfigAppli::getUsersRecorders(){
 void ConfigAppli::createRooms( string req ){
 	string sRes = "<type>CREATE_ROOMS</type><rooms>";
 	istringstream f( req );
-	string tmp, roomName, roomDescription, line;
+	string roomName, roomDescription, line;
 	uint64_t idRoom;
 	int ok = 0;
-	while ( getline(f,tmp) ){
-		line = getValue( tmp, (string) "room", &ok);
+	int pos = 0;
+	while ( true ){
+		line = getValue( req, (string) "room", &ok, &pos);
 		if ( ok == 0 )
-			continue;
+			break;
 			
 		roomName = getValue(line,(string)"name", &ok );
 		if ( ok == 0 ) continue;
@@ -323,21 +353,23 @@ void ConfigAppli::createRooms( string req ){
 		idRoom = Mysql::createRoom ( roomName, roomDescription );
 		sRes = SSTR ( sRes << endl << "<room><idRoom>" << idRoom << "</idRoom><roomname>" << roomName << "</roomname></room>");
 	}
-	sendData ( SSTR( sRes << "</rooms>" ));
+	sendData ( SSTR( sRes << "</rooms>" << endl ));
 }
 
 void ConfigAppli::createRecorders( string req ){
 	string sRes = "<type>CREATE_RECORDERS</type><recorders>";
-	istringstream f( req );
-	string tmp, sidRoom, addressMac;
+	string line, sidRoom, addressMac;
 	uint64_t idRoom, idRecorder;
 	int ok = 0;
-	
-	while ( getline(f,tmp) ){
-		addressMac = prepareString(getValue(tmp,(string)"mac", &ok ));
+	int pos = 0;
+	while ( true  ){
+		line = getValue( req, (string) "recorder", &ok, &pos);
+		if ( ok == 0 ) break;
+
+		addressMac = prepareString(getValue(line,(string)"mac", &ok ));
 		if ( ok == 0 ) continue;
 		
-		sidRoom = getValue(tmp,(string)"idroom", &ok );
+		sidRoom = getValue(line,(string)"idroom", &ok );
 		idRoom = strtoull( sidRoom.c_str(), NULL, 0 );
 		if ( ok == 0 || idRoom == 0 ) continue;
 
@@ -349,15 +381,14 @@ void ConfigAppli::createRecorders( string req ){
 
 void ConfigAppli::createUsersWebSite( string req ){
 	string sRes = "<type>CREATE_USERSWEBSITE</type><userswebsite>";
-	istringstream f( req );
-	string tmp, firstName, lastName, password, email, DateRegistration, line;
+	string firstName, lastName, password, email, DateRegistration, line;
 	uint64_t idUser = 0;
 	int ok = 0;
-	
-	while ( getline(f,tmp) ){
-		line = getValue( tmp, (string) "user",&ok);
+	int pos = 0;
+	while ( true ){
+		line = getValue( req, (string) "user",&ok, &pos);
 		if ( ok == 0 )
-			continue;
+			break;
 			
 		firstName = prepareString(getValue(line,(string)"fistname", &ok ));
 		if ( ok == 0 ) continue;
@@ -382,52 +413,68 @@ void ConfigAppli::createUsersWebSite( string req ){
 
 void ConfigAppli::createUsersRecorder( string req ){
 	string sRes = "<type>CREATE_USERSRECORDER</type><usersrecorder>";
-	istringstream f( req );
-	string tmp, firstName, lastName, password, email, dateBegin, dateEnd, line;
+	string firstName, lastName, password, email, dateBegin, dateEnd, line;
 	int ok = 0;
 	uint64_t idUser = 0;
-	
-	while ( getline(f,tmp) ){
-		line = getValue(tmp, (string) "user", &ok );
-		if ( ok == 0 )
-			continue;
+
+	int pos = 0;
+	while ( true ){
+		//cout << "Req:" << req << endl;
+		line = getValue(req, (string) "user", &ok, &pos );
+		if ( ok == 0 ) break;
+		
+		cout << "PAPA: " << line << endl;
 			
-		firstName = prepareString(getValue(line,(string)"fistname", &ok ));
-		if ( ok == 0 ) continue;
-		
+		firstName = prepareString(getValue(line,(string)"firstname", &ok ));
+		if ( ok == 0 ){
+			LOGGER_WARN("Miss: firstname ");
+			continue;
+		}
 		lastName = prepareString(getValue(line,(string)"lastname", &ok ));
-		if ( ok == 0 ) continue;
-		
+		if ( ok == 0 ){		
+			LOGGER_WARN("Miss: lastname ");
+			continue;
+		}
+
 		password = prepareString(getValue(line,(string)"password", &ok ));
-		if ( ok == 0 ) continue;
+		if ( ok == 0 ){	
+			LOGGER_WARN("Miss: password ");
+			continue;
+		}
 		
 		email = prepareString(getValue(line,(string)"email", &ok ));
-		if ( ok == 0 ) continue;
-		
+		if ( ok == 0 ) {	
+			LOGGER_WARN("Miss: email ");
+			continue;
+		}
 		dateBegin = getValue(line,(string)"datebegin", &ok );
-		if ( ok == 0 ) continue;
-		
+		if ( ok == 0 ) {
+			LOGGER_WARN("Miss: begin ");
+			continue;
+		}
+	
 		dateEnd = getValue(line,(string)"dateend", &ok );
-		if ( ok == 0 ) continue;
+		if ( ok == 0 ){
+			LOGGER_WARN("Miss: end ");
+			continue;
+		}
 
-		
 		idUser = Mysql::createUserRecorder ( firstName, lastName, password, email , dateBegin, dateEnd );
 		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><email>" << email << "</email></user>");
 	}
 
-	sendData ( SSTR(sRes << "</usersrecorder>" ));
+	sendData ( SSTR(sRes << "</usersrecorder>" << endl ));
 }
 
 void ConfigAppli::createCards( string req ){
 	string sRes = "<type>CREATE_CARDS</type><cards>";
-	istringstream f( req );
-	string tmp, sidUser, snumber, line;
+	string sidUser, snumber, line;
 	int ok = 0;
 	uint64_t idUser = 0, idCard, number;
-	
-	while ( getline(f,tmp) ){
-		line = getValue( tmp, (string) "card",&ok);
-		if ( ok == 0 ) continue;
+	int pos = 0;
+	while ( true ){
+		line = getValue( req, (string) "card",&ok, &pos);
+		if ( ok == 0 ) break;
 		
 		snumber = prepareString(getValue(line,(string)"number", &ok ));
 		if ( ok == 0 ) continue;
@@ -448,14 +495,13 @@ void ConfigAppli::createCards( string req ){
 /****************  Updates ****************/
 void ConfigAppli::updateRooms( string req ){
 	string sRes = "<type>UPDATES_ROOMS</type><rooms>";
-	istringstream f( req );
-	string tmp, roomName, roomDescription, id, line;
+	string roomName, roomDescription, id, line;
 	bool verif;
 	uint64_t idRoom;
-	int ok = 0, Ename = 0, Edescription = 0;
-	while ( getline(f,tmp) ){
-		line = getValue( tmp, (string) "room", &ok);
-		if ( ok == 0 ) continue;
+	int ok = 0, Ename = 0, Edescription = 0, pos = 0;
+	while ( true  ){
+		line = getValue( req, (string) "room", &ok, &pos);
+		if ( ok == 0 ) break;
 		
 		id = getValue(line,(string)"id", &ok );
 		idRoom = strtoull( id.c_str() , NULL, 0 );
@@ -468,21 +514,20 @@ void ConfigAppli::updateRooms( string req ){
 		verif = Mysql::updateRoom ( idRoom , (Ename == 1), roomName, ( Edescription == 1), roomDescription );
 		sRes = SSTR ( sRes << endl << "<room><idRoom>" << idRoom << "</idRoom><succes>" << verif << "</succes></room>");
 	}
-	sendData ( SSTR( sRes << "</rooms>" ));
+	sendData ( SSTR( sRes << "</rooms>" << endl ));
 }
 
 void ConfigAppli::updateUsersWebSite( string req ){
 	string sRes = "<type>UPDATES_USERSWEBSITE</type><userswebsite>";
-	istringstream f( req );
-	string tmp, id, fName, lName, pwd, email, line;
+	string id, fName, lName, pwd, email, line;
 	bool verif;
 	uint64_t idUser;
-	int ok = 0, eFName = 0, eLName = 0, ePwd = 0, eMail = 0;
+	int ok = 0, pos = 0, eFName = 0, eLName = 0, ePwd = 0, eMail = 0;
 	
-	while ( getline(f,tmp) ){
-		line = getValue( tmp, (string ) "user", &ok);
+	while ( true ){
+		line = getValue( req, (string ) "user", &ok, &pos);
 		if ( ok == 0 )
-			continue;
+			break;
 			
 		id = getValue(line,(string)"id", &ok );
 		idUser = strtoull( id.c_str() , NULL, 0 );
@@ -501,15 +546,14 @@ void ConfigAppli::updateUsersWebSite( string req ){
 
 void ConfigAppli::updateUsersRecorder( string req ){
 	string sRes = "<type>UPDATES_USERSWEBSITE</type><usersrecorder>";
-	istringstream f( req );
-	string tmp, id, fName, lName, pwd, email ,dateBegin, dateEnd, line;
+	string id, fName, lName, pwd, email ,dateBegin, dateEnd, line;
 	bool verif;
 	uint64_t idUser;
-	int ok = 0, eFName = 0, eLName = 0, ePwd = 0, eMail = 0, eBegin = 0, eEnd = 0;
+	int ok = 0, pos = 0, eFName = 0, eLName = 0, ePwd = 0, eMail = 0, eBegin = 0, eEnd = 0;
 	
-	while ( getline(f,tmp) ){
-		line = getValue( tmp, (string) "user", &ok);
-		if ( ok == 0 ) continue;
+	while ( true ){
+		line = getValue( req, (string) "user", &ok, &pos);
+		if ( ok == 0 ) break;
 		
 		id = getValue(line,(string)"id", &ok );
 		idUser = strtoull( id.c_str() , NULL, 0 );
@@ -532,15 +576,14 @@ void ConfigAppli::updateUsersRecorder( string req ){
 
 void ConfigAppli::updateCards( string req ){
 	string sRes = "<type>UPDATE_CARDS</type><cards>";
-	istringstream f( req );
-	string tmp, sidCard, sidUser, line;
-	int ok = 0;
+	string sidCard, sidUser, line;
+	int ok = 0, pos = 0;
 	uint64_t idUser = 0, idCard;
 	bool verif;
 	
-	while ( getline(f,tmp) ){
-		line = getValue ( tmp , (string) "card", &ok);
-		if ( ok == 0) continue;
+	while ( true ){
+		line = getValue ( req , (string) "card", &ok, &pos);
+		if ( ok == 0) break;
 		
 		sidCard = getValue(line,(string)"idcard", &ok );
 		if ( ok == 0 ) continue;
@@ -559,22 +602,21 @@ void ConfigAppli::updateCards( string req ){
 
 void ConfigAppli::updateRecorders( string req ){
 	string sRes = "<type>UPDATE_RECORDERS</type><recorders>";
-	istringstream f( req );
-	string tmp, sidRoom, sIdRecorder, line;
+	string sidRoom, sIdRecorder, line;
 	uint64_t idRoom, idRecorder;
-	int ok = 0;
+	int ok = 0,pos = 0;
 	bool succes;
 	
-	while ( getline(f,tmp) ){
-		line = getValue( tmp, (string) "recorder",&ok );
+	while ( true ){
+		line = getValue( req, (string) "recorder",&ok,&pos );
 		if ( ok == 0 )
-			continue;
+			break;
 			
-		sIdRecorder = getValue(tmp,(string)"idrecorder", &ok );
+		sIdRecorder = getValue(line,(string)"idrecorder", &ok );
 		idRecorder = strtoull ( sIdRecorder.c_str(), NULL, 0);
 		if ( ok == 0 || idRecorder == 0) continue;
 		
-		sidRoom = getValue(tmp,(string)"idroom", &ok );
+		sidRoom = getValue(line,(string)"idroom", &ok );
 		idRoom = strtoull( sidRoom.c_str(), NULL, 0 );
 		if ( ok == 0 || idRoom == 0 ) continue;
 		

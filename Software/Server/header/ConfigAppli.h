@@ -46,8 +46,10 @@ class ConfigAppli{
 		
 	private:
 		static bool sendData( string data );
+		static char *_DataBuffer;
 		static int _Port;
 		static int _Socket;
+		static int client_sock;
 		static struct sockaddr_in _server , _client;
 		static pthread_t _ThreadListenner;
 	protected:
