@@ -13,7 +13,8 @@ bool RefOk = false;
 Mat diff;
 
 #define NB_IMAGE_REF	5
-
+#define TRUE_RGB // Ici l'image est en RGB pas en BGR
+#define SEUIL_NDG 50
 unsigned char servoPanID = 0;
 unsigned char servoTiltId = 1;
 
@@ -53,9 +54,9 @@ void initImageRefs()
 	}
 	indexRef = 2;
 	setCameraPan(listPanServo[indexRef]);
-
+	cvNamedWindow("DISP", CV_WINDOW_NORMAL);
 	/*else
-		LOGGER_WARN("Cannot init camera for setting imageRef");*/
+	  LOGGER_WARN("Cannot init camera for setting imageRef");*/
 
 }
 void setCameraPan(unsigned char step)
@@ -93,34 +94,34 @@ void showImage(Mat * img,string name)
 }
 void track(Mat * frame)
 {
-        if(_TreadTrack == NULL)
-        {
-            _TreadTrack = new pthread_t();
-            pthread_create(_TreadTrack,0,track_thread,(void * )NULL);
-        }
-        if(_threadImageWritable)
-        {
-            _frameInterThread.clone(*frame);
-            _threadImageWritable = false;
-        }
+	if(_TreadTrack == NULL)
+	{
+		_TreadTrack = new pthread_t();
+		pthread_create(_TreadTrack,0,track_thread,(void * )NULL);
+	}
+	if(_threadImageWritable)
+	{
+		_frameInterThread.clone(*frame);
+		_threadImageWritable = false;
+	}
 
 }
 void * track_thread(void * d)
 {
 	/*if(!RefOk)
-	{
-		RefOk = true;
+	  {
+	  RefOk = true;
 
-		frameRef.clone(*frame);
-		diff.clone(*frame);
+	  frameRef.clone(*frame);
+	  diff.clone(*frame);
 
-	}*/
+	  }*/
 	//else
 	while(true)
 	{
 
-	    while(_threadImageWritable){usleep(1000);} // Wait for new image
-        Mat * frame = &_frameInterThread;
+		while(_threadImageWritable){usleep(1000);} // Wait for new image
+		Mat * frame = &_frameInterThread;
 		// Taille de l'image
 		unsigned int sizeImage =frame->cols*frame->rows;
 		unsigned int widthImage = frame->cols;
@@ -137,7 +138,7 @@ void * track_thread(void * d)
 		unsigned int indexPixA=0,indexPixB=0;
 		unsigned int matEtiquette[sizeImage];
 		unsigned int corrEtiquette[10000]; //alouer de la place pour les etiquettes
-
+		int tmpSigned = 0;
 
 		unsigned int currentEtiquette = 0;
 		unsigned char valPixA=0,valPixB=0,valPixC=0;
@@ -173,15 +174,36 @@ void * track_thread(void * d)
 			pixOutput[indexR] = max(0,((int)pixReference[indexR] - (int)pixFrame[indexR]));
 			pixOutput[indexG] = max(0,((int)pixReference[indexG] - (int)pixFrame[indexG]));
 
+			/*tmpSigned = (((int)pixReference[indexB]) - ((int)pixFrame[indexB]));
+			  if(tmpSigned < 0)
+			  pixOutput[indexB] = -tmpSigned;
+			  else
+			  pixOutput[indexB] = tmpSigned;
 
+			  tmpSigned = (((int)pixReference[indexR]) - ((int)pixFrame[indexR]));
+			  if(tmpSigned < 0)
+			  pixOutput[indexR] = -tmpSigned;
+			  else
+			  pixOutput[indexR] = tmpSigned;
 
+			  tmpSigned = (((int)pixReference[indexG]) - ((int)pixFrame[indexG]));
+			  if(tmpSigned < 0)
+			  pixOutput[indexG] = -tmpSigned;
+			  else
+			  pixOutput[indexG] = tmpSigned;
+			 */
 			// conversion de RGB vers Niveau De Gris
+			// Ici R = B 
+#ifndef TRUE_RGB
 			tmpData = (pixOutput[indexR]*77)+(pixOutput[indexG]*151)+(pixOutput[indexB]*28);
+#else
+			tmpData = (pixOutput[indexB]*77)+(pixOutput[indexG]*151)+(pixOutput[indexR]*28);
+#endif
 			tmpData = (tmpData>>8);
 
 
 			// Seuillage
-			if(tmpData < 70)
+			if(tmpData < SEUIL_NDG)
 				tmpData = 0;
 			else
 				tmpData = 255;
@@ -291,7 +313,7 @@ void * track_thread(void * d)
 				{
 					tabEtiquettes[tmpData].id = tmpData;
 					tabEtiquettes[tmpData].pixelCount = 1;
-					tabEtiquettes[tmpData].color =rand() & 0xFFFFFF;
+					tabEtiquettes[tmpData].color =0xFFFFFF; //rand() & 0xFFFFFF;
 					tabEtiquettes[tmpData].minX = posX;
 					tabEtiquettes[tmpData].maxX = posX;
 					tabEtiquettes[tmpData].minY = posY;
@@ -330,7 +352,7 @@ void * track_thread(void * d)
 
 		if(indexMaxEti != -1)
 		{
-			LOGGER_VERB("Traking : Xmin :" << tabEtiquettes[indexMaxEti].minX<< " Xmax :" <<tabEtiquettes[indexMaxEti].maxX << " Ymin : " << tabEtiquettes[indexMaxEti].minY<< " Ymax : " <<tabEtiquettes[indexMaxEti].maxY);
+			//LOGGER_VERB("Traking : Xmin :" << tabEtiquettes[indexMaxEti].minX<< " Xmax :" <<tabEtiquettes[indexMaxEti].maxX << " Ymin : " << tabEtiquettes[indexMaxEti].minY<< " Ymax : " <<tabEtiquettes[indexMaxEti].maxY);
 			for( unsigned int i =0,indexB = 0; i < sizeImage; i++,indexB += 3)
 			{
 				posX = i%widthImage;
@@ -380,7 +402,7 @@ void * track_thread(void * d)
 
 			unsigned int centerX = (tabEtiquettes[indexMaxEti].maxX + tabEtiquettes[indexMaxEti].minX) /2;
 			unsigned int centerY = (tabEtiquettes[indexMaxEti].maxY + tabEtiquettes[indexMaxEti].minY) /2;
-			LOGGER_VERB("Moyenne : X" << centerX << " Y " << centerY );
+			//LOGGER_VERB("Moyenne : X" << centerX << " Y " << centerY );
 			unsigned int thresholdLowX = ((frame->cols * 33) / 100); // 10 %
 			unsigned int thresholdHighX = frame->cols - thresholdLowX; // 1 - 10%
 
@@ -400,26 +422,30 @@ void * track_thread(void * d)
 					}
 					else
 					{
-						if(*out == 0)
-							*((image.data) + (x * frame->cols + y) * 3) =  *(pixFrame + (x * frame->cols + y)*3);
-						else
-							*((image.data) + (x * frame->cols + y) * 3) =  *out;
+						
+						   if(*out == 0)
+						 *((image.data) + (x * frame->cols + y) * 3) =  *(pixFrame + (x * frame->cols + y)*3);
+						 else
+						 *((image.data) + (x * frame->cols + y) * 3) =  *out;
 
-						if( y == thresholdLowX || y == thresholdHighX)
-							*((image.data) + (x * frame->cols + y) * 3 +2 ) = 255;
-						else
-							*((image.data) + (x * frame->cols + y) * 3 +2 ) = *(pixOutput   + (x * frame->cols + y)*3+ 2);
+						 if( y == thresholdLowX || y == thresholdHighX)
+						 *((image.data) + (x * frame->cols + y) * 3 +2 ) = 255;
+						 else
+						 *((image.data) + (x * frame->cols + y) * 3 +2 ) = *(pixOutput   + (x * frame->cols + y)*3+ 2);
+						 
 
+						//*((image.data) + (x * frame->cols + y) * 3 +0 ) = *out;
 						*((image.data) + (x * frame->cols + y) * 3 +1 ) = *out;
+						//*((image.data) + (x * frame->cols + y) * 3 +2 ) = *out;
 					}
 				}
 			}
-			cv::imshow( "Display window", image );
+			cv::imshow( "DISP", image );
 
 			//for(unsigned int currentIndex = 0; currentIndex < NB_IMAGE_REF ; currentIndex++)
 			//{
-				Mat i(frame->cols,frame->rows,3,listImages[indexRef]);
-				showImage(&i,"REF");
+			Mat i(frame->cols,frame->rows,3,listImages[indexRef]);
+			showImage(&i,"REF");
 			//}
 
 			cv::waitKey(1);
@@ -436,7 +462,7 @@ void * track_thread(void * d)
 						indexRef++;
 						//indexRef = min(NB_IMAGE_REF-1,indexRef+1);
 
-//					idPan++;
+						//					idPan++;
 						setCameraPan(listPanServo[indexRef]);
 						usleep(500000); // 1s
 					}
@@ -455,11 +481,12 @@ void * track_thread(void * d)
 						setCameraPan(listPanServo[indexRef]);
 						usleep(500000); // 1s
 					}
-//					setCameraPan();
+					//					setCameraPan();
 					//RefOk = false; // Will copy
 					//cout << "--- "  <<endl;
 				}
-                LOGGER_VERB("Image Ref : " << (int)indexRef);
+				LOGGER_VERB("Image Ref : " << (int)indexRef);
+
 			}
 		}
 		_threadImageWritable = true;
