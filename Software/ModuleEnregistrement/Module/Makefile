@@ -15,7 +15,7 @@ CFLAGS= -I$(HEADDIR) -O3 -Wall $(INCLUDE_DIRS) -DGIT_VERSION=\"$(GIT_VERSION)\" 
 # Les différents FrameWorks et bibliothèques pour le linkage
 GLLIBS = -L/opt/vc/lib -L/opt/vc/src/hello_pi/libs/ilclient 
 GLLIBS += -lopenmaxil -lbcm_host -lvchiq_arm -lilclient -lrt -lm -lmmal_core -lmmal_util -lmmal_vc_client -lvcos -lGLESv2 -lEGL 
-#GLLIBS += -lssl -lcrypto
+GLLIBS += -lssl -lcrypto
 GLLIBS += `pkg-config --libs --cflags opencv`
 # GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
 

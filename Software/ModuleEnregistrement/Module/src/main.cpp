@@ -8,7 +8,7 @@
 
 //#define EXIT_ON_ERROR 1
 #define ENABLE_CAMERA 1
-//#define ENABLE_COMM 1
+#define ENABLE_COMM 1
 
 #include "Config.h"
 #include "define.h"
@@ -312,9 +312,9 @@ int main(int argc, char * argv[])
 		LOGGER_DEBUG("Sound OK");
 
     LOGGER_INFO("Program started !");
-#ifdef ENABLE_CAMERA
-	    forceStartRecording();
-#endif
+//#ifdef ENABLE_CAMERA
+//	    forceStartRecording();
+//#endif
 	while ( char c = getchar() )
 	{
 		switch ( c )
