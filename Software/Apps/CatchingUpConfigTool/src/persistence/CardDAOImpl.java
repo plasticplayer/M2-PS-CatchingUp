@@ -3,25 +3,83 @@ package persistence;
 import java.util.ArrayList;
 import java.util.List;
 
+import communication.Tools;
 import dao.CardDAO;
+import dao.UserRecorderDAO;
 import dm.Card;
+import dm.Room;
 import dm.User;
+import dm.UserRecorder;
 
 public class CardDAOImpl implements CardDAO {
 
+	public boolean createCard ( Card card ){
+		String req = "<type>create_cards</type><cards>"
+				+ "<card><number>"+ card.getNumberCard() +"</number>";
+		if ( card.getUser() != null)
+			req += "<iduser>" + card.getUser().getId() + "</iduser>";
+		req +="</card></cards>";
+		
+		
+		String res = communication.Server.sendData( req );
+		String[] lines = res.split(System.getProperty("line.separator"));
+		
+		String type = Tools.getValue( lines[0] ,"type");
+		if ( type.compareTo("CREATE_CARDS") != 0 )
+		  	return false;
+		
+		String idCard, number, line;
+		
+		for ( int i = 1; i < lines.length; i++ ){
+			line = Tools.getValue( lines[i] ,"card");
+			if ( line == "" )
+				continue;
+				
+			idCard 	= Tools.getValue( line ,"idcard");
+			number 	= Tools.getValue( line ,"number");
+			
+			if ( card.getNumberCard().compareTo(number) == 0 ){
+				int id = Integer.parseInt(idCard.trim());
+				card.setId(id);
+				if ( id == 0 )
+					return false;
+				return true;
+			}
+		}		
+		return false;
+		
+	}
+	
 	@Override
 	public List<Card> getCardList() { 
 		List<Card> cards = new ArrayList<Card>();
-		//String numberCard, User user
-		User user = new User("Ghilles", "Mostafaoui", "1234", "ghilles.mostafaoui@u-cergy.fr");
-		Card card = new Card("5E:FF:56:A2:AF:15",user);
-		cards.add(card);
-		user = null;
-		user = new User("Phillipe", "Laroque", "1234", "phillipe.laroque@u-cergy.fr");
-		card = new Card("7E:BD:84:A2:C4:21", user);
-		cards.add(card);
-		card = new Card("B3:C9:93:D3:C8:78", null);
-		cards.add(card);
+		
+		String res = communication.Server.sendData("<type>need_cards</type>");
+		String[] lines = res.split(System.getProperty("line.separator"));
+		  
+		String type = Tools.getValue( lines[0] ,"type");
+		if ( type.compareTo("GET_CARDS") != 0 )
+		  	return null;
+	  
+		  Card card;
+		  String id, idUser, number;
+		  
+		  for ( int i = 1; i < lines.length; i++ ){
+			 id 	= Tools.getValue( lines[i] ,"id");
+			 idUser = Tools.getValue( lines[i] ,"iduser");
+			 number = Tools.getValue( lines[i] ,"number");
+			 
+			 if ( id == "" || number == "" )
+				 continue;
+			 
+			 int idCard = Integer.parseInt(id.trim());
+			 int idUsr  = Integer.parseInt(idUser.trim());
+			 
+			 User user = UserRecorderDAOImpl._instance.getUserRecorder( idUsr );
+			 card = new Card(number, user );
+			 card.setId(idCard);
+			 cards.add( card );
+		  }
 		return cards;
 	}
 

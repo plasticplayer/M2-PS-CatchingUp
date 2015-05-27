@@ -5,6 +5,8 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.UIManager;
 
+import communication.Server;
+
 public class Main {
 	
 	/**
@@ -12,6 +14,10 @@ public class Main {
 	 */
 	static UserLogin frame;
 	public static void main(String[] args) {
+	//new Server( "squadfree.net",1918);
+	new Server( "192.168.43.90",1918);
+	Server.connect();
+	
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Throwable e) {

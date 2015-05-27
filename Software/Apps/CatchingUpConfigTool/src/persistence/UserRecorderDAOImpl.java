@@ -13,9 +13,17 @@ import dm.UserRecorder;
 public class UserRecorderDAOImpl implements UserRecorderDAO {
 
 	public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+	public static List<UserRecorder> userRecorders = new ArrayList<UserRecorder>();
+	
+	public static UserRecorderDAOImpl _instance = new UserRecorderDAOImpl();
+	
+	
 	@Override
 	public UserRecorder getUserRecorder(int id) {
-		// TODO Auto-generated method stub
+		for ( UserRecorder user : userRecorders ){
+			if ( user.getId() == id )
+				return user;
+		}
 		return null;
 	}
 
@@ -56,8 +64,9 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 
 	@Override
 	public List<UserRecorder> getUserRecorderList() throws ParseException {
+		if ( !userRecorders.isEmpty() )
+			return userRecorders;
 		
-		List<UserRecorder> userRecorders = new ArrayList<UserRecorder>();
 		String res = communication.Server.sendData("<type>need_users_recorders</type>");
 
 		String[] lines = res.split(System.getProperty("line.separator"));
@@ -86,5 +95,12 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 			userRecorders.add(userRecorder);
 		}
 		return userRecorders;
+	}
+
+	@Override
+	public UserRecorderDAO getInstance() {
+		if(_instance == null)
+			_instance = new UserRecorderDAOImpl();
+		return _instance;
 	}
 }

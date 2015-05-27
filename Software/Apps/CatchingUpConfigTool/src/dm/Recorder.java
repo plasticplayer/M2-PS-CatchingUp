@@ -1,15 +1,30 @@
 package dm;
 
 public class Recorder {
+	public enum RecorderStatus { CONNECTED, UNCONNECTED, UNASSOCIATED };
+	
 	private int id;
 	private ConnectingModule connectingModule;
 	private Room room;
 	private RecordingModule recordingModule;
+	private RecorderStatus status;
+	private boolean isRecording = false;
+	private long filesInQueue = 0;
 	
 	public Recorder(ConnectingModule connectingModule,Room room,RecordingModule recordingModule){
 		this.connectingModule = connectingModule;
 		this.room = room;
 		this.recordingModule = recordingModule;		
+	}
+	
+	
+	
+	public void setStatus ( RecorderStatus state ){
+		this.status = state;
+	}
+	
+	public RecorderStatus getStatus ( ){
+		return this.status;
 	}
 	
 	public int getId() {
@@ -43,6 +58,23 @@ public class Recorder {
     public void setRecordingModule(RecordingModule recordingModule) {
         this.recordingModule = recordingModule;
     }
+
+
+	public boolean isRecording() {
+		return isRecording;
+	}
+
+	public void setRecording(boolean isRecording) {
+		this.isRecording = isRecording;
+	}
+
+	public long getFilesInQueue() {
+		return filesInQueue;
+	}
+
+	public void setFilesInQueue(long filesInQueue) {
+		this.filesInQueue = filesInQueue;
+	}
 	
     
 

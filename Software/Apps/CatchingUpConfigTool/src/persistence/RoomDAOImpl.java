@@ -1,20 +1,23 @@
 package persistence;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import communication.Tools;
-
 import dao.RoomDAO;
 import dm.Room;
-import dm.UserRecorder;
 
 public class RoomDAOImpl implements RoomDAO {
 
+	public static List<Room> _rooms = new ArrayList<Room>();
+	public static RoomDAOImpl _instance = new RoomDAOImpl();
+	
 	@Override
 	public Room getRoom(int id) {
-		// TODO Auto-generated method stub
+		for ( Room room : _rooms ){
+			if ( room.getId() == id )
+				return room;
+		}
 		return null;
 	}
 
@@ -78,7 +81,7 @@ public class RoomDAOImpl implements RoomDAO {
 	
 	@Override
 	public List<Room> getRoomList() {
-		List<Room> rooms = new ArrayList<Room>();
+		_rooms = new ArrayList<Room>();
 		
 		String res = communication.Server.sendData("<type>need_rooms</type>");
 		String[] lines = res.split(System.getProperty("line.separator"));
@@ -100,8 +103,8 @@ public class RoomDAOImpl implements RoomDAO {
 			 int idRoom = Integer.parseInt(id.trim());
 			 room = new Room(name,description);
 			 room.setId(idRoom);
-			 rooms.add(room);
+			 _rooms.add(room);
 		  }
-		return rooms;
+		return _rooms;
 	}
 }
