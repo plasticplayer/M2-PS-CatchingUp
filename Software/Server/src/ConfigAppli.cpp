@@ -132,7 +132,7 @@ void* ConfigAppli::run( void* d){
 }
 
 bool ConfigAppli::sendData( string data ){
-//	cout << data << endl;
+	cout << data << endl;
 	cout << "Send: " << send( client_sock , (char*)data.c_str() , data.length() ,0)<< endl;
 	return true;
 }
@@ -190,7 +190,10 @@ void ConfigAppli::decodeRequest ( char *req ){
 		
 	else if (  type.compare( "update_cards" ) == 0 )
 		updateCards ( req );
-		
+	
+	else if (  type.compare( "parring_recorders" ) == 0 )
+		parringRecorder ( req );	
+	
 	else
 		cout << type << endl;
 } 
@@ -209,10 +212,10 @@ void ConfigAppli::getCards(){
 
 	while ( res->Next() ){
 		idCard    = res->GetCurrentRow()->GetField(1);
-		iduser    = res->GetCurrentRow()->GetField(1);
-		number    = res->GetCurrentRow()->GetField(2);
+		iduser    = res->GetCurrentRow()->GetField(2);
+		number    = res->GetCurrentRow()->GetField(3);
 
-		sRes = SSTR( sRes << endl << "<card> <id>" << idCard << "</id><iduser>" << iduser << "</roomname><number>" << number << "</number> </card>");
+		sRes = SSTR( sRes << endl << "<card> <id>" << idCard << "</id><iduser>" << iduser << "</iduser><number>" << number << "</number> </card>");
 	}
 	sendData ( SSTR(sRes << "</cards>" << endl ) );
 }
@@ -362,6 +365,7 @@ void ConfigAppli::createRecorders( string req ){
 	uint64_t idRoom, idRecorder;
 	int ok = 0;
 	int pos = 0;
+	uint64_t idCmod, idRmod;
 	while ( true  ){
 		line = getValue( req, (string) "recorder", &ok, &pos);
 		if ( ok == 0 ) break;
@@ -373,10 +377,10 @@ void ConfigAppli::createRecorders( string req ){
 		idRoom = strtoull( sidRoom.c_str(), NULL, 0 );
 		if ( ok == 0 || idRoom == 0 ) continue;
 
-		idRecorder = Mysql::createRecorder( idRoom, addressMac );
+		idRecorder = Mysql::createRecorder( idRoom, addressMac, &idCmod, &idRmod );
 		sRes = SSTR ( sRes << endl << "<recorder><idrecorder>" << idRecorder << "</idrecorder><mac>" << addressMac << "</mac></recorder>");
 	}
-	sendData ( SSTR( sRes << "</recorders>") );
+	sendData ( SSTR( sRes << "</recorders>" << endl ) );
 }
 
 void ConfigAppli::createUsersWebSite( string req ){
@@ -470,7 +474,7 @@ void ConfigAppli::createCards( string req ){
 	string sRes = "<type>CREATE_CARDS</type><cards>";
 	string sidUser, snumber, line;
 	int ok = 0;
-	uint64_t idUser = 0, idCard, number;
+	uint64_t idUser = 0, idCard;
 	int pos = 0;
 	while ( true ){
 		line = getValue( req, (string) "card",&ok, &pos);
@@ -480,14 +484,12 @@ void ConfigAppli::createCards( string req ){
 		if ( ok == 0 ) continue;
 		
 		sidUser = getValue(line,(string)"iduser", &ok );
-		
+	
 		idUser = strtoull( sidUser.c_str(), NULL, 0);
-		number = strtoull( snumber.c_str(), NULL, 0);
-
-		idCard = Mysql::createCard ( number , idUser );
-		sRes = SSTR ( sRes << endl << "<card><idcard>" << (( idCard == 0x00 ) ? -1: idCard) << "</idcard><number>" << snumber << "</number></card>");
+		idCard = Mysql::createCard ( snumber , idUser );
+		sRes = SSTR ( sRes << endl << "<card><idcard>" <<  idCard << "</idcard><number>" << snumber << "</number></card>");
 	}
-	sendData ( SSTR( sRes << "</cards>") );
+	sendData ( SSTR( sRes << "</cards>" << endl) );
 }
 
 
@@ -541,7 +543,7 @@ void ConfigAppli::updateUsersWebSite( string req ){
 		verif = Mysql::updateUserTable ( idUser, ( eFName == 1 ), fName, ( eLName == 1) , lName, ( ePwd == 1 ), pwd, ( eMail == 1) , email );
 		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><succes>" << verif << "</succes></user>");
 	}
-	sendData ( SSTR ( sRes << "</userswebsite>") );
+	sendData ( SSTR ( sRes << "</userswebsite>" << endl) );
 }
 
 void ConfigAppli::updateUsersRecorder( string req ){
@@ -571,7 +573,7 @@ void ConfigAppli::updateUsersRecorder( string req ){
 		
 		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><succes>" << verif << "</succes></user>");
 	}
-	sendData ( SSTR(sRes << "</usersrecorder>") );
+	sendData ( SSTR(sRes << "</usersrecorder>" << endl) );
 }
 
 void ConfigAppli::updateCards( string req ){
@@ -597,7 +599,7 @@ void ConfigAppli::updateCards( string req ){
 		verif = Mysql::updateCard ( idCard , idUser );
 		sRes = SSTR ( sRes << endl << "<card><idcard>" << idCard << "</idcard><success>" << verif << "</success></card>");
 	}
-	sendData ( SSTR (sRes << "</cards>") );
+	sendData ( SSTR (sRes << "</cards>" << endl ) );
 }
 
 void ConfigAppli::updateRecorders( string req ){
@@ -623,8 +625,33 @@ void ConfigAppli::updateRecorders( string req ){
 		succes = Mysql::updateRecorder ( idRecorder , idRoom );
 		sRes = SSTR ( sRes << endl << "<recorder><idrecorder>" << idRecorder << "</idrecorder><success>" << succes << "</success></recorder>");
 	}
-	sendData ( SSTR( sRes << "</recorders>" ));
+	sendData ( SSTR( sRes << "</recorders>" << endl ));
 }
 
+void ConfigAppli::parringRecorder ( string req ){
+	string sRes ="<type>PARRING_RECORDERS</type><recorders>";
+	string line, sidRecorder;
+	int ok = 0, pos = 0;
+	uint64_t idRecorder;
+	bool success = false;
+
+	while ( true ){
+		line = getValue ( req , ( string ) "recorder", &ok, &pos);
+		if ( ok == 0 )
+			break;
+
+		sidRecorder = getValue ( line, (string)"id",&ok);
+		idRecorder = strtoull ( sidRecorder.c_str(), NULL, 0);
+		if ( idRecorder == 0 || ok == 0 ) continue;
+
+		Recorder *rec = Recorder::getRecorderById ( idRecorder );
+		if ( rec != NULL ){
+			cout << "Try Parring" << endl;
+			success = rec->Parring();
+			sRes = SSTR ( sRes << endl << "<recorder><id>" << idRecorder << "</id><state>" << success << "</state></recorder>"); 
+		}	
+	}	
+	sendData ( SSTR( sRes << "</recorders>" << endl ));
+}
 
 /****************  Deletes ****************/

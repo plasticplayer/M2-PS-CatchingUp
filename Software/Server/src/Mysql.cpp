@@ -175,7 +175,7 @@ bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *a
 	return true; // RETURN TRUE IF RECORDER EXIST
 }
 
-uint64_t Mysql::getIdFromTagNumber ( uint64_t cardNumber ){
+uint64_t Mysql::getIdFromTagNumber ( string cardNumber ){
 	uint64_t idCard = 0x00;
 	string req = SSTR ( "SELECT " << _CardTable.idcard.value << " FROM " << _CardTable.name << " WHERE " << _CardTable.number.value << "='" << cardNumber <<"';") ;	
 	Result *res = _DataBase->_Connection->Query(( char*) req.c_str()  );
@@ -239,7 +239,7 @@ Result* Mysql::getRooms(){
 
 Result* Mysql::getCards(){
 	string req = SSTR (
-			"SELECT " << _CardTable.idcard.value << "," << _CardTable.iduser.value << "," << _CardTable.number.value
+			"SELECT " << _CardTable.idcard.value << ",IFNULL(" << _CardTable.iduser.value << ",0)," << _CardTable.number.value
 			<< " FROM " << _CardTable.name << ";"
 	);
 
@@ -300,12 +300,12 @@ uint64_t Mysql::createRoom ( string roomName, string description ){
 	return idRoom;	
 }
 
-uint64_t Mysql::createCard ( uint64_t cardNumber, uint64_t idUser ){
+uint64_t Mysql::createCard ( string cardNumber, uint64_t idUser ){
 	uint64_t idCard = 0x00;
 	
 	if ( getIdFromTagNumber ( cardNumber ) != 0x00 ){
 		LOGGER_WARN ( "Card already in base: " << std::hex << cardNumber << ". Request ignore");
-		return 0x00;
+		return idCard;
 	}
 	string req;
 	if (  idUser == 0x00 ) 
@@ -330,7 +330,7 @@ uint64_t Mysql::createCard ( uint64_t cardNumber, uint64_t idUser ){
 	catch ( ... ) {
 		LOGGER_ERROR("MYSQL failed -> Insert card");
 		_DataBase->_IsInsertingRow = false;
-		return 0x00;
+		return idCard;
 	}
 
 	_DataBase->_IsInsertingRow = false;
@@ -338,13 +338,15 @@ uint64_t Mysql::createCard ( uint64_t cardNumber, uint64_t idUser ){
 	return idCard;
 }
 
-uint64_t Mysql::createRecorder( uint64_t idRoom, string addressMac ){
+uint64_t Mysql::createRecorder( uint64_t idRoom, string addressMac, uint64_t *idRmod, uint64_t *idCmod ){
 	if ( getIdRecorderFromMac( addressMac) != 0x00 ) {
 		LOGGER_WARN( "Record already exist with Mac. Request ignore");
 		return 0;
 	}
 
-	uint64_t idRecorder = 0x00, idRecordingModule = 0x00, idConnectingModule = 0x00;
+	uint64_t idRecorder = 0x00;
+	*idRmod = 0;
+	*idCmod = 0; 
 	string req;
 
 	LOGGER_INFO("Create Recorder");
@@ -360,7 +362,7 @@ uint64_t Mysql::createRecorder( uint64_t idRoom, string addressMac ){
 		
 		res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
 		if ( res->Next() ){
-			idConnectingModule = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+			*idCmod = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
 		}
 	}
 	catch ( ... ){
@@ -378,7 +380,7 @@ uint64_t Mysql::createRecorder( uint64_t idRoom, string addressMac ){
 
 		res = _DataBase->_Connection->Query(( char*) "SELECT LAST_INSERT_ID();"  );
 		if ( res->Next() ){
-			idRecordingModule = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+			*idRmod = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
 		}
 	}
 	catch ( ... ){
@@ -390,7 +392,7 @@ uint64_t Mysql::createRecorder( uint64_t idRoom, string addressMac ){
 
 	// Create recorder
 	req = SSTR ( "INSERT INTO " << _RecorderTable.name << "( " << _RecorderTable.idRecordingModule.value << " , " << _RecorderTable.idConnectingModule.value << " , " << _RecorderTable.idRoom.value << " ) values ( "
-		<< idRecordingModule << " , " << idConnectingModule << " , " << idRoom << " );");
+		<< *idRmod << " , " << *idCmod << " , " << idRoom << " );");
 	//LOGGER_VERB("Myslq create recorder: " << req ) ;
 	
 	try{
@@ -409,7 +411,7 @@ uint64_t Mysql::createRecorder( uint64_t idRoom, string addressMac ){
 	}
 	
 	_DataBase->_IsInsertingRow = false;
-	LOGGER_INFO("Create Recoder: " << idRecorder << " | idConnectingModule: " << idConnectingModule << " | idRecordingModule " << idRecordingModule );
+	LOGGER_INFO("Create Recoder: " << idRecorder << " | idConnectingModule: " << *idCmod << " | idRecordingModule " << *idRmod );
 	return idRecorder;
 }
 

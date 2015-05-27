@@ -44,6 +44,7 @@ class ConfigAppli{
 		static void updateUsersWebSite( string req );
 		static void updateUsersRecorder( string req );
 		
+		static void parringRecorder ( string req );	
 	private:
 		static bool sendData( string data );
 		static char *_DataBuffer;

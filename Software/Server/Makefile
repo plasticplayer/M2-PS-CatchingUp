@@ -72,8 +72,8 @@ cppCheck:
 
 cert:
 	@echo "-- Creating Certificates"
-	openssl req -new -x509 -out  mycert.pem -days 0 -nodes -batch
-	@cat privkey.pem >> mycert.pem
+	openssl req -new -x509 -out  ./bin/mycert.pem -days 0 -nodes -batch
+	@cat privkey.pem >> ./bin/mycert.pem
 	@rm -f privkey.pem
 	@echo "-- Done Creating Certificates"
 

@@ -73,6 +73,18 @@ Recorder* Recorder::findRecorderByIp( char* ip ){
 	return NULL;
 } 
 
+Recorder* Recorder::getRecorderById( uint64_t id ){
+	if ( _Recorders.empty() )
+		return NULL;
+
+	for ( list<Recorder*>::iterator it = _Recorders.begin(); it != _Recorders.end(); ++it ){
+		Recorder *rec = *it;
+		if ( rec->_IdRecorder == id )
+			return rec;
+	}
+	return NULL;
+}
+
 Recorder* Recorder::getRecorderByMac ( BYTE* mac ){
 	for ( list<Recorder*>::iterator it = _Recorders.begin(); it != _Recorders.end(); ++it ){
 		Recorder *rec = *it;
@@ -109,7 +121,12 @@ void Recorder::setUdpSocket ( void* sock, int size ){
 
 }
 
-
+bool Recorder::Parring(){
+	_stateParring = WORKING;
+	SRV_TO_REC_sendParring();
+	while ( _stateParring == WORKING ) usleep(25);
+	return (_stateParring == PASS);
+}
 
 
 
@@ -413,9 +430,11 @@ void Recorder::REC_TO_SRV_ansParring( BYTE* data, unsigned long size, void *send
 
 	if ( data[0] == 0x01 ){
 		LOGGER_INFO("Parraing OK");
+		rec->_stateParring = PASS;
 	}
 	else{
 		LOGGER_ERROR("Parraing FAILED");
+		rec->_stateParring = FAILED;
 	}
 	rec->_Tcp->sendAck( (BYTE*) ANS_ASK_APPARAIGE );
 }

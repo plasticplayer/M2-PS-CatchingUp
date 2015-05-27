@@ -31,13 +31,13 @@ typedef struct UnconnectedClient{
 typedef void (*FuncDeco)( void * recorder );
 
 using namespace std;
-
+enum stateParring { WORKING, PASS, FAILED };
 
 class Recorder{
 	public:
 		Recorder ( Udp *udp, char* ip );
 		//	~Recorder();
-
+		
 		static void decoTcp( void* recorder );
 		void getFrameUdp( BYTE* data, unsigned long size );
 		void setUdpSocket ( void* sock,  int size );
@@ -54,9 +54,10 @@ class Recorder{
 		char**_Image;
 		
 		char *_IpAddr;
-		void Parring();
+		bool Parring();
 		static list<UnconnectedClient*> _UnconnectedClients;
 		static Recorder* getRecorderByMac ( BYTE* mac );
+		static Recorder* getRecorderById( uint64_t id );
 	private:
 		static void addUnconnectedClient ( BYTE* mac );
 		static void delUnconnectedClient ( BYTE* mac );
@@ -89,12 +90,12 @@ class Recorder{
 		Udp *_UdpSrv;
 		void* _UdpSocket;
 		BYTE _MacAddress[12];
-
+		
 		int _Count, _SizeImage;
 		//int _TcpSocket;
 		int* _ImageParts;
 		BYTE _StatutRasp, _StatutArd;
-
+		stateParring _stateParring;
 		uint64_t _IdRecorder, _IdUserRecording;
 };
 #endif /* defined(__server__Recorder__) */

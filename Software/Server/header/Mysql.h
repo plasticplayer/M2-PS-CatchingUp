@@ -35,10 +35,10 @@ class Mysql  {
 		static Result* getUsersRecorders();
 	
 		/// Create
-		static uint64_t createRecorder ( uint64_t idRoom, string addressMac );
+		static uint64_t createRecorder ( uint64_t idRoom, string addressMac, uint64_t *idRmod, uint64_t *idCmod );
 		static uint64_t createRoom ( string roomName, string description );
-		static uint64_t createCard ( uint64_t cardNumber, uint64_t idUser );
-		static bool generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *act );
+		static uint64_t createCard ( string cardNumber, uint64_t idUser );
+		static bool 	generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *act );
 		static uint64_t createUserWebSite ( string firstName, string lastName, string password, string email , string DateRegistration);
 		static uint64_t createUserRecorder ( string firstName, string lastName, string password, string email , string dateBegin, string dateEnd );
 		
@@ -65,7 +65,7 @@ class Mysql  {
 		bool verifyTables();
 		static uint64_t countUpdatedRows(); 
 		Connection *_Connection;
-		static uint64_t getIdFromTagNumber ( uint64_t cardNumber );
+		static uint64_t getIdFromTagNumber ( string cardNumber );
 		static Mysql *_DataBase;
 		//pthread_t _Listenner, _Sender;
 };
