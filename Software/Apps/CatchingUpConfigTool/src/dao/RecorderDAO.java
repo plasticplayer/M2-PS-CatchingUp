@@ -18,4 +18,9 @@ public interface RecorderDAO {
 	 */
 	public List<Recorder> getRecorderList();
 
+	public boolean createRecorder ( Recorder rec );
+	
+	public boolean updateRecorder ( Recorder rec );
+	
+	public boolean parringRecorder ( Recorder rec );
 }

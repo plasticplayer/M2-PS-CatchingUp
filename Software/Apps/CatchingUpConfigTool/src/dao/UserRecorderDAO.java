@@ -20,4 +20,7 @@ public interface UserRecorderDAO {
 	 */
 	public List<UserRecorder> getUserRecorderList() throws ParseException;
 
+	public boolean createUserRecorder( UserRecorder userRecorder );
+	
+	public UserRecorderDAO getInstance();
 }
