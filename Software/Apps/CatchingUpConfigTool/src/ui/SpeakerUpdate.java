@@ -16,14 +16,18 @@ import java.awt.GridLayout;
 import javax.swing.SwingConstants;
 
 import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.Date;
 import java.util.List;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
+import persistence.CardDAOImpl;
 import persistence.UserRecorderDAOImpl;
 import dao.UserRecorderDAO;
+import dm.Card;
 import dm.UserRecorder;
 
 public class SpeakerUpdate extends JDialog {
@@ -34,6 +38,7 @@ public class SpeakerUpdate extends JDialog {
 	private Date dateBegin;
 	private Date dateEnd;
 	
+	private UserRecorder userUpdated;
 
 	private final JPanel contentPanel = new JPanel();
 	private JTextField txtBoxFirstname;
@@ -47,40 +52,17 @@ public class SpeakerUpdate extends JDialog {
 	/**
 	 * Create the dialog.
 	 */
-	public SpeakerUpdate(String id) {
+	public SpeakerUpdate( UserRecorder user ) {
 		setTitle("Modification intervenant");
-		this.firstName = "N/A";
-		this.lastName = "N/A";
-		this.password = "N/A";
-		this.email = "N/A";
-		this.dateBegin = new Date();
-		this.dateEnd = new Date();
+		userUpdated = user;
+		this.firstName = user.getFirstName();
+		this.lastName = user.getLastName();
+		this.password = user.getPassword();
+		this.email = user.getEmail();
+		this.dateBegin = user.getDateBegin();
+		this.dateEnd = user.getDateBegin();
+
 		
-		try
-		{
-			int idSpeeker = Integer.parseInt(id);
-			UserRecorderDAO userRecorderDao= new UserRecorderDAOImpl();
-			List<UserRecorder> usersRecorder = userRecorderDao.getUserRecorderList();
-			for(UserRecorder user : usersRecorder)
-			{
-				if(user.getId() == idSpeeker)
-				{
-					this.firstName = user.getFirstName();
-					this.lastName = user.getLastName();
-					this.password = user.getPassword();
-					this.email = user.getEmail();
-					this.dateBegin = user.getDateBegin();
-					this.dateEnd = user.getDateBegin();
-					break;
-				}
-					
-			}
-			
-		}
-		catch(Exception e)
-		{
-			
-		}
 		
 		
 		setBounds(100, 100, 735, 491);
@@ -167,9 +149,10 @@ public class SpeakerUpdate extends JDialog {
 		
 		JLabel lblDateBegin = new JLabel("Date de d\u00E9but :");
 		dateBeginPanel.add(lblDateBegin, BorderLayout.NORTH);
-		calendar calBegin = new calendar();
+		final calendar calBegin = new calendar();
 		dateBeginPanel.add(calBegin, BorderLayout.CENTER);
-		calBegin.setDate(1900+dateBegin.getYear(),dateBegin.getMonth()-1,dateBegin.getDate());
+		//calBegin.setDate(1900+dateBegin.getYear(),dateBegin.getMonth()-1,dateBegin.getDate());
+		calBegin.setDate(dateBegin.getYear(), dateBegin.getMonth() -1, dateBegin.getDate() );
 		
 		JPanel dateEndPanel = new JPanel();
 		calendarGridLayout.add(dateEndPanel);
@@ -177,9 +160,10 @@ public class SpeakerUpdate extends JDialog {
 		
 		JLabel lblDateEnd = new JLabel("Date de d\u00E9but :");
 		dateEndPanel.add(lblDateEnd, BorderLayout.NORTH);
-		calendar calEnd = new calendar();
-		calEnd.setDate(2010, 01, 12); //TODO Set Date
-		calEnd.setDate(1900+dateEnd.getYear(),dateEnd.getMonth()-1,dateEnd.getDate());
+		final calendar calEnd = new calendar();
+		//calEnd.setDate(2010, 01, 12); //TODO Set Date
+		//calEnd.setDate(1900+dateEnd.getYear(),dateEnd.getMonth()-1,dateEnd.getDate());
+		calEnd.setDate(dateEnd.getYear(), dateEnd.getMonth() -1, dateEnd.getDate() );
 		
 		dateEndPanel.add(calEnd);
 		{
@@ -193,8 +177,16 @@ public class SpeakerUpdate extends JDialog {
 			JLabel lblNewLabel_1 = new JLabel("Carte associ\u00E9e:");
 			detailsPanel.add(lblNewLabel_1);
 			
-			JComboBox comboBox = new JComboBox();
-			detailsPanel.add(comboBox);
+			final JComboBox cardList = new JComboBox();
+			cardList.addItem("Aucune");
+			for ( Card card : CardDAOImpl._instance.getCardFree(userUpdated) ){
+				cardList.addItem(card);
+				if ( card.getUser() == userUpdated )
+					cardList.setSelectedItem(card);
+			}
+			detailsPanel.add(cardList);
+
+			
 			
 			JCheckBox chckbxNewCheckBox = new JCheckBox("D\u00E9sactivation de l'utilisateur");
 			detailsPanel.add(chckbxNewCheckBox);
@@ -212,6 +204,62 @@ public class SpeakerUpdate extends JDialog {
 				buttonPanel.add(okButton);
 				okButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 				okButton.setActionCommand("OK");
+				okButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						if ( passwordFieldPassword.getText().compareTo(passwordFieldConfirmPassword.getText()) != 0 ||
+								txtBoxEmail.getText().isEmpty() || txtBoxFirstname.getText().isEmpty() || txtBoxLastname.getText().isEmpty() )
+								return;
+						Date deb = calBegin.getDate();
+						Date end = calEnd.getDate();
+						
+						boolean updateFn = ( userUpdated.getFirstName().compareTo(txtBoxFirstname.getText()) != 0 );
+						boolean updateLn = ( userUpdated.getLastName().compareTo(txtBoxLastname.getText()) != 0 );
+						boolean updateMail = ( userUpdated.getEmail().compareTo(txtBoxEmail.getText()) != 0 );
+						boolean updatePassword = !passwordFieldPassword.getText().isEmpty();
+						boolean updateBeginDate = (deb != userUpdated.getDateBegin() );
+						boolean updateEndDate = (end != userUpdated.getDateEnd() );
+						
+						
+						if ( updateFn )
+							userUpdated.setFirstName(txtBoxFirstname.getText());
+						if ( updateLn )
+							userUpdated.setLastName(txtBoxLastname.getText());
+						if ( updateMail )
+							userUpdated.setEmail(txtBoxEmail.getText());
+						if ( updatePassword )
+							userUpdated.setPassword(passwordFieldPassword.getText());
+						if ( updateBeginDate )
+							userUpdated.setDateBegin(deb);
+						if ( updateEndDate )
+							userUpdated.setDateEnd(end);
+						
+						
+						/*UserRecorder user = new UserRecorder(txtBoxFirstname.getText(), txtBoxLastname.getText(),
+								passwordFieldPassword.getText(), txtBoxEmail.getText(), calBegin.getDate(),calEnd.getDate() );*/
+
+						
+						UserRecorderDAO dao = UserRecorderDAOImpl._instance;
+						if ( dao.updateUserRecorder(userUpdated, updateFn, updateLn, updateMail, updatePassword, updateBeginDate, updateEndDate) ){
+							Card userCard = CardDAOImpl._instance.getCardFromIdUser(userUpdated);
+							if ( cardList.getSelectedIndex() == 0 && userCard != null ){
+								userCard.setUser(null);
+								CardDAOImpl._instance.updateCard(userCard);
+							}
+							else{
+								Card newCard = (Card) cardList.getSelectedItem();
+								if ( newCard != userCard ){
+									if ( userCard != null  ){
+										userCard.setUser(null);
+										CardDAOImpl._instance.updateCard(userCard);
+									}
+									newCard.setUser(userUpdated);
+									CardDAOImpl._instance.updateCard(newCard);
+								}
+								
+							}
+						}
+					}
+				});
 				getRootPane().setDefaultButton(okButton);
 			}
 		}

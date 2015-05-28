@@ -162,11 +162,12 @@ public class SpeakerCreation extends JDialog {
 			JLabel lblNewLabel_1 = new JLabel("Carte associ\u00E9e:");
 			detailsPanel.add(lblNewLabel_1);
 			
-			JComboBox comboBox = new JComboBox();
+			final JComboBox cardList = new JComboBox();
+			cardList.addItem("Aucune");
 			for ( Card card : CardDAOImpl._instance.getCardFree(null) )
-				comboBox.addItem(card);
+				cardList.addItem(card);
 			
-			detailsPanel.add(comboBox);
+			detailsPanel.add(cardList);
 			
 			JCheckBox chckbxNewCheckBox = new JCheckBox("D\u00E9sactivation de l'utilisateur");
 			detailsPanel.add(chckbxNewCheckBox);
@@ -188,12 +189,19 @@ public class SpeakerCreation extends JDialog {
 								txtBoxFirstname.getText().isEmpty() ||txtBoxLastname.getText().isEmpty() )
 								return;
 						
-						Tools.LOGGER_INFO(calBegin.toString());
 						UserRecorder user = new UserRecorder(txtBoxFirstname.getText(), txtBoxLastname.getText(),
 								passwordFieldPassword.getText(), txtBoxEmail.getText(), calBegin.getDate(),calEnd.getDate() );
 
+						
 						UserRecorderDAO dao = UserRecorderDAOImpl._instance;
-						dao.createUserRecorder(user);
+						if ( dao.createUserRecorder(user) ){
+							if ( cardList.getSelectedIndex() != 0 )
+							{
+								Card card = (Card) cardList.getSelectedItem();
+								card.setUser(user);
+								CardDAOImpl._instance.updateCard(card);
+							}
+						}
 					}
 				});
 				buttonPanel.add(okButton);
@@ -203,7 +211,6 @@ public class SpeakerCreation extends JDialog {
 			}
 		}
 		
-
 		/*
 		JLabel lblDateBegin = new JLabel("Date de d\u00E9but :");
 		rightContentPanel.add(lblDateBegin);

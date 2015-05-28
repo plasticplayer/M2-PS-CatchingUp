@@ -162,7 +162,8 @@ public class RecorderDAOImpl implements RecorderDAO {
 					 recorder.setRecording( ( isRecording.compareTo("1") == 0) );
 					 recorder.setFilesInQueue( Integer.parseInt(filesinqueue.trim() ));
 					 recorder.setStatus(RecorderStatus.CONNECTED);
-					 getImage(recorder);
+					 //getImage(recorder);
+					// parringRecorder(recorder);
 				 }
 				 else 
 					 recorder.setStatus(RecorderStatus.UNCONNECTED);

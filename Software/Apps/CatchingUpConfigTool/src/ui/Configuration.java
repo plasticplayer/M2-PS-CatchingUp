@@ -112,7 +112,7 @@ public class Configuration extends JFrame {
 		tabbedPane.addTab("Gestion des intervenants", null, speakersManagementPanel, null);
 		
 		UserRecorderDAO userRecorderDao= new UserRecorderDAOImpl();
-		List<UserRecorder> userRecorder = userRecorderDao.getUserRecorderList();
+		final List<UserRecorder> userRecorder = userRecorderDao.getUserRecorderList();
 		//UserRecorder test [] = (UserRecorder[])(userRecorder.toArray());
 		
 		
@@ -192,9 +192,7 @@ public class Configuration extends JFrame {
 		       
 		        int row = table.rowAtPoint(p);
 		        if (e.getClickCount() == 2) {
-		        	//TODO problem
-		            // your valueChanged overridden method 
-		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate((String)arrayUserRecorder[row][0]);
+		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate( userRecorder.get(row) );
 		        	speakerUpdate.setVisible(true);
 		        }
 		    }

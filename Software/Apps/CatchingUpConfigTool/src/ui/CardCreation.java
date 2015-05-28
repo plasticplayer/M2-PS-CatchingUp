@@ -9,6 +9,9 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+import persistence.CardDAOImpl;
+import dm.Card;
+
 @SuppressWarnings("serial")
 public class CardCreation extends JDialog {
 
@@ -54,5 +57,10 @@ public class CardCreation extends JDialog {
 		txtIdCard.setEditable(false);
 		txtIdCard.setColumns(10);
 		
+		/**
+		 // Ajout d une carte
+		 Card c = new Card("number",null);
+		 CardDAOImpl._instance.createCard(c);
+		 */
 	}
 }

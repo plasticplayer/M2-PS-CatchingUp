@@ -22,7 +22,7 @@ public class RoomDAOImpl implements RoomDAO {
 	}
 
 	public boolean createRoom ( Room room ){
-		String req = "<type>create_rooms</type>"+ System.lineSeparator()+"<room><name>" + room.getName() + "</name><description>" + room.getDescription() + "</description></room>";
+		String req = "<type>create_rooms</type>"+ System.getProperty("line.separator") + "<room><name>" + room.getName() + "</name><description>" + room.getDescription() + "</description></room>";
 		String res = communication.Server.sendData( req );
 		String[] lines = res.split(System.getProperty("line.separator"));
 		

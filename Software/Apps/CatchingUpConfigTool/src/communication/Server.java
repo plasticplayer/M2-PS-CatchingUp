@@ -3,8 +3,6 @@ package communication;
 import java.io.*;
 import java.net.*;
 
-import com.sun.javafx.collections.ElementObservableListDecorator;
-
 public class Server {
 	public static Server _Server = null;
 	private static boolean isWorking = false;
@@ -82,7 +80,7 @@ public class Server {
 				if ( ans == "" )
 					ans = line;
 				else
-					ans += System.lineSeparator()+ line ;
+					ans += "\n" + line ;
 				//System.out.println( "Ans: " + ans + "\n");
 				line = "";
 			}
