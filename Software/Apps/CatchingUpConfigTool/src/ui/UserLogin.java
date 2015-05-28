@@ -15,6 +15,8 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.JLabel;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
+import communication.Server;
+
 import persistence.UserDAOImpl;
 import dao.UserDAO;
 import dm.User;
@@ -65,17 +67,19 @@ public class UserLogin extends JFrame {
 		final JTextField tbxPassword = new JTextField();
 		
 		final JLabel lblUser = new JLabel("Utilisateur :");
-		
+		tbxUser.setText("Administrateur");
+		tbxUser.disable();
 		JLabel lblPassword = new JLabel("Mot de passe :");
 		
 		final JButton btnValidate = new JButton("Valider");
 		btnValidate.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				System.out.println("Test: "+tbxUser.getText());
+				
+				/*System.out.println("Test: "+tbxUser.getText());
 		        System.out.println("Test: "+tbxPassword.getText());
 		        UserDAO userDAO = new UserDAOImpl();
-		        User user = userDAO.searchUserByLogin(tbxUser.getText(),tbxPassword.getText());
-				if(user!=null){
+		        User user = userDAO.searchUserByLogin(tbxUser.getText(),tbxPassword.getText());*/
+				if( Server._Server != null && Server.verifyPassword(tbxPassword.getText()) ){
 					//btnValidate.setText("btn pressé");
 					 Configuration config;
 					try {
@@ -84,13 +88,13 @@ public class UserLogin extends JFrame {
 						 frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));		
 					} catch (ParseException e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						//e.printStackTrace();
 					}
 		 
 				}
-				
 			}
 		});
+		
 		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
 			gl_contentPane.createParallelGroup(Alignment.TRAILING)
