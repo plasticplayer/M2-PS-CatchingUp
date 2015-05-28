@@ -5,18 +5,64 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import communication.Tools;
 
+import communication.Tools;
 import dao.UserRecorderDAO;
 import dm.UserRecorder;
 
 public class UserRecorderDAOImpl implements UserRecorderDAO {
-
-	public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 	public static List<UserRecorder> userRecorders = new ArrayList<UserRecorder>();
-	
+	public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 	public static UserRecorderDAOImpl _instance = new UserRecorderDAOImpl();
 	
+	public boolean updateUserRecorder ( UserRecorder user, boolean updateFn, boolean updateLn, boolean updateMail, boolean updatePassword, boolean updateBeginDate, boolean updateEndDate ){
+		if ( !updateFn && !updateLn && !updateMail && !updatePassword && !updateBeginDate && !updateEndDate ){
+			Tools.LOGGER_DEBUG("UserRecorder: Nothing to update");
+			return true;
+		}
+		
+		String req = "<type>update_usersrecorders</type><users><user><id>" + user.getId() + "</id>";
+		if ( updateFn )
+			req += "<firstname>" + user.getFirstName() + "</firstname>";
+		if ( updateLn )
+			req += "<lastname>" + user.getLastName() + "</lastname>";
+		if ( updateMail )
+			req += "<email>" + user.getEmail() + "</email>";
+		if ( updatePassword )
+			req += "<password>" + user.getPassword() + "</password>";
+		if ( updateBeginDate )
+			req += "<begin>" + sdf.format(user.getDateBegin()) + "</begin>";
+		if ( updateEndDate )
+			req += "<end>" + sdf.format(user.getDateEnd()) + "</end>";	
+		
+		String res = communication.Server.sendData(req + "</user></users>");
+		String[] lines = res.split(System.getProperty("line.separator"));
+		  
+		String type = Tools.getValue( lines[0] ,"type");
+		if ( type.compareTo("UPDATES_USERSRECORDERS") != 0 )
+		  	return false;
+
+		String idUserRecorder, success, line;
+		
+		for ( int i = 1; i < lines.length; i++ ){
+			line = Tools.getValue( lines[i] ,"user");
+			if ( line == "" )
+				continue;
+			
+			idUserRecorder = Tools.getValue(line, "iduser");
+			success = Tools.getValue(line, "success" );
+			
+			if ( idUserRecorder.compareTo("" + user.getId()) == 0 ){
+				if ( success.compareTo( "1") == 0 ){
+					Tools.LOGGER_INFO("Update userRecorder OK");
+					return true;
+				}
+			}
+		}
+			
+		Tools.LOGGER_ERROR("Cannot update userRecorder");
+		return false;
+	}
 	
 	@Override
 	public UserRecorder getUserRecorder(int id) {
@@ -52,11 +98,15 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 				continue;
 			
 			idUser 	= Tools.getValue( line ,"iduser");
-			if ( idUser.trim().compareTo("0") == 0 )
+			if ( idUser.trim().compareTo("0") == 0 ){
+				Tools.LOGGER_ERROR("Cannot create userRecorder");
 				return false;
+			}
 			
 			int id = Integer.parseInt(idUser.trim());
 			userRecorder.setId( id );
+			Tools.LOGGER_INFO("Create userRecorder OK");
+			userRecorders.add(userRecorder);
 			return true;
 		}
 		return false;

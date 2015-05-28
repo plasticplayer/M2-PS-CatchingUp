@@ -18,5 +18,8 @@ public interface RoomDAO {
 	 * @return
 	 */
 	public List<Room> getRoomList();
-
+	
+	public boolean createRoom ( Room room );
+	
+	public boolean updateRoom( Room room , boolean updateName, boolean updateDescription);
 }

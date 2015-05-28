@@ -54,7 +54,9 @@ void initImageRefs()
 	}
 	indexRef = 2;
 	setCameraPan(listPanServo[indexRef]);
-	cvNamedWindow("DISP", CV_WINDOW_NORMAL);
+	#ifdef DEBUG_IMAGE
+		cvNamedWindow("DISP", CV_WINDOW_NORMAL);
+	#endif
 	/*else
 	  LOGGER_WARN("Cannot init camera for setting imageRef");*/
 
@@ -82,9 +84,9 @@ void showImage(Mat * img,string name)
 		{
 			unsigned char * out = (img->data   + (x * img->cols + y)*3);
 			unsigned char * show = ((image->data)   + (x * img->cols + y)*3);
-			*(show) = *out;
+			*(show) = *(out+2);
 			*(show+1) = *(out+1);
-			*(show+2) = *(out+2);
+			*(show+2) = *(out);
 
 		}
 	}

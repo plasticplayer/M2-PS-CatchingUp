@@ -22,7 +22,7 @@ public class RoomDAOImpl implements RoomDAO {
 	}
 
 	public boolean createRoom ( Room room ){
-		String req = "<type>create_rooms</type>\n<room><namecl> " + room.getName() + " </name><description> " + room.getDescription() + "</description></room>";
+		String req = "<type>create_rooms</type>"+ System.getProperty("line.separator") + "<room><name>" + room.getName() + "</name><description>" + room.getDescription() + "</description></room>";
 		String res = communication.Server.sendData( req );
 		String[] lines = res.split(System.getProperty("line.separator"));
 		
@@ -37,17 +37,21 @@ public class RoomDAOImpl implements RoomDAO {
 			if ( line == "" )
 				continue;
 				
-			idRoom 	= Tools.getValue( line ,"id");
+			idRoom 	= Tools.getValue( line ,"idRoom");
 			name 	= Tools.getValue( line ,"roomname");
 			
 			if ( room.getName().compareTo(name) == 0 ){
 				int id = Integer.parseInt(idRoom.trim());
 				room.setId(id);
+				_rooms.add(room);
+				Tools.LOGGER_INFO("Create room OK");
 				return true;
 			}
 		}
+		Tools.LOGGER_ERROR("Cannot create room");
 		return false;
 	}
+	
 	public boolean updateRoom( Room room , boolean updateName, boolean updateDescription){
 		if (!updateName && !updateDescription )
 			return true;
@@ -72,10 +76,14 @@ public class RoomDAOImpl implements RoomDAO {
 			idRoom 	= Tools.getValue( line ,"idRoom");
 			succes 	= Tools.getValue( line ,"succes");
 			 
-			if ( idRoom.trim().compareTo("" + room.getId()) != 0 ){
-				return (succes.trim().compareTo("1") == 0);
+			if ( idRoom.trim().compareTo("" + room.getId()) == 0 ){
+				if (succes.trim().compareTo("1") == 0){
+					Tools.LOGGER_INFO("Update room OK");
+					return true;
+				}
 			}
 		}
+		Tools.LOGGER_ERROR("Cannot update room");
 		return false;
 	}
 	

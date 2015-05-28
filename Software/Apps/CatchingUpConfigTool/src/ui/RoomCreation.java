@@ -12,6 +12,15 @@ import javax.swing.JTextField;
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
 
+import communication.Tools;
+
+import persistence.RoomDAOImpl;
+import dao.RoomDAO;
+import dm.Room;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
 public class RoomCreation extends JDialog {
 	private String name;
 	private String description;
@@ -75,6 +84,17 @@ public class RoomCreation extends JDialog {
 			}
 			{
 				okButton = new JButton("OK");
+				okButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						Room r= new Room(tbxName.getText(),tbxDescription.getText());
+						RoomDAO roomdao = RoomDAOImpl._instance;
+						if ( roomdao.createRoom(r) )
+						{
+							Tools.LOGGER_DEBUG("Create room ok  ");
+						}
+						
+					}
+				});
 				okButton.setActionCommand("OK");
 				getRootPane().setDefaultButton(okButton);
 			}

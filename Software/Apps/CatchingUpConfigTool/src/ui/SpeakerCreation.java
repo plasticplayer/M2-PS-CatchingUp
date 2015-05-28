@@ -16,10 +16,26 @@ import java.awt.GridLayout;
 import javax.swing.SwingConstants;
 
 import java.awt.Component;
+
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
+import communication.Tools;
+import persistence.CardDAOImpl;
+import persistence.UserRecorderDAOImpl;
+import dao.UserRecorderDAO;
+import dm.Card;
+import dm.UserRecorder;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 public class SpeakerCreation extends JDialog {
+	
+	
 	private String firstName;
 	private String lastName;
 	private String password;
@@ -124,7 +140,7 @@ public class SpeakerCreation extends JDialog {
 		
 		JLabel lblDateBegin = new JLabel("Date de d\u00E9but :");
 		dateBeginPanel.add(lblDateBegin, BorderLayout.NORTH);
-		calendar calBegin = new calendar();
+		final calendar calBegin = new calendar();
 		dateBeginPanel.add(calBegin, BorderLayout.CENTER);
 		
 		JPanel dateEndPanel = new JPanel();
@@ -133,7 +149,7 @@ public class SpeakerCreation extends JDialog {
 		
 		JLabel lblDateEnd = new JLabel("Date de fin :");
 		dateEndPanel.add(lblDateEnd, BorderLayout.NORTH);
-		calendar calEnd = new calendar();
+		final calendar calEnd = new calendar();
 		dateEndPanel.add(calEnd);
 		{
 			JPanel endPanel = new JPanel();
@@ -146,8 +162,12 @@ public class SpeakerCreation extends JDialog {
 			JLabel lblNewLabel_1 = new JLabel("Carte associ\u00E9e:");
 			detailsPanel.add(lblNewLabel_1);
 			
-			JComboBox comboBox = new JComboBox();
-			detailsPanel.add(comboBox);
+			final JComboBox cardList = new JComboBox();
+			cardList.addItem("Aucune");
+			for ( Card card : CardDAOImpl._instance.getCardFree(null) )
+				cardList.addItem(card);
+			
+			detailsPanel.add(cardList);
 			
 			JCheckBox chckbxNewCheckBox = new JCheckBox("D\u00E9sactivation de l'utilisateur");
 			detailsPanel.add(chckbxNewCheckBox);
@@ -162,6 +182,28 @@ public class SpeakerCreation extends JDialog {
 			}
 			{
 				okButton = new JButton("OK");
+				okButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						if ( passwordFieldPassword.getText().compareTo(passwordFieldConfirmPassword.getText()) != 0 || 
+								passwordFieldConfirmPassword.getText().isEmpty() || txtBoxEmail.getText().isEmpty() || 
+								txtBoxFirstname.getText().isEmpty() ||txtBoxLastname.getText().isEmpty() )
+								return;
+						
+						UserRecorder user = new UserRecorder(txtBoxFirstname.getText(), txtBoxLastname.getText(),
+								passwordFieldPassword.getText(), txtBoxEmail.getText(), calBegin.getDate(),calEnd.getDate() );
+
+						
+						UserRecorderDAO dao = UserRecorderDAOImpl._instance;
+						if ( dao.createUserRecorder(user) ){
+							if ( cardList.getSelectedIndex() != 0 )
+							{
+								Card card = (Card) cardList.getSelectedItem();
+								card.setUser(user);
+								CardDAOImpl._instance.updateCard(card);
+							}
+						}
+					}
+				});
 				buttonPanel.add(okButton);
 				okButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 				okButton.setActionCommand("OK");
@@ -169,7 +211,6 @@ public class SpeakerCreation extends JDialog {
 			}
 		}
 		
-
 		/*
 		JLabel lblDateBegin = new JLabel("Date de d\u00E9but :");
 		rightContentPanel.add(lblDateBegin);

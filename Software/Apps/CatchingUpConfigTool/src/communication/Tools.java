@@ -1,6 +1,7 @@
 package communication;
 
 public class Tools {
+	public static boolean enableDebug = false;
 	public static String getValue ( String req, String id ){
 		String s = "<" + id + ">";
 		
@@ -10,5 +11,18 @@ public class Tools {
 			return "";
 		
 		return req.substring(start + s.length() , stop );
+	}
+	
+	public static void LOGGER_DEBUG ( String s ){
+		if ( enableDebug == true )
+			System.out.println("Debug : " + s);
+	}
+	
+	public static void LOGGER_INFO ( String s ){
+		System.out.println("Info  : " + s);
+	}
+	
+	public static void LOGGER_ERROR ( String s ){
+		System.out.println("Error : " + s);
 	}
 }

@@ -683,8 +683,8 @@ void SRV_TO_REC_ParringAsk( BYTE* data, unsigned long size )
 		return;
 
 	// TODO: UPDATE NRF STATUT
-	addressGenerate[0] = (uint64_t) (data[0] << 24) |  (uint64_t) data[1] << 16 | (uint64_t) data[2] << 8 | (uint64_t) data[3];
-	addressGenerate[1] = (uint64_t) (data[4] << 24) |  (uint64_t) data[5] << 16 | (uint64_t) data[6] << 8 | (uint64_t) data[7];
+	addressGenerate[0] = 0x00FFFFFFFF & ((uint64_t) (data[0] << 24) |  (uint64_t) data[1] << 16 | (uint64_t) data[2] << 8 | (uint64_t) data[3]);
+	addressGenerate[1] = 0x00FFFFFFFF & ((uint64_t) (data[4] << 24) |  (uint64_t) data[5] << 16 | (uint64_t) data[6] << 8 | (uint64_t) data[7]);
 
 	REC_TO_SRV_TcpAck( ASK_PARIRING );
 	ParringNrf();
@@ -822,7 +822,7 @@ bool startRecording( uint64_t idRecording )
 			LOGGER_VERB("Starting Cameras and sound recording");
 			isRecording &= cam->startRecording(_CurrentRecording);
 			#ifndef DEBUG_IMAGE
-            isRecording &= still->startRecording(_CurrentRecording);
+ 		        isRecording &= still->startRecording(_CurrentRecording);
 			isRecording &= sound->startRecording(_CurrentRecording);
 			#endif
 

@@ -38,5 +38,8 @@ public class Card {
         this.user = user;
     }
     
-
+    @Override
+    public String toString() {
+    	return this.numberCard;
+    }
 }
