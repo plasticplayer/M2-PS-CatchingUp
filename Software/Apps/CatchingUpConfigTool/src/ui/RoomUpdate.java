@@ -12,11 +12,19 @@ import javax.swing.JTextField;
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
 
+import persistence.RoomDAOImpl;
+import dao.RoomDAO;
+import dm.Room;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
 
 public class RoomUpdate extends JDialog {
 	private String name;
 	private String description;
-
+	private Room _updatedRoom;
+	
 	private final JPanel contentPanel = new JPanel();
 	private JTextField tbxName;
 	private JTextArea tbxDescription;
@@ -26,9 +34,10 @@ public class RoomUpdate extends JDialog {
 	/**
 	 * Create the dialog.
 	 */
-	public RoomUpdate(String name, String description) {
-		this.name = name;
-		this.description = description;
+	public RoomUpdate( Room updateRoom ) {
+		_updatedRoom = updateRoom;
+		this.name = _updatedRoom.getName();
+		this.description = _updatedRoom.getDescription();
 		setTitle("Modification salle");
 		setBounds(100, 100, 450, 300);
 		getContentPane().setLayout(new BorderLayout());
@@ -76,6 +85,21 @@ public class RoomUpdate extends JDialog {
 			}
 			{
 				okButton = new JButton("OK");
+				okButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						RoomDAO roomDao = RoomDAOImpl._instance;
+						boolean enableName = ( _updatedRoom.getName().compareTo(tbxName.getText()) != 0);
+						boolean enableDescription = ( _updatedRoom.getDescription().compareTo(tbxDescription.getText()) != 0);
+						
+						if ( enableName )
+							_updatedRoom.setName( tbxName.getText() );
+						
+						if ( enableDescription )
+							_updatedRoom.setDescription(( tbxDescription.getText() ));
+						
+						roomDao.updateRoom( _updatedRoom, enableName, enableDescription);
+					}
+				});
 				okButton.setActionCommand("OK");
 				getRootPane().setDefaultButton(okButton);
 			}

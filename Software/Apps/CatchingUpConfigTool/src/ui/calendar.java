@@ -8,10 +8,16 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Year;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.GregorianCalendar;
  
+
+
+
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -27,11 +33,24 @@ import javax.swing.JPanel;
  * @version $Id: Cal.java,v 1.5 2004/02/09 03:33:45 ian Exp $
  */
 public class calendar extends JPanel {
+
+	public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+	public Date getDate(){
+		String date = yy +"-"+mm+"-"+dd;
+		try {
+			Date d = (Date)sdf.parse(date);
+			return d;
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+	}
   /** The currently-interesting year (not modulo 1900!) */
-  protected int yy;
+  public int yy;
  
   /** Currently-interesting month and day */
-  protected int mm, dd;
+  public int mm, dd;
  
   /** The buttons to be displayed */
   protected JButton labs[][];

@@ -6,6 +6,7 @@ import java.awt.event.WindowEvent;
 import javax.swing.UIManager;
 
 import communication.Server;
+import communication.Tools;
 
 public class Main {
 	
@@ -17,6 +18,7 @@ public class Main {
 	//new Server( "squadfree.net",1918);
 	new Server( "192.168.43.90",1918);
 	Server.connect();
+	Tools.enableDebug = true;
 	
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

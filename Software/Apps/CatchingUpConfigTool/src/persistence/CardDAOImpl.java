@@ -10,6 +10,15 @@ import dm.User;
 
 public class CardDAOImpl implements CardDAO {
 
+	public static List<Card> cards = new ArrayList<Card>();
+	public static CardDAOImpl _instance = new CardDAOImpl();
+	
+	public List<Card> getCardFree( User user ){
+		if ( cards.isEmpty() )
+			return getCardList();
+		else return getCardList();
+	}
+	
 	public boolean createCard ( Card card ){
 		String req = "<type>create_cards</type><cards>"
 				+ "<card><number>"+ card.getNumberCard() +"</number>";
@@ -53,7 +62,7 @@ public class CardDAOImpl implements CardDAO {
 	
 	@Override
 	public List<Card> getCardList() { 
-		List<Card> cards = new ArrayList<Card>();
+		cards = new ArrayList<Card>();
 		
 		String res = communication.Server.sendData("<type>need_cards</type>");
 		String[] lines = res.split(System.getProperty("line.separator"));

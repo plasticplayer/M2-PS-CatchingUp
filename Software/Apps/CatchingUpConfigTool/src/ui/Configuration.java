@@ -300,7 +300,7 @@ public class Configuration extends JFrame {
 		);
 		
 		RoomDAO roomDao= new RoomDAOImpl();
-		List<Room> room = roomDao.getRoomList();
+		final List<Room> room = roomDao.getRoomList();
 		String[] roomColumnTitle = {"nom","description"}; 
 		final Object[][] arrayRoom = toArrayRoom(room);
 		Model mRoom = new Model(arrayRoom,roomColumnTitle);
@@ -316,7 +316,9 @@ public class Configuration extends JFrame {
 		        int row = table.rowAtPoint(p);
 		        if (e.getClickCount() == 2) {
 		            // your valueChanged overridden method 
-		        	RoomUpdate roomUpdate = new RoomUpdate((String)arrayRoom[row][0],(String)arrayRoom[row][1]);
+		        	Room updated = room.get(row);
+		        	//RoomUpdate roomUpdate = new RoomUpdate((String)arrayRoom[row][0],(String)arrayRoom[row][1]);
+		        	RoomUpdate roomUpdate = new RoomUpdate(updated);
 		        	roomUpdate.setVisible(true);
 		        }
 		    }

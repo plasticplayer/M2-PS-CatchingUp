@@ -16,10 +16,26 @@ import java.awt.GridLayout;
 import javax.swing.SwingConstants;
 
 import java.awt.Component;
+
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
+import communication.Tools;
+import persistence.CardDAOImpl;
+import persistence.UserRecorderDAOImpl;
+import dao.UserRecorderDAO;
+import dm.Card;
+import dm.UserRecorder;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 public class SpeakerCreation extends JDialog {
+	
+	
 	private String firstName;
 	private String lastName;
 	private String password;
@@ -124,7 +140,7 @@ public class SpeakerCreation extends JDialog {
 		
 		JLabel lblDateBegin = new JLabel("Date de d\u00E9but :");
 		dateBeginPanel.add(lblDateBegin, BorderLayout.NORTH);
-		calendar calBegin = new calendar();
+		final calendar calBegin = new calendar();
 		dateBeginPanel.add(calBegin, BorderLayout.CENTER);
 		
 		JPanel dateEndPanel = new JPanel();
@@ -133,7 +149,7 @@ public class SpeakerCreation extends JDialog {
 		
 		JLabel lblDateEnd = new JLabel("Date de fin :");
 		dateEndPanel.add(lblDateEnd, BorderLayout.NORTH);
-		calendar calEnd = new calendar();
+		final calendar calEnd = new calendar();
 		dateEndPanel.add(calEnd);
 		{
 			JPanel endPanel = new JPanel();
@@ -147,6 +163,9 @@ public class SpeakerCreation extends JDialog {
 			detailsPanel.add(lblNewLabel_1);
 			
 			JComboBox comboBox = new JComboBox();
+			for ( Card card : CardDAOImpl._instance.getCardFree(null) )
+				comboBox.addItem(card);
+			
 			detailsPanel.add(comboBox);
 			
 			JCheckBox chckbxNewCheckBox = new JCheckBox("D\u00E9sactivation de l'utilisateur");
@@ -162,6 +181,21 @@ public class SpeakerCreation extends JDialog {
 			}
 			{
 				okButton = new JButton("OK");
+				okButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						if ( passwordFieldPassword.getText().compareTo(passwordFieldConfirmPassword.getText()) != 0 || 
+								passwordFieldConfirmPassword.getText().isEmpty() || txtBoxEmail.getText().isEmpty() || 
+								txtBoxFirstname.getText().isEmpty() ||txtBoxLastname.getText().isEmpty() )
+								return;
+						
+						Tools.LOGGER_INFO(calBegin.toString());
+						UserRecorder user = new UserRecorder(txtBoxFirstname.getText(), txtBoxLastname.getText(),
+								passwordFieldPassword.getText(), txtBoxEmail.getText(), calBegin.getDate(),calEnd.getDate() );
+
+						UserRecorderDAO dao = UserRecorderDAOImpl._instance;
+						dao.createUserRecorder(user);
+					}
+				});
 				buttonPanel.add(okButton);
 				okButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 				okButton.setActionCommand("OK");

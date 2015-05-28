@@ -11,10 +11,8 @@ import dao.UserRecorderDAO;
 import dm.UserRecorder;
 
 public class UserRecorderDAOImpl implements UserRecorderDAO {
-
-	public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 	public static List<UserRecorder> userRecorders = new ArrayList<UserRecorder>();
-	
+	public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 	public static UserRecorderDAOImpl _instance = new UserRecorderDAOImpl();
 	
 	
@@ -60,6 +58,7 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 			int id = Integer.parseInt(idUser.trim());
 			userRecorder.setId( id );
 			Tools.LOGGER_INFO("Create userRecorder OK");
+			userRecorders.add(userRecorder);
 			return true;
 		}
 		return false;
