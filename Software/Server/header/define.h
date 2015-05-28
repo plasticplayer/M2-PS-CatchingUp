@@ -11,6 +11,7 @@ typedef struct applicationConfiguration
 	string MysqlDatabase;
 	string MysqlUser;
 	string MysqlPassword;
+	string AdminPassword;
 	uint32_t TCP_APPLI_PORT;
 	uint32_t TCP_serverPort;
 	uint32_t UDP_serverPort;

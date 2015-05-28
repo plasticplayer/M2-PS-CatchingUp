@@ -43,9 +43,11 @@ class ConfigAppli{
 		static void updateRecorders( string req );
 		static void updateUsersWebSite( string req );
 		static void updateUsersRecorder( string req );
-		
+	
+		static void getImageFromRecorder ( string req );	
 		static void parringRecorder ( string req );	
 	private:
+		static void verifPassword ( string data );
 		static bool sendData( string data );
 		static char *_DataBuffer;
 		static int _Port;

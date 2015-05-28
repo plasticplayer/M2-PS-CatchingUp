@@ -167,11 +167,29 @@ void Mysql::stopRecording ( uint64_t idRecording ){
 
 
 bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *act ){
-	// TODO : USE DB TO GENERATE ADDRESSE
-
+	// TODO : USE DB TO GENERATE ADDRESSES
+	uint64_t idRecordingModule = 0x00;
+	uint64_t idConnectingModule = 0x00;
+ 
 	*(rec) = (uint64_t) ( ((uint64_t)rand())<<32 | ((uint64_t)rand())<<16 | rand() ) & 0x00FFFFFFFF;
-	*(act) = (uint64_t) ( ((uint64_t)rand())<<32 | ((uint64_t)rand())<<16 | rand() ) & 0x00FFFFFFFF;
+	*(act) = (uint64_t) ( ((uint64_t)rand())<<32 | ((uint64_t)rand())<<16 | rand() ) & 0x00FFFFFFFF;	
 
+	if ( idConnectingModule == 0x00 || idRecordingModule == 0x00 ){
+		LOGGER_ERROR("Cannot generate NRF Address");
+		return true;
+	}
+	string req = SSTR( "UPDATE " << _RecordingTable.name << " SET " << _RecordingTable.idNetwork.value << "=" << *rec << " WHERE " << _RecordingTable.id.value << "=" << idRecordingModule << ";") ;
+
+	while ( _DataBase->_IsInsertingRow ) usleep( 10 );
+	_DataBase->_IsInsertingRow = true;
+
+	_DataBase->_Connection->Query( (char*) req.c_str() );
+
+	req = SSTR ( "UPDATE " << _ConnectingModuleTable.name << " SET " << _ConnectingModuleTable.idNetwork.value << "=" << *act << " WHERE " << _ConnectingModuleTable.id.value << "=" << idConnectingModule << ";" );	
+	_DataBase->_Connection->Query( (char*) req.c_str() );
+	
+	_DataBase->_IsInsertingRow = false;
+	
 	return true; // RETURN TRUE IF RECORDER EXIST
 }
 
@@ -487,8 +505,11 @@ uint64_t Mysql::createUserRecorder ( string firstName, string lastName, string p
 bool Mysql::updateCard ( uint64_t idCard , uint64_t idUser ){
 	if ( idCard == 0 )
 		return false;
-	
-	string req = SSTR ( "UPDATE " << _CardTable.name << " SET " << _CardTable.iduser.value << "=" << idUser << " WHERE " << _CardTable.idcard.value << "=" << idCard << ";" );
+	string req;
+	if ( idUser == 0 )
+		req = SSTR ( "UPDATE " << _CardTable.name << " SET " << _CardTable.iduser.value << "=NULL" << " WHERE " << _CardTable.idcard.value << "=" << idCard << ";" );
+	else	
+		req = SSTR ( "UPDATE " << _CardTable.name << " SET " << _CardTable.iduser.value << "=" << idUser << " WHERE " << _CardTable.idcard.value << "=" << idCard << ";" );
 	
 	bool succes = false;
 	while ( _DataBase->_IsInsertingRow ) usleep(10);

@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include "Mysql.h"
 #include "Recorder.h"
+#include "define.h"
 
 #define SIZE_BUFFER 4096
 
@@ -114,26 +115,34 @@ void* ConfigAppli::run( void* d){
 
 		while( (read_size  = recv( client_sock , client_message , SIZE_BUFFER , 0)) > 0 )
 		{
-			//cout << "Tmp: " << client_message << endl << endl;
-			//tmp = SSTR ( tmp << client_message );
+			LOGGER_DEBUG("AppliConfig Get: " << read_size );
 			line = getValue( client_message, "request" , &ok);
 			if ( ok == 0 )
 				continue;
-			//cout << line << endl;  
 			decodeRequest( (char*) line.c_str() );
 			
 			memset( client_message, 0, read_size);
 		}
-		LOGGER_VERB("Out Recv");
+		LOGGER_VERB("Appli Config disconnected");
 	}
 
 	LOGGER_DEBUG("TCP : Close socket");
 	return NULL;
 }
 
+void ConfigAppli::verifPassword( string data ){
+	int ok;
+	string pass = getValue ( data, "pass", &ok );
+	if ( ok == 0 )
+		return;
+
+	string res = SSTR( "<type>PASSWORD</type><state>" << ( pass.compare(CurrentApplicationConfig.AdminPassword) == 0 ) << "</state>" << endl );
+	sendData( res );
+}
+
 bool ConfigAppli::sendData( string data ){
-	cout << data << endl;
-	cout << "Send: " << send( client_sock , (char*)data.c_str() , data.length() ,0)<< endl;
+	//cout << data << endl;
+	LOGGER_DEBUG("AppliConfig Send: " << send( client_sock , (char*)data.c_str() , data.length() ,0) );
 	return true;
 }
 
@@ -144,9 +153,15 @@ void ConfigAppli::decodeRequest ( char *req ){
 		LOGGER_ERROR("TCP Config Format error");
 		return;
 	}
+	
+	if ( type.compare("password" ) == 0 )
+		verifPassword( req );
+	
+	else if ( type.compare( "get_image" ) == 0 )
+		getImageFromRecorder ( req );	
 
 	/// GET
-	if ( type.compare( "need_recorders" ) == 0 )
+	else if ( type.compare( "need_recorders" ) == 0 )
 		getRecorders();
 
 	else if ( type.compare( "need_users_recorders" ) == 0 )
@@ -423,7 +438,7 @@ void ConfigAppli::createUsersRecorder( string req ){
 
 	int pos = 0;
 	while ( true ){
-		//cout << "Req:" << req << endl;
+		cout << "Req:" << req << endl;
 		line = getValue(req, (string) "user", &ok, &pos );
 		if ( ok == 0 ) break;
 		
@@ -547,7 +562,7 @@ void ConfigAppli::updateUsersWebSite( string req ){
 }
 
 void ConfigAppli::updateUsersRecorder( string req ){
-	string sRes = "<type>UPDATES_USERSWEBSITE</type><usersrecorder>";
+	string sRes = "<type>UPDATES_USERSRECORDERS</type><usersrecorder>";
 	string id, fName, lName, pwd, email ,dateBegin, dateEnd, line;
 	bool verif;
 	uint64_t idUser;
@@ -571,7 +586,7 @@ void ConfigAppli::updateUsersRecorder( string req ){
 		verif  = Mysql::updateUserTable ( idUser, ( eFName == 1 ), fName, ( eLName == 1) , lName, ( ePwd == 1 ), pwd, ( eMail == 1) , email );
 		verif |= Mysql::updateUserRecorderTable ( idUser, ( eBegin == 1) , dateBegin, ( eEnd == 1) , dateEnd );
 		
-		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><succes>" << verif << "</succes></user>");
+		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><success>" << verif << "</success></user>");
 	}
 	sendData ( SSTR(sRes << "</usersrecorder>" << endl) );
 }
@@ -652,6 +667,31 @@ void ConfigAppli::parringRecorder ( string req ){
 		}	
 	}	
 	sendData ( SSTR( sRes << "</recorders>" << endl ));
+}
+
+void ConfigAppli::getImageFromRecorder ( string req ){
+	cout << "get Image " << endl;
+	int ok, pos = 0;
+	uint64_t idRecorder;
+
+	string line, sidRecorder;
+	while ( true ){
+		line = getValue ( req, ( string ) "image", &ok, &pos );
+		if ( ok == 0 )
+			break;
+		 
+		sidRecorder = getValue ( line, (string)"idrecorder",&ok);
+		idRecorder = strtoull ( sidRecorder.c_str(), NULL, 0);
+		if ( idRecorder == 0 || ok == 0 ) continue;
+
+		Recorder *rec = Recorder::getRecorderById ( idRecorder );
+		if ( rec != NULL ){
+			cout << "Image" << endl;
+			char *data = NULL;
+			int size = 0; 
+			rec->getImage( data, &size );
+		}
+	}	
 }
 
 /****************  Deletes ****************/

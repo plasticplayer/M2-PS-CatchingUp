@@ -157,6 +157,18 @@ bool Recorder::sendTcpFrame( BYTE* data , int size, bool needAck){
 
 /****************  Request  ****************/
 
+bool Recorder::getImage ( char* image, int* size ){
+	if ( isTcpConnected() == false )
+		return false;
+
+	_stateGetImage = WORKING;
+	SRV_TO_REC_askVisuImage( 0x01 );
+	while ( _stateGetImage == WORKING ) usleep(10000);
+
+	return ( _stateGetImage == PASS );
+}
+
+	
 /** SRV_TO_REC_askVisuImage
  * Send to Recorder a request to get an image from Camera
  **/

@@ -37,6 +37,7 @@ typedef unsigned char BYTE ;
 #define INI_SERVER_MYSQL_HOST		"SQL_HOST"
 #define INI_SERVER_MYSQL_USER		"SQL_USER"
 #define INI_SERVER_MYSQL_PASSWORD	"SQL_PASSWORD"	
+#define INI_ADMIN_PASS			"ADMIN_PASSWORD"
 #define INI_SERVER_APPLI_CONF_TCP_PORT	"tcpport_appliconf"
 
 Udp *_Udp = NULL;
@@ -66,6 +67,8 @@ void signal_handler(int signal_number)
 int main(int argc, const char * argv[]) {
 	/** Registering a signal handler (for CTRL-C) **/
 	signal(SIGINT, signal_handler);
+	system("echo 7 > /proc/sys/net/ipv4/tcp_fin_timeout");
+
 	/* Setting the default configuration file */
 	/* Do not edit this, edit the .ini file */
 	CurrentApplicationConfig.iniFileName  = FILE_INI;
@@ -221,7 +224,10 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	
 	s = reader.Get(INI_CONFIG_SECTION_NAME , INI_SERVER_MYSQL_PASSWORD , conf.MysqlPassword);
 	conf.MysqlPassword = s.c_str();
-	
+
+	s = reader.Get(INI_CONFIG_SECTION_NAME, INI_ADMIN_PASS, "pass");
+	conf.AdminPassword = s.c_str();
+
 	LOGGER_CONFIG("Loading configuration from " << conf.iniFileName);
 	LOGGER_CONFIG("=================START CONFIGURATION======================");
 	LOGGER_CONFIG("-------------     FTP CONFIGURATION      -----------------");

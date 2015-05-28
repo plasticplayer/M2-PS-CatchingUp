@@ -31,13 +31,13 @@ typedef struct UnconnectedClient{
 typedef void (*FuncDeco)( void * recorder );
 
 using namespace std;
-enum stateParring { WORKING, PASS, FAILED };
+enum state { WORKING, PASS, FAILED };
 
 class Recorder{
 	public:
 		Recorder ( Udp *udp, char* ip );
 		//	~Recorder();
-		
+		bool getImage ( char* image, int* size );	
 		static void decoTcp( void* recorder );
 		void getFrameUdp( BYTE* data, unsigned long size );
 		void setUdpSocket ( void* sock,  int size );
@@ -48,7 +48,6 @@ class Recorder{
 		bool isTcpConnected();
 
 		void setTcpSocket( Tcp* s);
-		void SRV_TO_REC_askVisuImage( BYTE idCam );
 		void SRV_TO_REC_askStatut();
 		void SRV_TO_REC_sendParring( );
 		char**_Image;
@@ -81,6 +80,8 @@ class Recorder{
 		static void REC_TO_SRV_authentificationAsk( BYTE* data, unsigned long size, void *sender );
 		static void REC_TO_SRV_endFilesTransfert( BYTE* data, unsigned long size, void *sender );
 
+
+		void SRV_TO_REC_askVisuImage( BYTE idCam );
 	protected:
 		bool sendUdpFrame( BYTE* data , int size);
 		bool sendTcpFrame( BYTE* data , int size, bool needAck);
@@ -95,7 +96,7 @@ class Recorder{
 		//int _TcpSocket;
 		int* _ImageParts;
 		BYTE _StatutRasp, _StatutArd;
-		stateParring _stateParring;
+		state _stateParring, _stateGetImage;
 		uint64_t _IdRecorder, _IdUserRecording;
 };
 #endif /* defined(__server__Recorder__) */
