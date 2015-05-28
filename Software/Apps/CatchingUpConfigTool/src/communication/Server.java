@@ -5,9 +5,8 @@ import java.net.*;
 
 public class Server {
 	public static Server _Server = null;
-	
+	private static boolean isWorking = false;
 	private Socket _clientSocket = null; 
-	private DataOutputStream _outToServer;
 	private BufferedReader _inFromServer;
 	private String _host = "";
 	private int _port = 1918;
@@ -29,20 +28,35 @@ public class Server {
 		try {
 			_Server._clientSocket = new Socket( _Server._host, _Server._port);
 			toServer = new PrintWriter(_Server._clientSocket.getOutputStream(),true);
-			//_Server._outToServer  = new DataOutputStream(_Server._clientSocket.getOutputStream());
 			_Server._inFromServer = new BufferedReader(new InputStreamReader(_Server._clientSocket.getInputStream()));
+			Tools.LOGGER_INFO("Connected to server");
+			return true;
 			
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
-			return false;
+			//return false;
 		} catch (IOException e) {
 			e.printStackTrace();
-			return false;
+			//return false;
 		}
+		Tools.LOGGER_ERROR( "Cannot connect to server" );
 		return true;
 	}
 	
-	private static boolean isWorking = false;
+	public static void disconnect (){
+		if ( _Server == null )
+			return;
+
+		if ( _Server._clientSocket.isConnected() )
+			try {
+				_Server._inFromServer.close();
+				toServer.close();
+				_Server._clientSocket.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	}
 	
 	public static String sendData ( String data) {
 		String ans = "", line = "" ;
@@ -51,7 +65,7 @@ public class Server {
 		isWorking = true;
 		
 		try {
-	//		System.out.println("TCP Send: " + data );
+			Tools.LOGGER_DEBUG("TCP Send: " + data );
 
 			toServer.println( "<request>" + data + "</request>" );
 			
@@ -70,7 +84,7 @@ public class Server {
 				//System.out.println( "Ans: " + ans + "\n");
 				line = "";
 			}
-			System.out.println( "End data" );
+			Tools.LOGGER_DEBUG( "TCP get: " + ans );
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -80,4 +94,20 @@ public class Server {
 		isWorking = false;
 		return ans;
 	}
+
+	public static boolean verifyPassword( String data ){
+		if ( _Server == null )
+			return false;
+		
+		String r = sendData("<type>password</type><pass>" + data + "</pass>");
+		
+		String state = Tools.getValue(r, "state");
+		if ( state.trim().compareTo("1") == 0){
+			Tools.LOGGER_INFO("Password OK");
+			return true;
+		}
+		Tools.LOGGER_INFO("Password error");
+		return false;
+	}
+
 }
