@@ -5,11 +5,8 @@ import java.util.List;
 
 import communication.Tools;
 import dao.CardDAO;
-import dao.UserRecorderDAO;
 import dm.Card;
-import dm.Room;
 import dm.User;
-import dm.UserRecorder;
 
 public class CardDAOImpl implements CardDAO {
 
@@ -41,11 +38,15 @@ public class CardDAOImpl implements CardDAO {
 			if ( card.getNumberCard().compareTo(number) == 0 ){
 				int id = Integer.parseInt(idCard.trim());
 				card.setId(id);
-				if ( id == 0 )
+				if ( id == 0 ){
+					Tools.LOGGER_ERROR("Cannot create card");
 					return false;
+				}
+				Tools.LOGGER_INFO("Create card OK" );
 				return true;
 			}
 		}		
+		Tools.LOGGER_ERROR("Cannot create card");
 		return false;
 		
 	}
@@ -81,6 +82,31 @@ public class CardDAOImpl implements CardDAO {
 			 cards.add( card );
 		  }
 		return cards;
+	}
+
+	@Override
+	public boolean updateCard(Card card) {
+		String req = "<type>update_card><cards><card><idcard>" + card.getId() + "</idcard><iduser>" + card.getUser().getId() + "</iduser><card></cards>";
+		String res = communication.Server.sendData( req );
+		String[] lines = res.split(System.getProperty("line.separator"));
+		
+		String type = Tools.getValue( lines[0] ,"type");
+		if ( type.compareTo( "UPDATE_CARDS" ) != 0 )
+		  	return false;
+		
+		String id, success;
+		 for ( int i = 1; i < lines.length; i++ ){
+			 id 	= Tools.getValue( lines[i] ,"id");
+			 success = Tools.getValue( lines[i] ,"success");
+			 if ( id.compareTo(""+ card.getId()) == 0 ){
+				 if ( success.trim().compareTo("1") == 0 ){
+					 Tools.LOGGER_INFO("Update card ok");
+					 return true;
+				 }
+			 }
+		 }
+		 Tools.LOGGER_ERROR("Cannot update card" );
+		return false;
 	}
 
 }

@@ -52,11 +52,14 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 				continue;
 			
 			idUser 	= Tools.getValue( line ,"iduser");
-			if ( idUser.trim().compareTo("0") == 0 )
+			if ( idUser.trim().compareTo("0") == 0 ){
+				Tools.LOGGER_ERROR("Cannot create userRecorder");
 				return false;
+			}
 			
 			int id = Integer.parseInt(idUser.trim());
 			userRecorder.setId( id );
+			Tools.LOGGER_INFO("Create userRecorder OK");
 			return true;
 		}
 		return false;

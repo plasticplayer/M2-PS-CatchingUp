@@ -11,4 +11,7 @@ public interface CardDAO {
 	 */
 	public List<Card> getCardList();
 	
+	public boolean createCard ( Card card );
+	
+	public boolean updateCard ( Card card );
 }

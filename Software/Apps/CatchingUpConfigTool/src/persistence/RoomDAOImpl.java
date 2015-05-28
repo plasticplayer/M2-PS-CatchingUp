@@ -43,11 +43,14 @@ public class RoomDAOImpl implements RoomDAO {
 			if ( room.getName().compareTo(name) == 0 ){
 				int id = Integer.parseInt(idRoom.trim());
 				room.setId(id);
+				Tools.LOGGER_INFO("Create room OK");
 				return true;
 			}
 		}
+		Tools.LOGGER_ERROR("Cannot create room");
 		return false;
 	}
+	
 	public boolean updateRoom( Room room , boolean updateName, boolean updateDescription){
 		if (!updateName && !updateDescription )
 			return true;
@@ -73,9 +76,13 @@ public class RoomDAOImpl implements RoomDAO {
 			succes 	= Tools.getValue( line ,"succes");
 			 
 			if ( idRoom.trim().compareTo("" + room.getId()) != 0 ){
-				return (succes.trim().compareTo("1") == 0);
+				if (succes.trim().compareTo("1") == 0){
+					Tools.LOGGER_INFO("Update room OK");
+					return true;
+				}
 			}
 		}
+		Tools.LOGGER_ERROR("Cannot update room");
 		return false;
 	}
 	
