@@ -143,7 +143,7 @@ public class Configuration extends JFrame {
 			}
 		});*/
 		//String firstName, String lastName, String password, String email, Date dateBegin, Date dateEnd
-		String[] titreColonnes = { 
+		String[] titreColonnes = {"Identifiant", 
 				   "Prénom","Nom",
 				   "Email","Date de début","Date de fin"}; 
 		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
@@ -192,9 +192,9 @@ public class Configuration extends JFrame {
 		       
 		        int row = table.rowAtPoint(p);
 		        if (e.getClickCount() == 2) {
+		        	//TODO problem
 		            // your valueChanged overridden method 
-		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate((String)arrayUserRecorder[row][0],(String)arrayUserRecorder[row][1],(String)arrayUserRecorder[row][3],
-		        			(String)arrayUserRecorder[row][4],(String)arrayUserRecorder[row][5]);
+		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate((String)arrayUserRecorder[row][0]);
 		        	speakerUpdate.setVisible(true);
 		        }
 		    }
@@ -380,6 +380,7 @@ public class Configuration extends JFrame {
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
 		    ArrayList<String> row = new ArrayList<String>();
+		    row.add(""+datas.get(i).getId());
 		    row.add(datas.get(i).getFirstName());
 		    row.add(datas.get(i).getLastName());
 		   // row.add(datas.get(i).getPassword());

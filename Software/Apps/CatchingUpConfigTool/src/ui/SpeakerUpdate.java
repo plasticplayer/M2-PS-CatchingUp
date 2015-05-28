@@ -16,16 +16,23 @@ import java.awt.GridLayout;
 import javax.swing.SwingConstants;
 
 import java.awt.Component;
+import java.util.Date;
+import java.util.List;
+
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+
+import persistence.UserRecorderDAOImpl;
+import dao.UserRecorderDAO;
+import dm.UserRecorder;
 
 public class SpeakerUpdate extends JDialog {
 	private String firstName;
 	private String lastName;
 	private String password;
 	private String email;
-	private String dateBegin;
-	private String dateEnd;
+	private Date dateBegin;
+	private Date dateEnd;
 	
 
 	private final JPanel contentPanel = new JPanel();
@@ -40,14 +47,41 @@ public class SpeakerUpdate extends JDialog {
 	/**
 	 * Create the dialog.
 	 */
-	public SpeakerUpdate(String firstName, String lastName, String email, String dateBegin, String dateEnd) {
+	public SpeakerUpdate(String id) {
 		setTitle("Modification intervenant");
-		this.firstName = firstName;
-		this.lastName = lastName;
-		this.password = password;
-		this.email = email;
-		this.dateBegin = dateBegin;
-		this.dateEnd = dateEnd;
+		this.firstName = "N/A";
+		this.lastName = "N/A";
+		this.password = "N/A";
+		this.email = "N/A";
+		this.dateBegin = new Date();
+		this.dateEnd = new Date();
+		
+		try
+		{
+			int idSpeeker = Integer.parseInt(id);
+			UserRecorderDAO userRecorderDao= new UserRecorderDAOImpl();
+			List<UserRecorder> usersRecorder = userRecorderDao.getUserRecorderList();
+			for(UserRecorder user : usersRecorder)
+			{
+				if(user.getId() == idSpeeker)
+				{
+					this.firstName = user.getFirstName();
+					this.lastName = user.getLastName();
+					this.password = user.getPassword();
+					this.email = user.getEmail();
+					this.dateBegin = user.getDateBegin();
+					this.dateEnd = user.getDateBegin();
+					break;
+				}
+					
+			}
+			
+		}
+		catch(Exception e)
+		{
+			
+		}
+		
 		
 		setBounds(100, 100, 735, 491);
 		getContentPane().setLayout(new BorderLayout());
@@ -135,6 +169,7 @@ public class SpeakerUpdate extends JDialog {
 		dateBeginPanel.add(lblDateBegin, BorderLayout.NORTH);
 		calendar calBegin = new calendar();
 		dateBeginPanel.add(calBegin, BorderLayout.CENTER);
+		calBegin.setDate(1900+dateBegin.getYear(),dateBegin.getMonth()-1,dateBegin.getDate());
 		
 		JPanel dateEndPanel = new JPanel();
 		calendarGridLayout.add(dateEndPanel);
@@ -143,6 +178,9 @@ public class SpeakerUpdate extends JDialog {
 		JLabel lblDateEnd = new JLabel("Date de d\u00E9but :");
 		dateEndPanel.add(lblDateEnd, BorderLayout.NORTH);
 		calendar calEnd = new calendar();
+		calEnd.setDate(2010, 01, 12); //TODO Set Date
+		calEnd.setDate(1900+dateEnd.getYear(),dateEnd.getMonth()-1,dateEnd.getDate());
+		
 		dateEndPanel.add(calEnd);
 		{
 			JPanel endPanel = new JPanel();

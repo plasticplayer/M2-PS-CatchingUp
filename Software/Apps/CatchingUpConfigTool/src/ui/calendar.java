@@ -236,7 +236,10 @@ public class calendar extends JPanel {
     this.yy = yy;
     this.mm = mm; // starts at 0, like Date
     this.dd = dd;
+    
+    buildGUI();
     recompute();
+    setDayActive(dd);
   }
  
   /** Unset any previously highlighted day */
