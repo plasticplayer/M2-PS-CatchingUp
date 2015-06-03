@@ -56,10 +56,10 @@ void setup(void) {
   Serial.begin(9600);
   while (!Serial);
   while( Serial.read() != 'S')
-   {
-   debugPrintln(F("Debug Mode Active. Presser sur S pour demarrer le programme"));
-   delay(1000);
-   }
+  {
+    debugPrintln(F("Debug Mode Active. Presser sur S pour demarrer le programme"));
+    delay(1000);
+  }
   printf_begin();
 #endif
 
@@ -75,23 +75,14 @@ void setup(void) {
   nfc.SAMConfig();
 
   radio.begin();                          // Start up the radio
-  delay(5);
-  radio.setRetries(15,15);                // Max delay between retries & number of retries
-  delay(5);
-  radio.setChannel(RF_CHAN);
-  delay(5);
   radio.setAutoAck(1);                    // Ensure autoACK is enabled
-  delay(5);
+  radio.setChannel(RF_CHAN);
   radio.setCRCLength(RF_CRC);
-  delay(5);
+  radio.setRetries(15,15);                // Max delay between retries & number of retries
   radio.setDataRate(RF_BANDWITH);
-  delay(5);
   radio.enableDynamicPayloads();
-  delay(5);
   readEEPAdresses();
-  delay(5);
   changeNRFAdresses();
-delay(5);
 
   //#ifdef DEBUG_ON
   //radio.printDetails();                 // Dump the configuration of the rf unit for debugging
@@ -201,11 +192,11 @@ boolean sendMessage(MessageProtocol * mess)
 boolean newTagAvailable()
 {
   static uint8_t Olduid[] = { 
-    0, 0, 0, 0, 0, 0, 0                          }; 
+    0, 0, 0, 0, 0, 0, 0                            }; 
   boolean success = false;
   boolean bNew = false;
   uint8_t uid[] = { 
-    0, 0, 0, 0, 0, 0, 0                                                     };  // Buffer to store the returned UID
+    0, 0, 0, 0, 0, 0, 0                                                       };  // Buffer to store the returned UID
   uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
   //unsigned long start = millis();
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength,100);
@@ -318,6 +309,7 @@ void readEEPAdresses()
   }
 
 }
+
 
 
 
