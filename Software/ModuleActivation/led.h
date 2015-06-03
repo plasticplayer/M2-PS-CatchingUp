@@ -30,6 +30,7 @@ public:
 private:
   char pinLedR,pinLedV, speedR,speedV;
   unsigned long lastRunFast,lastRunSlow;              // Dernier appel
+  unsigned char lastStateFast,lastStateSlow;
 
 };
 #endif

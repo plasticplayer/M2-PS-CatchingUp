@@ -6,6 +6,7 @@ led::led(int pinR,int pinV){
   pinMode(pinV,OUTPUT);
   pinLedR = pinR;
   pinLedV = pinV;
+  
   init();
 }
 void led::init(){
@@ -15,6 +16,8 @@ void led::init(){
   speedV =0;
   digitalWrite(pinLedV,LOW);
   digitalWrite(pinLedR,LOW);
+  lastStateFast=0;
+  lastStateSlow=0;
 }
 void led::setFastR(){
   speedR = 2;
@@ -49,18 +52,20 @@ void led::run(){
   if( curr - lastRunFast >= SPEED_FAST)
   {
     lastRunFast += SPEED_FAST;
+     lastStateFast = !lastStateFast;
     if(speedR == 2)
-        digitalWrite(pinLedR,!digitalRead(pinLedR));
+        digitalWrite(pinLedR,lastStateFast);
     if(speedV == 2)
-        digitalWrite(pinLedV,!digitalRead(pinLedV));
+        digitalWrite(pinLedV,lastStateFast);
   }
   if( curr - lastRunSlow >= SPEED_SLOW)
   {
     lastRunSlow += SPEED_SLOW;
+    lastStateSlow = !lastStateSlow;
     if(speedR == 1)
-        digitalWrite(pinLedR,!digitalRead(pinLedR));
+        digitalWrite(pinLedR,lastStateSlow);
     if(speedV == 1)
-        digitalWrite(pinLedV,!digitalRead(pinLedV));
+        digitalWrite(pinLedV,lastStateSlow);
   } 
 }
   

@@ -86,12 +86,12 @@ void Programe::tick()
   }
   else if(connexionOk && error  ) // Erreur d'authentification 
   {
-    if(counter - millis() > 2000)
+    if( millis()  - counter > 5000)
     {
       error = false;
     }
     LED_V_OFF;
-    LED_R_BLINK;
+    LED_R_BLINK_F;
   }
   else if(connexionOk && recording) // On est en train d'enregistrer
   {
@@ -101,7 +101,7 @@ void Programe::tick()
   else if(!connexionOk) // Pas connecté ?
   {
     LED_V_OFF;
-    LED_R_BLINK_F;
+    LED_R_BLINK;
   }
   else // On est connecté, on est pas en erreur et pas en cours d'enregistrement
   {
