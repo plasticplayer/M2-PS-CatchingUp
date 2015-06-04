@@ -5,6 +5,7 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.UIManager;
 
+import communication.CardReader;
 import communication.Server;
 import communication.Tools;
 
@@ -15,7 +16,17 @@ public class Main {
 	 */
 	static UserLogin frame;
 	public static void main(String[] args) {
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+
+		    @Override
+		    public void run() {
+		       CardReader.close();
+		    }
+
+		});
+		
 	//new Server( "squadfree.net",1918);
+	new CardReader();
 	new Server( "192.168.43.90",1918);
 	Server.connect();
 	Tools.enableDebug = true;

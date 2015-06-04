@@ -1,6 +1,8 @@
 package ui;
 
 import java.awt.BorderLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -8,7 +10,17 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
 
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.Object;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.Servant;
+import org.omg.PortableServer.portable.Delegate;
+
+import com.sun.corba.se.impl.legacy.connection.USLPort;
+
+import communication.CardReader;
 import persistence.CardDAOImpl;
 import dm.Card;
 
@@ -16,12 +28,20 @@ import dm.Card;
 public class CardCreation extends JDialog {
 
 	private final JPanel contentPanel = new JPanel();
+	private static boolean isOpen = true;
 	private JTextField txtIdCard;
-
+	
 	/**
 	 * Create the dialog.
 	 */
 	public CardCreation() {
+		addWindowListener( new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				isOpen = false;
+				super.windowClosing(e);
+			}
+		});
 		setTitle("Ajout d'une carte");
 		
 		setBounds(100, 100, 335, 191);
@@ -57,10 +77,29 @@ public class CardCreation extends JDialog {
 		txtIdCard.setEditable(false);
 		txtIdCard.setColumns(10);
 		
-		/**
-		 // Ajout d une carte
-		 Card c = new Card("number",null);
-		 CardDAOImpl._instance.createCard(c);
-		 */
+		Thread t1 = new Thread(new Runnable() {
+		     public void run() {
+		          waitCard();
+		     }
+		});  
+		t1.start();
+		CardReader.newValue = false;
+	}
+	
+	
+	public void waitCard()  {
+		CardReader.openPort();
+			while ( isOpen && !CardReader.newValue ){
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			//CardReader.close();
+			CardReader.newValue = false;
+			if ( isOpen )
+				txtIdCard.setText(CardReader.s);	
 	}
 }
