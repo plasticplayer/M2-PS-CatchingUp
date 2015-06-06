@@ -6,7 +6,7 @@ import javax.swing.JPopupMenu;
 public class PopUp extends JPopupMenu{
 	JMenuItem anItem;
     public PopUp(){
-        anItem = new JMenuItem("Click Me!");
-        add(anItem);
+        anItem = new JMenuItem("");
+     //   add(anItem);
     }
 }

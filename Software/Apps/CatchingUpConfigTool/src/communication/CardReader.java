@@ -1,5 +1,6 @@
 package communication;
 
+import java.math.BigInteger;
 import java.util.*;
 
 import jssc.SerialPort;
@@ -41,10 +42,13 @@ public class CardReader {
 					@Override
 					public void serialEvent(SerialPortEvent arg0) {
 						try {
-							s = reader.serial.readHexString();
+							s = reader.serial.readHexString().replace(" ","");
 							
-							if ( s.replace(" " , "").length() != 14 )
+							if ( s.length() != 14 )
 								return;
+							s = "" + new BigInteger( s, 16);
+							
+							//s = "" + Integer.parseInt("0x" + s );
 							Tools.LOGGER_INFO( "Serial read: " + s );
 							newValue = true;
 						} catch (SerialPortException e) {

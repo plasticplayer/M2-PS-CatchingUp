@@ -152,7 +152,7 @@ public class SpeakerUpdate extends JDialog {
 		final calendar calBegin = new calendar();
 		dateBeginPanel.add(calBegin, BorderLayout.CENTER);
 		//calBegin.setDate(1900+dateBegin.getYear(),dateBegin.getMonth()-1,dateBegin.getDate());
-		calBegin.setDate(dateBegin.getYear(), dateBegin.getMonth() -1, dateBegin.getDate() );
+		calBegin.setDate(dateBegin.getYear(), dateBegin.getMonth(), dateBegin.getDate() );
 		
 		JPanel dateEndPanel = new JPanel();
 		calendarGridLayout.add(dateEndPanel);
@@ -161,9 +161,8 @@ public class SpeakerUpdate extends JDialog {
 		JLabel lblDateEnd = new JLabel("Date de d\u00E9but :");
 		dateEndPanel.add(lblDateEnd, BorderLayout.NORTH);
 		final calendar calEnd = new calendar();
-		//calEnd.setDate(2010, 01, 12); //TODO Set Date
 		//calEnd.setDate(1900+dateEnd.getYear(),dateEnd.getMonth()-1,dateEnd.getDate());
-		calEnd.setDate(dateEnd.getYear(), dateEnd.getMonth() -1, dateEnd.getDate() );
+		calEnd.setDate(dateEnd.getYear(), dateEnd.getMonth(), dateEnd.getDate() );
 		
 		dateEndPanel.add(calEnd);
 		{
@@ -255,7 +254,6 @@ public class SpeakerUpdate extends JDialog {
 									newCard.setUser(userUpdated);
 									CardDAOImpl._instance.updateCard(newCard);
 								}
-								
 							}
 						}
 					}

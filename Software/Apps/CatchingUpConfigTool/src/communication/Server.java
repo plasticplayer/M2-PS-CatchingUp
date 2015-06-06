@@ -3,6 +3,8 @@ package communication;
 import java.io.*;
 import java.net.*;
 
+import ui.MessageBox;
+
 public class Server {
 	public static Server _Server = null;
 	private static boolean isWorking = false;
@@ -20,6 +22,17 @@ public class Server {
 		_host = host;
 		_Server = this;
 	}
+	public static void setIp( String ip ){
+		if ( _Server == null )
+			new Server ( ip, 1918);
+		else
+			_Server._host = ip;
+	}
+	
+	public static void setPort ( int port ){
+		if ( _Server != null )
+			_Server._port = port;
+	}
 	
 	public static boolean connect(){
 		if ( _Server == null )
@@ -33,14 +46,15 @@ public class Server {
 			return true;
 			
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			//return false;
 		} catch (IOException e) {
-			e.printStackTrace();
+		//	e.printStackTrace();
 			//return false;
 		}
+		new MessageBox( "Connexion impossible au server").setVisible(true);
 		Tools.LOGGER_ERROR( "Cannot connect to server" );
-		return true;
+		return false;
 	}
 	
 	public static void disconnect (){

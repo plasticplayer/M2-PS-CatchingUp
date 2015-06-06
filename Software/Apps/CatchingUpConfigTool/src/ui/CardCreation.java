@@ -23,10 +23,12 @@ import com.sun.corba.se.impl.legacy.connection.USLPort;
 import communication.CardReader;
 import persistence.CardDAOImpl;
 import dm.Card;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 @SuppressWarnings("serial")
 public class CardCreation extends JDialog {
-
+	
 	private final JPanel contentPanel = new JPanel();
 	private static boolean isOpen = true;
 	private JTextField txtIdCard;
@@ -51,6 +53,17 @@ public class CardCreation extends JDialog {
 		getContentPane().add(panel, BorderLayout.SOUTH);
 		
 		JButton btnOk = new JButton("OK");
+		btnOk.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if ( txtIdCard.getText().isEmpty() )
+					return;
+				
+				Card c = new Card(txtIdCard.getText().replace(" " , ""),null);
+				if ( CardDAOImpl._instance.createCard(c) )
+					 dispose();
+				
+			}
+		});
 		panel.add(btnOk);
 		
 		JButton btnAnnulation = new JButton("Annuler");

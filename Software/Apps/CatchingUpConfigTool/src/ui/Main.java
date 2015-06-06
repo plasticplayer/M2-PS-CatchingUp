@@ -24,11 +24,8 @@ public class Main {
 		    }
 
 		});
-		
-	//new Server( "squadfree.net",1918);
 	new CardReader();
-	new Server( "192.168.43.90",1918);
-	Server.connect();
+	
 	Tools.enableDebug = true;
 	
 		try {
@@ -47,10 +44,4 @@ public class Main {
 			}
 		});
 	}
-	
-	/* Configuration config = new Configuration();
-	 config.setVisible(true);
-	 frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));*/
-
-
 }

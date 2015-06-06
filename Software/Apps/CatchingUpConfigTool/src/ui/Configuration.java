@@ -106,7 +106,7 @@ public class Configuration extends JFrame {
 		);
 		
 		JPanel cameraManagementPanel = new JPanel();
-		tabbedPane.addTab("Calibrage caméra", null, cameraManagementPanel, null);
+		tabbedPane.addTab("Calibrage camï¿½ra", null, cameraManagementPanel, null);
 		
 		JPanel speakersManagementPanel = new JPanel();
 		tabbedPane.addTab("Gestion des intervenants", null, speakersManagementPanel, null);
@@ -124,7 +124,7 @@ public class Configuration extends JFrame {
 				      Color.yellow, Boolean.FALSE}, 
 				   {"Gin", "Oasis", "standard", 
 				      Color.blue, Boolean.FALSE},
-				   {"Gin", "boomerang", "compétition", 
+				   {"Gin", "boomerang", "compï¿½tition", 
 				      Color.green, Boolean.TRUE},
 				   {"Advance", "Omega", "performance", 
 				      Color.cyan, Boolean.TRUE}, 
@@ -144,8 +144,8 @@ public class Configuration extends JFrame {
 		});*/
 		//String firstName, String lastName, String password, String email, Date dateBegin, Date dateEnd
 		String[] titreColonnes = {"Identifiant", 
-				   "Prénom","Nom",
-				   "Email","Date de début","Date de fin"}; 
+				   "Prï¿½nom","Nom",
+				   "Email","Date de dï¿½but","Date de fin"}; 
 		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
 		Model m = new Model(arrayUserRecorder,titreColonnes);
 		
@@ -192,7 +192,9 @@ public class Configuration extends JFrame {
 		       
 		        int row = table.rowAtPoint(p);
 		        if (e.getClickCount() == 2) {
-		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate( userRecorder.get(row) );
+		        	UserRecorder r = userRecorder.get(row);
+		        	
+		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate( r );
 		        	speakerUpdate.setVisible(true);
 		        }
 		    }
@@ -255,7 +257,7 @@ public class Configuration extends JFrame {
 		CardDAO cardDao= new CardDAOImpl();
 		List<Card> card = cardDao.getCardList();
 		String[] cardColumnTitle = { 
-				   "marque","modele","homologation"}; 
+				   "Id","modele","Utilisateur"}; 
 		Model mCard = new Model(toArrayCard(card),cardColumnTitle);
 		tableCards = new JTable(mCard);
 	//	JTableHeader headerCard = tableCards.getTableHeader();
