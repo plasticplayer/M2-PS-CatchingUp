@@ -35,8 +35,6 @@ public class RoomCreation extends JDialog {
 	 * Create the dialog.
 	 */
 	public RoomCreation() {
-		this.name = name;
-		this.description = description;
 		setTitle("Creation salle");
 		setBounds(100, 100, 450, 300);
 		getContentPane().setLayout(new BorderLayout());
@@ -79,8 +77,13 @@ public class RoomCreation extends JDialog {
 			JPanel buttonPanel = new JPanel();
 			getContentPane().add(buttonPanel, BorderLayout.SOUTH);
 			{
-				cancelButton = new JButton("Cancel");
-				cancelButton.setActionCommand("Cancel");
+				cancelButton = new JButton("Annuler");
+				cancelButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						dispose();
+					}
+				});
+				cancelButton.setActionCommand("Annuler");
 			}
 			{
 				okButton = new JButton("OK");

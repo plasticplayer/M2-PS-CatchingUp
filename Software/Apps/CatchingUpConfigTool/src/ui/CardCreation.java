@@ -64,10 +64,16 @@ public class CardCreation extends JDialog {
 				
 			}
 		});
-		panel.add(btnOk);
+		
 		
 		JButton btnAnnulation = new JButton("Annuler");
+		btnAnnulation.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				dispose();
+			}
+		});
 		panel.add(btnAnnulation);
+		panel.add(btnOk);
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
 		contentPanel.setLayout(new BorderLayout(0, 0));
@@ -101,7 +107,10 @@ public class CardCreation extends JDialog {
 	
 	
 	public void waitCard()  {
-		CardReader.openPort();
+		if ( CardReader.openPort() == false ){
+			txtIdCard.setEditable(true);
+			return;
+		}
 			while ( isOpen && !CardReader.newValue ){
 				try {
 					Thread.sleep(100);

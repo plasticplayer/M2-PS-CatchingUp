@@ -55,28 +55,6 @@ public class Configuration extends JFrame {
 	private JTable tableCards;
 	private JTable tableModuls;
 	private JTable tableClassrooms;
-	//public 
-
-	/*/**
-	 * Launch the application.
-	 */
-	/*public static void main(String[] args) {
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					Configuration frame = new Configuration();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}*/
 
 	/**
 	 * Create the frame.
@@ -113,39 +91,12 @@ public class Configuration extends JFrame {
 		
 		UserRecorderDAO userRecorderDao= new UserRecorderDAOImpl();
 		final List<UserRecorder> userRecorder = userRecorderDao.getUserRecorderList();
-		//UserRecorder test [] = (UserRecorder[])(userRecorder.toArray());
 		
 		
-		
-		/*Object[][] donnees = {  
-				   {"Swing", "Astral", "standard", 
-				      Color.red, Boolean.TRUE}, 
-				   {"Swing", "Mistral", "standard", 
-				      Color.yellow, Boolean.FALSE}, 
-				   {"Gin", "Oasis", "standard", 
-				      Color.blue, Boolean.FALSE},
-				   {"Gin", "boomerang", "comp�tition", 
-				      Color.green, Boolean.TRUE},
-				   {"Advance", "Omega", "performance", 
-				      Color.cyan, Boolean.TRUE}, 
-				} ;
-				String[] titreColonnes = { 
-				   "marque","modele","homologation",
-				   "couleur","ok",}; 
-				Model m = new Model(donnees,titreColonnes);
-				tableSpeakers = new JTable(m);
-			
-			/*boolean[] columnEditables = new boolean[] {
-				false, false, false, false, false
-			};
-			public boolean isCellEditable(int row, int column) {
-				return columnEditables[column];
-			}
-		});*/
-		//String firstName, String lastName, String password, String email, Date dateBegin, Date dateEnd
 		String[] titreColonnes = {"Identifiant", 
 				   "Pr�nom","Nom",
 				   "Email","Date de d�but","Date de fin"}; 
+		
 		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
 		Model m = new Model(arrayUserRecorder,titreColonnes);
 		
@@ -185,7 +136,7 @@ public class Configuration extends JFrame {
 		JTableHeader header = tableSpeakers.getTableHeader();
 		speakersManagementPanel.setLayout(gl_speakersManagementPanel);
 		tableSpeakers.addMouseListener(new MouseAdapter() {
-		    boolean itemClicked=false;
+		    boolean itemClicked = false;
 		    public void mouseClicked(MouseEvent e) {
 		        JTable table =(JTable) e.getSource();
 		        Point p = e.getPoint();

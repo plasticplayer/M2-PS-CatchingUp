@@ -3,6 +3,7 @@ package communication;
 import java.math.BigInteger;
 import java.util.*;
 
+import ui.MessageBox;
 import jssc.SerialPort;
 import jssc.SerialPortEvent;
 import jssc.SerialPortEventListener;
@@ -16,19 +17,26 @@ public class CardReader {
 	private SerialPort serial = null;
 	
 	public CardReader (){
+		reader = this;
 		String[] a = SerialPortList.getPortNames();
+		if ( a.length == 0 ){
+			Tools.LOGGER_INFO("No SerialPort detected");
+			return;
+		}
+		
 		String s = "Serial ports detected: ";
 		for ( String b : a ){
 			s += b + ",";
 		}
 		Tools.LOGGER_INFO(s.substring(0, s.length()-1));
-		reader = this;
-		openPort();
 	}
 
-	public static void openPort(){
+	public static boolean openPort(){
+		if ( reader == null )
+			new CardReader();
+		
 		if ( reader.serial != null )
-			return;
+			return ( reader.serial.isOpened() );
 		
 		String[] a = SerialPortList.getPortNames();
 		if ( a.length != 0 ){
@@ -58,11 +66,15 @@ public class CardReader {
 						
 					}
 				});
+				return true;
 			}
 			catch ( SerialPortException e){
 				Tools.LOGGER_ERROR(e.toString());
+			
 			}
 		}
+		new MessageBox("Erreur de connexion au lecteur").setVisible(true);;
+		return false;
 	}
 	
 	@Override

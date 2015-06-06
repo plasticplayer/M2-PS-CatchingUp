@@ -80,8 +80,13 @@ public class RoomUpdate extends JDialog {
 			JPanel buttonPanel = new JPanel();
 			getContentPane().add(buttonPanel, BorderLayout.SOUTH);
 			{
-				cancelButton = new JButton("Cancel");
-				cancelButton.setActionCommand("Cancel");
+				cancelButton = new JButton("Annuler");
+				cancelButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						dispose();
+					}
+				});
+				cancelButton.setActionCommand("Annuler");
 			}
 			{
 				okButton = new JButton("OK");
@@ -116,8 +121,8 @@ public class RoomUpdate extends JDialog {
 			gl_buttonPanel.setVerticalGroup(
 				gl_buttonPanel.createParallelGroup(Alignment.LEADING)
 					.addGroup(gl_buttonPanel.createParallelGroup(Alignment.BASELINE)
-						.addComponent(cancelButton)
-						.addComponent(okButton))
+						.addComponent(okButton)
+						.addComponent(cancelButton))
 			);
 			buttonPanel.setLayout(gl_buttonPanel);
 		}

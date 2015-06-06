@@ -3,6 +3,7 @@ package persistence;
 import java.util.ArrayList;
 import java.util.List;
 
+import ui.MessageBox;
 import communication.Tools;
 import dao.RoomDAO;
 import dm.Room;
@@ -48,6 +49,7 @@ public class RoomDAOImpl implements RoomDAO {
 				return true;
 			}
 		}
+		new MessageBox("Erreur de création de la salle").setVisible(true);
 		Tools.LOGGER_ERROR("Cannot create room");
 		return false;
 	}
@@ -83,6 +85,7 @@ public class RoomDAOImpl implements RoomDAO {
 				}
 			}
 		}
+		new MessageBox("Erreur de mise à jour de la salle").setVisible(true);
 		Tools.LOGGER_ERROR("Cannot update room");
 		return false;
 	}

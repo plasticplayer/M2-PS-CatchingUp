@@ -3,6 +3,7 @@ package persistence;
 import java.util.ArrayList;
 import java.util.List;
 
+import ui.MessageBox;
 import communication.Tools;
 import dao.CardDAO;
 import dm.Card;
@@ -65,6 +66,7 @@ public class CardDAOImpl implements CardDAO {
 				int id = Integer.parseInt(idCard.trim());
 				card.setId(id);
 				if ( id == 0 ){
+					new MessageBox("Création de la carte impossible").setVisible(true);
 					Tools.LOGGER_ERROR("Cannot create card");
 					return false;
 				}
@@ -72,7 +74,7 @@ public class CardDAOImpl implements CardDAO {
 				return true;
 			}
 		}		
-		Tools.LOGGER_ERROR("Cannot create card");
+		new MessageBox("Erreur lors de la création de la carte").setVisible(true);
 		return false;
 		
 	}
@@ -136,7 +138,8 @@ public class CardDAOImpl implements CardDAO {
 				 }
 			 }
 		 }
-		 Tools.LOGGER_ERROR("Cannot update card" );
+		new MessageBox("Erreur lors de la mise à jour").setVisible(true);
+		Tools.LOGGER_ERROR("Cannot update card" );
 		return false;
 	}
 
