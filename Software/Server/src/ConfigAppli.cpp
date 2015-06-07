@@ -15,6 +15,7 @@ using namespace std;
 int ConfigAppli::client_sock;
 int ConfigAppli::_Port;
 int ConfigAppli::_Socket;
+bool ConfigAppli::_Connected = false;
 char* ConfigAppli::_DataBuffer = NULL;
 struct sockaddr_in ConfigAppli::_server , ConfigAppli::_client;
 pthread_t ConfigAppli::_ThreadListenner;
@@ -26,10 +27,10 @@ inline string prepareString ( string req ){
 }
 
 string getValue ( string req, string id, int* err  ){
-//	LOGGER_VERB("getValue: " << req << " search " << id );
+	//	LOGGER_VERB("getValue: " << req << " search " << id );
 	int start = req.find( SSTR("<" << id << ">") ) ,
-	stop = req.find( SSTR("</" << id << ">") );
-//	cout << "start: " << start << " stop " << stop << endl;
+	    stop = req.find( SSTR("</" << id << ">") );
+	//	cout << "start: " << start << " stop " << stop << endl;
 	if ( start != -1  && stop != -1 ){
 		*err = 1;
 		return req.substr( start + 2 + id.length()  , stop - start - 2 - id.length() );
@@ -39,9 +40,9 @@ string getValue ( string req, string id, int* err  ){
 
 }
 string getValue ( string req, string id, int* err , int* pos ){
-//	LOGGER_VERB("getValue: " << req );
+	//	LOGGER_VERB("getValue: " << req );
 	int start = req.find( SSTR("<" << id << ">"), *pos ) ,
-	stop = req.find( SSTR("</" << id << ">") , *pos );
+	    stop = req.find( SSTR("</" << id << ">") , *pos );
 	//cout << "Pos " << *pos << " Start: " << start << " Stop: " << stop << endl;
 	if ( start != -1  && stop != -1 ){
 		*err = 1;
@@ -120,7 +121,7 @@ void* ConfigAppli::run( void* d){
 			if ( ok == 0 )
 				continue;
 			decodeRequest( (char*) line.c_str() );
-			
+
 			memset( client_message, 0, read_size);
 		}
 		LOGGER_VERB("Appli Config disconnected");
@@ -135,8 +136,8 @@ void ConfigAppli::verifPassword( string data ){
 	string pass = getValue ( data, "pass", &ok );
 	if ( ok == 0 )
 		return;
-
-	string res = SSTR( "<type>PASSWORD</type><state>" << ( pass.compare(CurrentApplicationConfig.AdminPassword) == 0 ) << "</state>" << endl );
+	_Connected = (pass.compare(CurrentApplicationConfig.AdminPassword) == 0);
+	string res = SSTR( "<type>PASSWORD</type><state>" << _Connected  << "</state>" << endl );
 	sendData( res );
 }
 
@@ -153,10 +154,15 @@ void ConfigAppli::decodeRequest ( char *req ){
 		LOGGER_ERROR("TCP Config Format error");
 		return;
 	}
-	
+
 	if ( type.compare("password" ) == 0 )
 		verifPassword( req );
-	
+	else if ( !_Connected ){
+		LOGGER_ERROR ( "ConfigAppli request ignored : Not Connected");
+		return;
+	}
+
+
 	else if ( type.compare( "get_image" ) == 0 )
 		getImageFromRecorder ( req );	
 
@@ -179,36 +185,36 @@ void ConfigAppli::decodeRequest ( char *req ){
 	/// Create
 	else if ( type.compare( "create_rooms" ) == 0 )
 		createRooms( req );
-	
+
 	else if (  type.compare( "create_userrecorder" ) == 0 )
 		createUsersRecorder( req );
-		
+
 	else if (  type.compare( "create_userwebsite" ) == 0 )
 		createUsersWebSite( req );
-		
+
 	else if (  type.compare( "create_cards" ) == 0 )
 		createCards ( req );	
-	
+
 	else if (  type.compare( "create_recorders" ) == 0 )
 		createRecorders ( req );	
-		
-	
+
+
 	/// Updates
 	else if (  type.compare( "update_rooms" ) == 0 )
 		updateRooms ( req );
-		
+
 	else if (  type.compare( "update_userswebsite" ) == 0 )
 		updateUsersWebSite ( req );
-		
+
 	else if (  type.compare( "update_usersrecorders" ) == 0 )
 		updateUsersRecorder ( req );
-		
+
 	else if (  type.compare( "update_cards" ) == 0 )
 		updateCards ( req );
-	
+
 	else if (  type.compare( "parring_recorders" ) == 0 )
 		parringRecorder ( req );	
-	
+
 	else
 		cout << type << endl;
 } 
@@ -242,14 +248,15 @@ void ConfigAppli::getRooms(){
 
 	string sRes = "<type>GET_ROOMS</type><rooms>";
 	uint64_t idRoom ;
-	string roomName, description;
+	string roomName, description, idRecorder;
 
 	while ( res->Next() ){
 		idRoom   	= strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
 		roomName  	= res->GetCurrentRow()->GetField(2);
-		description = res->GetCurrentRow()->GetField(3);
+		description 	= res->GetCurrentRow()->GetField(3);
+		idRecorder	= res->GetCurrentRow()->GetField(4);		
 
-		sRes = SSTR( 	sRes << endl << "<room><id>" << idRoom << "</id><roomname>" << roomName << "</roomname><description>" << description << "</description></room>");
+		sRes = SSTR( 	sRes << endl << "<room><id>" << idRoom << "</id><roomname>" << roomName << "</roomname><description>" << description << "</description><idRec>" << idRecorder << "</idRec> </room>");
 	}
 	sendData ( SSTR( sRes << "</rooms>" << endl) );
 }
@@ -282,8 +289,8 @@ void ConfigAppli::getRecorders(){
 		sRes = SSTR ( 	sRes << endl << "<recorder><id>" << idRec  << "</id><status>" << status << "</status><mac>" 
 				<< mac << "</mac><ip>" << ip << "</ip><idCModule>" << idCModule << "</idCModule><idRModule>" << idRModule << "</idRModule><roomid>" 
 				<< idRoom << "</roomid><roomname>" << roomName << "</roomname>" );
-		
-		 
+
+
 		if ( status.compare("CONNECTED") == 0 )
 			sRes = SSTR( sRes <<"<filesinqueue>" << rec->filesInWait << "</filesinqueue><isRecording>" << rec->isRecording() << "</isRecording></recorder>");
 		else
@@ -360,14 +367,14 @@ void ConfigAppli::createRooms( string req ){
 		line = getValue( req, (string) "room", &ok, &pos);
 		if ( ok == 0 )
 			break;
-			
+
 		roomName = getValue(line,(string)"name", &ok );
 		if ( ok == 0 ) continue;
 		roomDescription = getValue(line,(string) "description", &ok);
-	
+
 		roomName = prepareString(roomName);
 		roomDescription = prepareString(roomDescription);
-		
+
 		idRoom = Mysql::createRoom ( roomName, roomDescription );
 		sRes = SSTR ( sRes << endl << "<room><idRoom>" << idRoom << "</idRoom><roomname>" << roomName << "</roomname></room>");
 	}
@@ -387,13 +394,13 @@ void ConfigAppli::createRecorders( string req ){
 
 		addressMac = prepareString(getValue(line,(string)"mac", &ok ));
 		if ( ok == 0 ) continue;
-		
+
 		sidRoom = getValue(line,(string)"idroom", &ok );
 		idRoom = strtoull( sidRoom.c_str(), NULL, 0 );
 		if ( ok == 0 || idRoom == 0 ) continue;
 
 		idRecorder = Mysql::createRecorder( idRoom, addressMac, &idCmod, &idRmod );
-		sRes = SSTR ( sRes << endl << "<recorder><idrecorder>" << idRecorder << "</idrecorder><mac>" << addressMac << "</mac></recorder>");
+		sRes = SSTR ( sRes << endl << "<recorder><idrecorder>" << idRecorder << "</idrecorder><mac>" << addressMac << "</mac><idRModule>" << idRmod << "</idRModule><idCModule>" << idCmod << "</idCModule></recorder>");
 	}
 	sendData ( SSTR( sRes << "</recorders>" << endl ) );
 }
@@ -408,19 +415,19 @@ void ConfigAppli::createUsersWebSite( string req ){
 		line = getValue( req, (string) "user",&ok, &pos);
 		if ( ok == 0 )
 			break;
-			
+
 		firstName = prepareString(getValue(line,(string)"fistname", &ok ));
 		if ( ok == 0 ) continue;
-		
+
 		lastName = prepareString(getValue(line,(string)"lastname", &ok ));
 		if ( ok == 0 ) continue;
-		
+
 		password = prepareString(getValue(line,(string)"password", &ok ));
 		if ( ok == 0 ) continue;
-		
+
 		email = prepareString(getValue(line,(string)"email", &ok ));
 		if ( ok == 0 ) continue;
-		
+
 		DateRegistration = getValue(line,(string)"dateregistration", &ok );
 		if ( ok == 0 ) continue;
 
@@ -441,9 +448,9 @@ void ConfigAppli::createUsersRecorder( string req ){
 		cout << "Req:" << req << endl;
 		line = getValue(req, (string) "user", &ok, &pos );
 		if ( ok == 0 ) break;
-		
+
 		cout << "PAPA: " << line << endl;
-			
+
 		firstName = prepareString(getValue(line,(string)"firstname", &ok ));
 		if ( ok == 0 ){
 			LOGGER_WARN("Miss: firstname ");
@@ -460,7 +467,7 @@ void ConfigAppli::createUsersRecorder( string req ){
 			LOGGER_WARN("Miss: password ");
 			continue;
 		}
-		
+
 		email = prepareString(getValue(line,(string)"email", &ok ));
 		if ( ok == 0 ) {	
 			LOGGER_WARN("Miss: email ");
@@ -471,7 +478,7 @@ void ConfigAppli::createUsersRecorder( string req ){
 			LOGGER_WARN("Miss: begin ");
 			continue;
 		}
-	
+
 		dateEnd = getValue(line,(string)"dateend", &ok );
 		if ( ok == 0 ){
 			LOGGER_WARN("Miss: end ");
@@ -494,12 +501,12 @@ void ConfigAppli::createCards( string req ){
 	while ( true ){
 		line = getValue( req, (string) "card",&ok, &pos);
 		if ( ok == 0 ) break;
-		
+
 		snumber = prepareString(getValue(line,(string)"number", &ok ));
 		if ( ok == 0 ) continue;
-		
+
 		sidUser = getValue(line,(string)"iduser", &ok );
-	
+
 		idUser = strtoull( sidUser.c_str(), NULL, 0);
 		idCard = Mysql::createCard ( snumber , idUser );
 		sRes = SSTR ( sRes << endl << "<card><idcard>" <<  idCard << "</idcard><number>" << snumber << "</number></card>");
@@ -519,13 +526,13 @@ void ConfigAppli::updateRooms( string req ){
 	while ( true  ){
 		line = getValue( req, (string) "room", &ok, &pos);
 		if ( ok == 0 ) break;
-		
+
 		id = getValue(line,(string)"id", &ok );
 		idRoom = strtoull( id.c_str() , NULL, 0 );
 		if ( ok == 0 || idRoom == 0 ) continue;
-		
+
 		roomName = prepareString(getValue(line,(string)"name", &Ename ));
-		
+
 		roomDescription = prepareString(getValue(line,(string) "description", &Edescription));
 
 		verif = Mysql::updateRoom ( idRoom , (Ename == 1), roomName, ( Edescription == 1), roomDescription );
@@ -540,16 +547,16 @@ void ConfigAppli::updateUsersWebSite( string req ){
 	bool verif;
 	uint64_t idUser;
 	int ok = 0, pos = 0, eFName = 0, eLName = 0, ePwd = 0, eMail = 0;
-	
+
 	while ( true ){
 		line = getValue( req, (string ) "user", &ok, &pos);
 		if ( ok == 0 )
 			break;
-			
+
 		id = getValue(line,(string)"id", &ok );
 		idUser = strtoull( id.c_str() , NULL, 0 );
 		if ( ok == 0 || idUser == 0 ) continue;
-		
+
 		fName = prepareString(getValue(line,(string)"firstname", &eFName ));
 		lName = prepareString(getValue(line,(string)"lastname" , &eLName ));
 		pwd   = prepareString(getValue(line,(string)"password" , &ePwd   ));
@@ -567,15 +574,15 @@ void ConfigAppli::updateUsersRecorder( string req ){
 	bool verif;
 	uint64_t idUser;
 	int ok = 0, pos = 0, eFName = 0, eLName = 0, ePwd = 0, eMail = 0, eBegin = 0, eEnd = 0;
-	
+
 	while ( true ){
 		line = getValue( req, (string) "user", &ok, &pos);
 		if ( ok == 0 ) break;
-		
+
 		id = getValue(line,(string)"id", &ok );
 		idUser = strtoull( id.c_str() , NULL, 0 );
 		if ( ok == 0 || idUser == 0 ) continue;
-		
+
 		fName = prepareString(getValue(line,(string)"firstname", &eFName ));
 		lName = prepareString(getValue(line,(string)"lastname", &eLName ));
 		pwd   = prepareString(getValue(line,(string)"password", &ePwd   ));
@@ -585,7 +592,7 @@ void ConfigAppli::updateUsersRecorder( string req ){
 
 		verif  = Mysql::updateUserTable ( idUser, ( eFName == 1 ), fName, ( eLName == 1) , lName, ( ePwd == 1 ), pwd, ( eMail == 1) , email );
 		verif |= Mysql::updateUserRecorderTable ( idUser, ( eBegin == 1) , dateBegin, ( eEnd == 1) , dateEnd );
-		
+
 		sRes = SSTR ( sRes << endl << "<user><iduser>" << idUser << "</iduser><success>" << verif << "</success></user>");
 	}
 	sendData ( SSTR(sRes << "</usersrecorder>" << endl) );
@@ -597,17 +604,17 @@ void ConfigAppli::updateCards( string req ){
 	int ok = 0, pos = 0;
 	uint64_t idUser = 0, idCard;
 	bool verif;
-	
+
 	while ( true ){
 		line = getValue ( req , (string) "card", &ok, &pos);
 		if ( ok == 0) break;
-		
+
 		sidCard = getValue(line,(string)"idcard", &ok );
 		if ( ok == 0 ) continue;
-		
+
 		sidUser = getValue(line,(string)"iduser", &ok );
 		if ( ok == 0 ) continue; 
-		
+
 		idUser = strtoull( sidUser.c_str(), NULL, 0);
 		idCard = strtoull( sidCard.c_str(), NULL, 0);
 
@@ -623,20 +630,20 @@ void ConfigAppli::updateRecorders( string req ){
 	uint64_t idRoom, idRecorder;
 	int ok = 0,pos = 0;
 	bool succes;
-	
+
 	while ( true ){
 		line = getValue( req, (string) "recorder",&ok,&pos );
 		if ( ok == 0 )
 			break;
-			
+
 		sIdRecorder = getValue(line,(string)"idrecorder", &ok );
 		idRecorder = strtoull ( sIdRecorder.c_str(), NULL, 0);
 		if ( ok == 0 || idRecorder == 0) continue;
-		
+
 		sidRoom = getValue(line,(string)"idroom", &ok );
 		idRoom = strtoull( sidRoom.c_str(), NULL, 0 );
 		if ( ok == 0 || idRoom == 0 ) continue;
-		
+
 		succes = Mysql::updateRecorder ( idRecorder , idRoom );
 		sRes = SSTR ( sRes << endl << "<recorder><idrecorder>" << idRecorder << "</idrecorder><success>" << succes << "</success></recorder>");
 	}
@@ -673,23 +680,50 @@ void ConfigAppli::getImageFromRecorder ( string req ){
 	cout << "get Image " << endl;
 	int ok, pos = 0;
 	uint64_t idRecorder;
-
+	const int sizeUpload = 512;
 	string line, sidRecorder;
 	while ( true ){
 		line = getValue ( req, ( string ) "image", &ok, &pos );
 		if ( ok == 0 )
 			break;
-		 
+
 		sidRecorder = getValue ( line, (string)"idrecorder",&ok);
 		idRecorder = strtoull ( sidRecorder.c_str(), NULL, 0);
 		if ( idRecorder == 0 || ok == 0 ) continue;
 
 		Recorder *rec = Recorder::getRecorderById ( idRecorder );
 		if ( rec != NULL ){
-			cout << "Image" << endl;
 			char *data = NULL;
 			int size = 0; 
-			rec->getImage( data, &size );
+			if ( rec->getImage( data, &size) ){
+				ifstream file ( SSTR( sidRecorder << ".jpg" ) , ios::in|ios::binary|ios::ate);
+				if (file.is_open())
+				{
+					streampos size;
+					char * memblock;	
+					size = file.tellg();
+					memblock = new char [size];
+					file.seekg (0, ios::beg);
+					file.read (memblock, size);
+					file.close();
+
+					int partNo = size / sizeUpload;
+					int lastSize = size % sizeUpload;
+					cout << "PartNo: " << partNo << endl; 
+					for ( int i = 0; i <= partNo ; i++ ){
+					
+						if ( i == partNo){
+							if ( lastSize != 0 )
+								LOGGER_VERB( "i:" << i << " " << send( client_sock , &memblock[i*sizeUpload] , lastSize ,0));
+						}
+						else {
+							LOGGER_VERB( "i:" << i << " " << send( client_sock , &memblock[i*sizeUpload], sizeUpload ,0));
+						}
+					}
+					delete[] memblock;
+				}
+
+			}
 		}
 	}	
 }

@@ -26,7 +26,8 @@ void gen_random(char *s, const int len) {
 }
 /****************  Constructor  ****************/ 
 Recorder::Recorder ( Udp *udp, char* ip ){
-	// Init Variable
+	// Init Variables	
+	this->_Image = NULL;
 	this->_StatutRasp = 0x00;
 	this->_StatutArd  = 0x00;
 	this->_IdRecorder = 0;
@@ -164,7 +165,7 @@ bool Recorder::getImage ( char* image, int* size ){
 	_stateGetImage = WORKING;
 	SRV_TO_REC_askVisuImage( 0x01 );
 	while ( _stateGetImage == WORKING ) usleep(10000);
-
+	
 	return ( _stateGetImage == PASS );
 }
 
@@ -351,11 +352,12 @@ void Recorder::REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, vo
 	if ( l.size() == 0 ) {
 		LOGGER_DEBUG("Image completly Recieve");
 		// Y a toute l'image
-		ofstream myFile ("img.jpg", ios::out | ios::binary);
+		ofstream myFile (SSTR ( rec->_IdRecorder << ".jpg"), ios::out | ios::binary);
 		for (int i =0; i < rec->_SizeImage ;i++){
 			myFile.write (rec->_Image[i], rec->_ImageParts[ i ] );
 		}
 		myFile.close();
+		rec->_stateGetImage = PASS;
 	}
 
 

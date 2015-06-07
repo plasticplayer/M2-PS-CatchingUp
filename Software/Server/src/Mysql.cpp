@@ -248,10 +248,9 @@ Result* Mysql::getUsers(){
 
 Result* Mysql::getRooms(){
 	string req = SSTR (
-			"SELECT " << _RoomTable.id.value << "," << _RoomTable.roomName.value << "," << _RoomTable.description.value
-			<< " FROM " << _RoomTable.name << ";"
+			"SELECT DISTINCT ro." << _RoomTable.id.value << "," << _RoomTable.roomName.value << "," << _RoomTable.description.value << ", IFNULL(" << _RecorderTable.idRecorder.value
+			<< ",0) FROM " << _RoomTable.name << " ro LEFT OUTER JOIN " << _RecorderTable.name << " re  on re." << _RecorderTable.idRoom.value << "=ro."  << _RoomTable.id.value  << ";"
 	);
-
 	return _DataBase->_Connection->Query(( char* ) req.c_str() );
 }
 

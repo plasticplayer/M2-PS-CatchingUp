@@ -53,6 +53,7 @@ class ConfigAppli{
 		static int _Port;
 		static int _Socket;
 		static int client_sock;
+		static bool _Connected;
 		static struct sockaddr_in _server , _client;
 		static pthread_t _ThreadListenner;
 	protected:
