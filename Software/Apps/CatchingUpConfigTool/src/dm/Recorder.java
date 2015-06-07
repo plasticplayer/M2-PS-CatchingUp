@@ -17,7 +17,23 @@ public class Recorder {
 		this.recordingModule = recordingModule;		
 	}
 	
-	
+	@Override
+	public String toString() {
+		switch( status ){
+		case CONNECTED:
+			if ( isRecording )
+				return "En enregistrement";
+			else if ( filesInQueue != 0 )
+				return "Envoie fichier (" + filesInQueue + ")";
+			return "Connecté";
+			
+		case UNCONNECTED:
+			return "Non connecté";
+		case UNASSOCIATED:
+			return "Non associé";
+		}
+		return "";
+	};
 	
 	public void setStatus ( RecorderStatus state ){
 		this.status = state;

@@ -11,6 +11,8 @@ import dm.Room;
 public class RoomDAOImpl implements RoomDAO {
 
 	public static List<Room> _rooms = new ArrayList<Room>();
+	public static List<Room> _freeRooms = new ArrayList<Room>();
+	
 	public static RoomDAOImpl _instance = new RoomDAOImpl();
 	
 	@Override
@@ -93,6 +95,7 @@ public class RoomDAOImpl implements RoomDAO {
 	@Override
 	public List<Room> getRoomList() {
 		_rooms = new ArrayList<Room>();
+		_freeRooms = new ArrayList<Room>();
 		
 		String res = communication.Server.sendData("<type>need_rooms</type>");
 		String[] lines = res.split(System.getProperty("line.separator"));
@@ -102,11 +105,12 @@ public class RoomDAOImpl implements RoomDAO {
 		  	return null;
 	  
 		  Room room;
-		  String id, name, description;
+		  String id, name, description, idRecorder;
 		  for ( int i = 1; i < lines.length; i++ ){
 			 id 	= Tools.getValue( lines[i] ,"id");
 			 name 	= Tools.getValue( lines[i] ,"roomname");
 			 description = Tools.getValue( lines[i] ,"description");
+			 idRecorder = Tools.getValue(lines[i], "idRec");
 			 
 			 if ( id == "" || name == "")
 				 continue;
@@ -115,6 +119,9 @@ public class RoomDAOImpl implements RoomDAO {
 			 room = new Room(name,description);
 			 room.setId(idRoom);
 			 _rooms.add(room);
+			 
+			 if ( idRecorder.compareTo("0") == 0 )
+				 _freeRooms.add(room);
 		  }
 		return _rooms;
 	}

@@ -6,10 +6,10 @@ import java.net.*;
 import ui.MessageBox;
 
 public class Server {
-	public static Server _Server = null;
+	public static Server _Server = new Server( "127.0.0.1",1918);
 	private static boolean isWorking = false;
 	private Socket _clientSocket = null; 
-	private BufferedReader _inFromServer;
+	private BufferedReader _inFromServer = null;
 	private String _host = "";
 	private int _port = 1918;
 	
@@ -60,12 +60,14 @@ public class Server {
 	public static void disconnect (){
 		if ( _Server == null )
 			return;
-
+		Tools.LOGGER_INFO("Try disconnection");
+		
 		if ( _Server._clientSocket.isConnected() )
 			try {
 				_Server._inFromServer.close();
 				toServer.close();
 				_Server._clientSocket.close();
+				Tools.LOGGER_DEBUG("Server disconnection");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -73,12 +75,28 @@ public class Server {
 	}
 	
 	public static String sendData ( String data) {
+		if ( _Server == null ){
+			Tools.LOGGER_ERROR("Server is null");
+			return "";
+		}
+		else if ( _Server._inFromServer == null ){
+			Tools.LOGGER_ERROR("_inFromServer is null");
+			return "";
+		}
 		String ans = "", line = "" ;
 
 		while ( isWorking );
 		isWorking = true;
 		
 		try {
+			_Server._inFromServer.reset();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			//e1.printStackTrace();
+		}
+		
+		try {
+			
 			Tools.LOGGER_DEBUG("TCP Send: " + data );
 
 			toServer.println( "<request>" + data + "</request>" );

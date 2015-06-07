@@ -1,14 +1,9 @@
 package ui;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.EventQueue;
-
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JTextField;
-import javax.swing.UIManager;
 import javax.swing.JButton;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
@@ -16,13 +11,8 @@ import javax.swing.JLabel;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import communication.Server;
-import persistence.UserDAOImpl;
-import dao.UserDAO;
-import dm.User;
-
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-import java.awt.event.WindowEvent;
 import java.text.ParseException;
 
 public class UserLogin extends JFrame {
@@ -32,7 +22,7 @@ public class UserLogin extends JFrame {
 	 * Launch the application.
 	 */
 	static UserLogin frame;
-	public static void main(String[] args) {
+/*	public static void main(String[] args) {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Throwable e) {
@@ -48,13 +38,14 @@ public class UserLogin extends JFrame {
 				}
 			}
 		});
-	}
+	}*/
 
 	/**
 	 * Create the frame.
 	 */
 	@SuppressWarnings("deprecation")
 	public UserLogin() {
+		frame = this;
 		setResizable(false);
 		setTitle("Authentification");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -92,6 +83,7 @@ public class UserLogin extends JFrame {
 						try {
 							new Configuration().setVisible(true);
 							frame.dispose();
+							return;
 						}
 						catch (ParseException e) {}
 					}

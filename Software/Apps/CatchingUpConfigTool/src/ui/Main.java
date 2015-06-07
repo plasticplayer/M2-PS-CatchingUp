@@ -10,24 +10,23 @@ import communication.Server;
 import communication.Tools;
 
 public class Main {
-	
+
 	/**
 	 * Launch the application.
 	 */
 	static UserLogin frame;
 	public static void main(String[] args) {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
-
-		    @Override
-		    public void run() {
-		       CardReader.close();
-		    }
+			@Override
+			public void run() {
+				CardReader.close();
+			}
 
 		});
-	new CardReader();
-	
-	Tools.enableDebug = true;
-	
+		new CardReader();
+
+	//	Tools.enableDebug = true;
+
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Throwable e) {

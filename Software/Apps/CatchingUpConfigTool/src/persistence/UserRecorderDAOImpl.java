@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import ui.MessageBox;
 import communication.Tools;
 import dao.UserRecorderDAO;
 import dm.UserRecorder;
@@ -59,7 +60,7 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 				}
 			}
 		}
-			
+		new MessageBox("Erreur de la mise à jour de l'intervenant").setVisible(true);
 		Tools.LOGGER_ERROR("Cannot update userRecorder");
 		return false;
 	}
@@ -99,6 +100,7 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 			
 			idUser 	= Tools.getValue( line ,"iduser");
 			if ( idUser.trim().compareTo("0") == 0 ){
+				new MessageBox("Erreur de le création de l'intervenant").setVisible(true);
 				Tools.LOGGER_ERROR("Cannot create userRecorder");
 				return false;
 			}

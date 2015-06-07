@@ -19,8 +19,6 @@ import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Date;
-import java.util.List;
-
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
@@ -65,7 +63,7 @@ public class SpeakerUpdate extends JDialog {
 		
 		
 		
-		setBounds(100, 100, 735, 491);
+		setBounds(100, 100, 735, 527);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
@@ -193,10 +191,15 @@ public class SpeakerUpdate extends JDialog {
 			JPanel buttonPanel = new JPanel();
 			endPanel.add(buttonPanel);
 			{
-				cancelButton = new JButton("Cancel");
+				cancelButton = new JButton("Annuler");
+				cancelButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						dispose();
+					}
+				});
 				buttonPanel.add(cancelButton);
 				cancelButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-				cancelButton.setActionCommand("Cancel");
+				cancelButton.setActionCommand("Annuler");
 			}
 			{
 				okButton = new JButton("OK");
@@ -204,6 +207,7 @@ public class SpeakerUpdate extends JDialog {
 				okButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 				okButton.setActionCommand("OK");
 				okButton.addActionListener(new ActionListener() {
+					@SuppressWarnings("deprecation")
 					public void actionPerformed(ActionEvent arg0) {
 						if ( passwordFieldPassword.getText().compareTo(passwordFieldConfirmPassword.getText()) != 0 ||
 								txtBoxEmail.getText().isEmpty() || txtBoxFirstname.getText().isEmpty() || txtBoxLastname.getText().isEmpty() )
@@ -231,11 +235,6 @@ public class SpeakerUpdate extends JDialog {
 							userUpdated.setDateBegin(deb);
 						if ( updateEndDate )
 							userUpdated.setDateEnd(end);
-						
-						
-						/*UserRecorder user = new UserRecorder(txtBoxFirstname.getText(), txtBoxLastname.getText(),
-								passwordFieldPassword.getText(), txtBoxEmail.getText(), calBegin.getDate(),calEnd.getDate() );*/
-
 						
 						UserRecorderDAO dao = UserRecorderDAOImpl._instance;
 						if ( dao.updateUserRecorder(userUpdated, updateFn, updateLn, updateMail, updatePassword, updateBeginDate, updateEndDate) ){

@@ -1,14 +1,9 @@
 package persistence;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.imageio.ImageIO;
-
+import ui.MessageBox;
 import communication.Tools;
 import dao.RecorderDAO;
 import dm.ConnectingModule;
@@ -18,8 +13,9 @@ import dm.RecordingModule;
 import dm.Room;
 
 public class RecorderDAOImpl implements RecorderDAO {
-
-	private static List<Recorder> _recorders = new ArrayList<Recorder>();
+	public static List<Recorder> _recorders = new ArrayList<Recorder>();
+	public static List<Recorder> _unconnectedRecorders = new ArrayList<Recorder>();
+	
 	public static RecorderDAOImpl _instance = new RecorderDAOImpl();
 	
 	public boolean createRecorder ( Recorder rec ){
@@ -51,6 +47,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 				int idCMod = Integer.parseInt(idCModule.trim());
 				
 				if ( idR == 0 || idRMod == 0 || idCMod == 0 ){
+					new MessageBox("Erreur de création de enregistrer").setVisible(true);
 					Tools.LOGGER_ERROR( "Cannot create Recorder");
 					return false;
 				}
@@ -67,6 +64,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 				return true;
 			}
 		}
+		new MessageBox("Erreur de création de enregistrer").setVisible(true);
 		Tools.LOGGER_ERROR( "Cannot create Recorder");
 		return false;
 	}
@@ -99,13 +97,11 @@ public class RecorderDAOImpl implements RecorderDAO {
 					return true;
 				}
 				else{
+					new MessageBox("Echec de l'appairage").setVisible(true);
 					Tools.LOGGER_ERROR( "Cannot parring recorder");
 					return false;
 				}
-				
 			}
-			 
-			
 		}
 		return false;
 	}
@@ -122,6 +118,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 	@Override
 	public List<Recorder> getRecorderList() {
 		_recorders = new ArrayList<Recorder>();
+		_unconnectedRecorders = new ArrayList<Recorder>();
 		
 		String res = communication.Server.sendData("<type>need_recorders</type>");
 		String[] lines = res.split(System.getProperty("line.separator"));
@@ -157,13 +154,11 @@ public class RecorderDAOImpl implements RecorderDAO {
 				 recorder.setId(Integer.parseInt(id.trim()));
 				 
 				 if ( status.compareTo("CONNECTED") == 0 ){
-					 filesinqueue = Tools.getValue( lines[i] ,"roomid");
-					 isRecording = Tools.getValue( lines[i] ,"roomid");
+					 filesinqueue = Tools.getValue( lines[i] ,"filesinqueue");
+					 isRecording = Tools.getValue( lines[i] ,"isRecording");
 					 recorder.setRecording( ( isRecording.compareTo("1") == 0) );
 					 recorder.setFilesInQueue( Integer.parseInt(filesinqueue.trim() ));
 					 recorder.setStatus(RecorderStatus.CONNECTED);
-					 //getImage(recorder);
-					// parringRecorder(recorder);
 				 }
 				 else 
 					 recorder.setStatus(RecorderStatus.UNCONNECTED);
@@ -173,28 +168,27 @@ public class RecorderDAOImpl implements RecorderDAO {
 			 }
 			 else if ( status.compareTo("UNASSOCIATED") == 0){
 				 recordingModule = new RecordingModule(mac, "0");
-				 recorder = new Recorder(null, null, recordingModule);
+				 
+				 recorder = new Recorder( new ConnectingModule(0), null, recordingModule);
 				 recorder.setStatus(RecorderStatus.UNASSOCIATED);
 				 
-				 _recorders.add(recorder);
+				 _unconnectedRecorders.add(recorder);
 			 }
 		  }
 		return _recorders;
 	}
 
-	public boolean getImage( Recorder rec ){
-		/*
+	public String getImage( Recorder rec ){
 		String req = "<type>get_image</type><image><idrecorder>" + rec.getId() + "</idrecorder></image>";
 		
-		String res = communication.Server.sendData(req);
+		return communication.Server.sendData(req);
 		//String[] lines = res.split(System.getProperty("line.separator"));
-		try {
+		/*try {
 			ImageIO.read( new ByteArrayInputStream(res.getBytes()));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			Tools.LOGGER_ERROR("Image Failed" + e.toString() );
-		}*/
-		return false;
+		}
+		return "";*/
 	}
 	
 	@Override

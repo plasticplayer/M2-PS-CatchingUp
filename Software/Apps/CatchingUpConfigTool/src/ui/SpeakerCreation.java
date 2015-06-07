@@ -54,9 +54,9 @@ public class SpeakerCreation extends JDialog {
 	 * Create the dialog.
 	 */
 	public SpeakerCreation() {
-		setTitle("Création intervenant");
+		setTitle("Crï¿½ation intervenant");
 		
-		setBounds(100, 100, 735, 491);
+		setBounds(100, 100, 735, 553);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
@@ -175,10 +175,15 @@ public class SpeakerCreation extends JDialog {
 			JPanel buttonPanel = new JPanel();
 			endPanel.add(buttonPanel);
 			{
-				cancelButton = new JButton("Cancel");
+				cancelButton = new JButton("Annuler");
+				cancelButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						dispose();
+					}
+				});
 				buttonPanel.add(cancelButton);
 				cancelButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-				cancelButton.setActionCommand("Cancel");
+				cancelButton.setActionCommand("Annuler");
 			}
 			{
 				okButton = new JButton("OK");
@@ -210,21 +215,5 @@ public class SpeakerCreation extends JDialog {
 				getRootPane().setDefaultButton(okButton);
 			}
 		}
-		
-		/*
-		JLabel lblDateBegin = new JLabel("Date de d\u00E9but :");
-		rightContentPanel.add(lblDateBegin);
-		txtBoxDateBegin = new JTextField(dateBegin);
-		txtBoxDateBegin.setHorizontalAlignment(SwingConstants.CENTER);
-		rightContentPanel.add(txtBoxDateBegin);
-		txtBoxDateBegin.setColumns(10);
-		
-		JLabel lblDateEnd = new JLabel("Date de fin :");
-		lblDateEnd.setHorizontalAlignment(SwingConstants.CENTER);
-		rightContentPanel.add(lblDateEnd);
-		txtBoxDateEnd = new JTextField(dateEnd);
-		txtBoxDateEnd.setHorizontalAlignment(SwingConstants.CENTER);
-		rightContentPanel.add(txtBoxDateEnd);
-		txtBoxDateEnd.setColumns(10);*/
 	}
 }

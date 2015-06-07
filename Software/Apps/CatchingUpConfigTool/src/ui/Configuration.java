@@ -1,31 +1,20 @@
 package ui;
 
-import java.awt.BorderLayout;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
-import java.awt.Color;
-import java.awt.EventQueue;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
 import javax.swing.table.JTableHeader;
-import javax.swing.UIManager;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
-import javax.swing.JToggleButton;
 import javax.swing.JTabbedPane;
-import javax.swing.JList;
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
-import javax.swing.table.DefaultTableModel;
 
 import persistence.CardDAOImpl;
 import persistence.RecorderDAOImpl;
@@ -36,10 +25,8 @@ import dao.RecorderDAO;
 import dao.RoomDAO;
 import dao.UserRecorderDAO;
 import dm.Card;
-import dm.ConnectingModule;
 import dm.Recorder;
 import dm.Room;
-import dm.User;
 import dm.UserRecorder;
 
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -83,8 +70,8 @@ public class Configuration extends JFrame {
 					.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 436, GroupLayout.PREFERRED_SIZE))
 		);
 		
-		JPanel cameraManagementPanel = new JPanel();
-		tabbedPane.addTab("Calibrage cam�ra", null, cameraManagementPanel, null);
+		/*JPanel cameraManagementPanel = new JPanel();
+		tabbedPane.addTab("Calibrage cam�ra", null, cameraManagementPanel, null);*/
 		
 		JPanel speakersManagementPanel = new JPanel();
 		tabbedPane.addTab("Gestion des intervenants", null, speakersManagementPanel, null);
@@ -133,10 +120,8 @@ public class Configuration extends JFrame {
 		);
 		tableSpeakers = new JTable(m);
 		scrollPaneUser.setViewportView(tableSpeakers);
-		JTableHeader header = tableSpeakers.getTableHeader();
 		speakersManagementPanel.setLayout(gl_speakersManagementPanel);
 		tableSpeakers.addMouseListener(new MouseAdapter() {
-		    boolean itemClicked = false;
 		    public void mouseClicked(MouseEvent e) {
 		        JTable table =(JTable) e.getSource();
 		        Point p = e.getPoint();
@@ -283,8 +268,7 @@ public class Configuration extends JFrame {
 		JButton btnCard = new JButton("Nouvel enregistreur");
 		btnCard.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				CardCreation spCreationCard = new CardCreation();
-				spCreationCard.show();
+				new RecorderCreation().setVisible(true);
 			}
 		});
 		GroupLayout gl_recordersManagementPanel = new GroupLayout(recordersManagementPanel);
@@ -309,24 +293,27 @@ public class Configuration extends JFrame {
 					.addGap(39))
 		);
 		
-		RecorderDAO connectingModuleDao= new RecorderDAOImpl();
+		RecorderDAO connectingModuleDao = new RecorderDAOImpl();
 		List<Recorder> recorders = connectingModuleDao.getRecorderList();
-		String[] connectingModuleColumnTitle = { 
-				   "enregistreur","activateur"}; 
+		String[] connectingModuleColumnTitle = { "Id Enregistreur","Id Activateur", "Salle", "Statut" }; 
 		Model mModul = new Model(toArrayModuls(recorders),connectingModuleColumnTitle);
 		tableModuls = new JTable(mModul);
-	//	JTableHeader headermModule = tableModuls.getTableHeader();
+		
+		tableModuls.addMouseListener(new MouseAdapter() {
+		    public void mouseClicked(MouseEvent e) {
+		        JTable table =(JTable) e.getSource();
+		        Point p = e.getPoint();
+		        int row = table.rowAtPoint(p);
+		        if (e.getClickCount() == 2) {
+		           Recorder rec =  RecorderDAOImpl._instance._recorders.get(row);
+		           if ( rec != null )
+		        	   new Parring(rec);
+		        }
+		    }
+		});
 	
 		scrollPane_enregistreurs.setViewportView(tableModuls);
 		recordersManagementPanel.setLayout(gl_recordersManagementPanel);
-		 
-		
-		/*JPanel recordersManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des enregisteurs", null, recordersManagementPanel, null);
-		
-		JScrollPane scrollPane_3 = new JScrollPane();
-		recordersManagementPanel.add(scrollPane_3);
-		contentPane.setLayout(gl_contentPane);*/
 	}
 	
 	private Object[][] toArrayUserRecorder(List<UserRecorder> datas){
@@ -380,6 +367,8 @@ public class Configuration extends JFrame {
 		    ArrayList<String> row = new ArrayList<String>();
 		    row.add(recorders.get(i).getRecordingModule().getIdNetwork()+"");
 		    row.add(recorders.get(i).getConnectingModule().getIdNetworkRecording()+"");
+		    row.add(recorders.get(i).getRoom().getName() );
+		    row.add( recorders.get(i).toString() );
 		    array[i] = row.toArray(new String[row.size()]);
 		}
 		return array;
