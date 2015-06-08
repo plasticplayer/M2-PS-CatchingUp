@@ -143,7 +143,8 @@ void ConfigAppli::verifPassword( string data ){
 
 bool ConfigAppli::sendData( string data ){
 	//cout << data << endl;
-	LOGGER_DEBUG("AppliConfig Send: " << send( client_sock , (char*)data.c_str() , data.length() ,0) );
+	int res = send( client_sock , (char*)data.c_str() , data.length() ,0);
+	LOGGER_DEBUG("AppliConfig Send: " <<  res);
 	return true;
 }
 
@@ -696,7 +697,8 @@ void ConfigAppli::getImageFromRecorder ( string req ){
 			char *data = NULL;
 			int size = 0; 
 			if ( rec->getImage( data, &size) ){
-				ifstream file ( SSTR( sidRecorder << ".jpg" ) , ios::in|ios::binary|ios::ate);
+				system(SSTR("convert -resize 50% "<< sidRecorder <<".jpg " << sidRecorder <<"r.jpg").c_str());// resize image to 25%
+				ifstream file ( SSTR( sidRecorder << "r.jpg" ) , ios::in|ios::binary|ios::ate);
 				if (file.is_open())
 				{
 					streampos size;
@@ -710,16 +712,28 @@ void ConfigAppli::getImageFromRecorder ( string req ){
 					int partNo = size / sizeUpload;
 					int lastSize = size % sizeUpload;
 					cout << "PartNo: " << partNo << endl; 
+					char sizes[] = {
+						((char)((size) & 0xFF)),
+						((char)((size>>8) & 0xFF)),
+						((char)((size>>16) & 0xFF)),
+						((char)((size>>24) & 0xFF))
+					};
+					LOGGER_VERB("Size image sent : "<< size);
+					//LOGGER_VERB("["<<(unsigned int)sizes[0]<< ","<<(unsigned int)sizes[1]<<","<<(unsigned int)sizes[2]<<","<<(unsigned int)sizes[3]<<"]"); 				
+					send(client_sock,sizes,4,0);
 					for ( int i = 0; i <= partNo ; i++ ){
 					
 						if ( i == partNo){
 							if ( lastSize != 0 )
-								LOGGER_VERB( "i:" << i << " " << send( client_sock , &memblock[i*sizeUpload] , lastSize ,0));
+								send( client_sock , &memblock[i*sizeUpload] , lastSize ,0);
 						}
 						else {
-							LOGGER_VERB( "i:" << i << " " << send( client_sock , &memblock[i*sizeUpload], sizeUpload ,0));
+							send( client_sock , &memblock[i*sizeUpload], sizeUpload ,0);
 						}
 					}
+					char * newLine = "\r\n";
+					send(client_sock,newLine,sizeof(newLine),0);
+					LOGGER_VERB("Image Sent to configuration aplication");
 					delete[] memblock;
 				}
 
