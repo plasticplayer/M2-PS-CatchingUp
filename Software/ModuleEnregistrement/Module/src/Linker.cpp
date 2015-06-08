@@ -79,8 +79,8 @@ uint64_t addressGenerate[] = { 0x012345,0x123456  };
 
 
 // Image
-char* _ImageContent = NULL;
-uint16_t _ImageParts = 0, _ImageSize = 0;
+unsigned char* _ImageContent = NULL;
+int _ImageParts = 0, _ImageSize = 0;
 // Recording
 Recording *_CurrentRecording = NULL;
 uint64_t _IdUserRecorder = 0x00;

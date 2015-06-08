@@ -8,11 +8,12 @@ struct _cameraConfiguration
 	unsigned int width;
 	unsigned int height;
 	unsigned int delayMs;
-
+	bool vflip;
+	bool hflip;
 };
 struct _webcamConfiguration
 {
-    string device;
+  	string device;
 	unsigned int width;
 	unsigned int height;
 	unsigned int fps;

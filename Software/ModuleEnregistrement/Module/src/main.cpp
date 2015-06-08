@@ -35,6 +35,8 @@
 #define INI_CAMERA_RES_WIDTH        "WIDTH"
 #define INI_CAMERA_RES_HEIGHT       "HEIGHT"
 #define INI_CAMERA_DELAY_MSEC       "DELAYMS"
+#define INI_CAMERA_HFLIP	    "HFLIP"
+#define INI_CAMERA_VFLIP	    "VFLIP"
 
 #define INI_WEBCAM_SECTION          "WEBCAM"
 #define INI_WEBCAM_RES_WIDTH        "WIDTH"
@@ -312,9 +314,9 @@ int main(int argc, char * argv[])
 		LOGGER_DEBUG("Sound OK");
 
     LOGGER_INFO("Program started !");
-//#ifdef ENABLE_CAMERA
-//	    forceStartRecording();
-//#endif
+#ifdef DEBUG_IMAGE
+	forceStartRecording();
+#endif
 	while ( char c = getchar() )
 	{
 		switch ( c )
@@ -377,6 +379,12 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_DELAY_MSEC,"10000");
 	conf.camera.delayMs = strtoull(s.c_str(), NULL, 10);
 
+	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_VFLIP,"0");
+	conf.camera.vflip = (strtoull(s.c_str(), NULL, 10) == 1);
+	
+	s = reader.Get(INI_CAMERA_SECTION,INI_CAMERA_HFLIP,"0");
+	conf.camera.hflip = (strtoull(s.c_str(), NULL, 10) == 1);
+	
 
 	s = reader.Get(INI_WEBCAM_SECTION,INI_WEBCAM_DEVICE,"/dev/video0");
 	conf.webcam.device = s;
@@ -407,6 +415,7 @@ bool loadConfigFromIniFile(applicationConfiguration& conf)
 	LOGGER_CONFIG("-------------    CAMERA CONFIGURATION    -----------------");
 	LOGGER_CONFIG("RESOLUTION          : \t ["<< conf.camera.width << " x "<< conf.camera.height << "]");
 	LOGGER_CONFIG("DELAY (mS)          : \t "<< conf.camera.delayMs );
+	LOGGER_CONFIG("FLIP (H / V)        : \t "<< conf.camera.hflip << " / " <<conf.camera.vflip);
 	LOGGER_CONFIG("-------------    WEBCAM CONFIGURATION    -----------------");
 	LOGGER_CONFIG("DEVICE              : \t "<< conf.webcam.device );
 	LOGGER_CONFIG("RESOLUTION          : \t ["<< conf.webcam.width << " x "<< conf.webcam.height << "]");
@@ -482,6 +491,8 @@ bool startCAM(applicationConfiguration& conf)
 	state.verbose = 0;
 	state.width = conf.camera.width;                          /// Requested width of image
 	state.height = conf.camera.height;                         /// requested height of image
+	state.camera_parameters.vflip = conf.camera.vflip;
+	state.camera_parameters.hflip = conf.camera.hflip;
 	state.preview_parameters.wantPreview=0;
 
 	StillCamera * cam = new StillCamera(state);
@@ -515,8 +526,7 @@ bool startWebCam(applicationConfiguration& conf)
 		Webcam * cam = new Webcam(conf.webcam.device,conf.webcam.width, conf.webcam.height,conf.webcam.fps);
 		cam->setSplitTime(conf.webcam.split);
 		resultTest = cam->testWebcam();
-		cam->initImageRef();
-		//cam->startRecording(CurrentApplicationConfig.Data_path);
+	//	cam->initImageRef();
 	}
 
 

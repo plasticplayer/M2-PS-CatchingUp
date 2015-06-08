@@ -19,6 +19,7 @@ unsigned char servoPanID = 0;
 unsigned char servoTiltId = 1;
 
 unsigned char listPanServo[NB_IMAGE_REF] = {200,210,220,230,240};
+//unsigned char listPanServo[NB_IMAGE_REF] = {190,205,220,235,250};
 unsigned char * listImages[NB_IMAGE_REF];
 unsigned char indexRef = 2;
 pthread_t * _TreadTrack = NULL;
@@ -31,7 +32,7 @@ void * track_thread(void * d);
 void initImageRefs()
 {
 	Webcam * cam = Webcam::getWebcam();
-	//(cam->initCamera())
+	if(cam->initCamera())
 	{
 		unsigned int height = cam->getHeight();
 		unsigned int width = cam->getWidth();
@@ -39,11 +40,11 @@ void initImageRefs()
 		for(unsigned int currentIndex = 0; currentIndex < NB_IMAGE_REF ; currentIndex++)
 		{
 			setCameraPan(listPanServo[currentIndex]);
+			
 			usleep(1000000); // 1s
-			cam->initCamera();
+			while(cam->imageAvailable()); // Flush the buffer
 			unsigned char * imageData = new unsigned char[height * width * 3];
 			cam->grabImage(imageData,&sizeImage);
-			cam->deInitCamera();
 			LOGGER_VERB("Capturing Image : " << currentIndex );
 			listImages[currentIndex] = imageData; // Copy pointer to data
 			//Mat i(width,height,3,imageData);
@@ -52,13 +53,14 @@ void initImageRefs()
 		diff = *(new Mat(width,height,3));
 		_frameInterThread = *(new Mat(width,height,3));
 	}
+	else
+	  LOGGER_WARN("Cannot init camera for setting imageRef");
 	indexRef = 2;
+	cam->deInitCamera();
 	setCameraPan(listPanServo[indexRef]);
 	#ifdef DEBUG_IMAGE
 		cvNamedWindow("DISP", CV_WINDOW_NORMAL);
 	#endif
-	/*else
-	  LOGGER_WARN("Cannot init camera for setting imageRef");*/
 
 }
 void setCameraPan(unsigned char step)
@@ -172,11 +174,12 @@ void * track_thread(void * d)
 			}
 
 			// Soustraction des images
-			pixOutput[indexB] = max(0,((int)pixReference[indexB] - (int)pixFrame[indexB]));
-			pixOutput[indexR] = max(0,((int)pixReference[indexR] - (int)pixFrame[indexR]));
-			pixOutput[indexG] = max(0,((int)pixReference[indexG] - (int)pixFrame[indexG]));
+			/*pixOutput[indexB] = abs(((int)pixReference[indexB] - (int)pixFrame[indexB]));
+			pixOutput[indexR] = abs(((int)pixReference[indexR] - (int)pixFrame[indexR]));
+			pixOutput[indexG] = abs(((int)pixReference[indexG] - (int)pixFrame[indexG]));
+*/
 
-			/*tmpSigned = (((int)pixReference[indexB]) - ((int)pixFrame[indexB]));
+			  tmpSigned = (((int)pixReference[indexB]) - ((int)pixFrame[indexB]));
 			  if(tmpSigned < 0)
 			  pixOutput[indexB] = -tmpSigned;
 			  else
@@ -193,9 +196,11 @@ void * track_thread(void * d)
 			  pixOutput[indexG] = -tmpSigned;
 			  else
 			  pixOutput[indexG] = tmpSigned;
-			 */
+			
 			// conversion de RGB vers Niveau De Gris
 			// Ici R = B 
+
+
 #ifndef TRUE_RGB
 			tmpData = (pixOutput[indexR]*77)+(pixOutput[indexG]*151)+(pixOutput[indexB]*28);
 #else
@@ -367,14 +372,23 @@ void * track_thread(void * d)
 					//pixOutput[indexB+2] = 0;
 
 				}
-				else if((posX == tabEtiquettes[indexMaxEti].minX || posX == tabEtiquettes[indexMaxEti].maxX ) || (
-							posY == tabEtiquettes[indexMaxEti].minY || posY == tabEtiquettes[indexMaxEti].maxY))
+				else if(
+					(
+						(posX == tabEtiquettes[indexMaxEti].minX || posX == tabEtiquettes[indexMaxEti].maxX) && 
+						(posY >= tabEtiquettes[indexMaxEti].minY && posY <= tabEtiquettes[indexMaxEti].maxY)
+					) 
+					|| 
+					(
+						(posX >= tabEtiquettes[indexMaxEti].minX && posX <= tabEtiquettes[indexMaxEti].maxX) && 
+						(posY == tabEtiquettes[indexMaxEti].minY || posY == tabEtiquettes[indexMaxEti].maxY)
+					)
+				)
 				{
 					pixOutput[indexB] = 0;
 					pixOutput[indexB+1] = 0;
 					pixOutput[indexB+2] = 255;
 				}
-				else if((posX < tabEtiquettes[indexMaxEti].minX -10  || posX > tabEtiquettes[indexMaxEti].maxX +10) /* ^
+				else if((posX < tabEtiquettes[indexMaxEti].minX || posX > tabEtiquettes[indexMaxEti].maxX ) /* ^
 																       (posY < tabEtiquettes[indexMaxEti].minY -10  || posY > tabEtiquettes[indexMaxEti].maxY +10)*/)
 				{
 					pixReference[indexB] =   (0.9 * pixReference[indexB]) +   ( 0.1* pixFrame[indexB]);
@@ -444,13 +458,13 @@ void * track_thread(void * d)
 			}
 			cv::imshow( "DISP", image );
 
+			showImage(frame,"CUR");
 			//for(unsigned int currentIndex = 0; currentIndex < NB_IMAGE_REF ; currentIndex++)
 			//{
 			Mat i(frame->cols,frame->rows,3,listImages[indexRef]);
 			showImage(&i,"REF");
 			//}
 
-			cv::waitKey(1);
 #endif
 			if(tabEtiquettes[indexMaxEti].pixelCount > 100)
 			{
@@ -467,6 +481,7 @@ void * track_thread(void * d)
 						//					idPan++;
 						setCameraPan(listPanServo[indexRef]);
 						usleep(500000); // 1s
+						
 					}
 					//memset(pixReference,0,widthImage*3);
 					//RefOk = false;

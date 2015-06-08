@@ -224,6 +224,7 @@ bool StillCamera::takeSnapshot(uint8_t ** bufferOut,int * bufferSize)
 			}
 			if(i != *bufferSize)
 				LOGGER_ERROR("Size Read not equals to size of file : "<< (*bufferSize) << " =!= " << i);
+			LOGGER_VERB("Temporary file size : "<<i);	
 			myfile.close();
 		}
 		else

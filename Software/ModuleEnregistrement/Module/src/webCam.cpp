@@ -118,7 +118,10 @@ void Webcam::generate_test_card(unsigned char *buf, int32_t * filledLen, int fra
 	}
 	*filledLen = _imageHeight * _imageWidth * 3;
 }
-
+bool Webcam::imageAvailable()
+{
+	return _Camera->Get() != 0;
+}
 void Webcam::grabImage(unsigned char *buf, int32_t * filledLen)
 {
 	char * dataPtr= NULL;

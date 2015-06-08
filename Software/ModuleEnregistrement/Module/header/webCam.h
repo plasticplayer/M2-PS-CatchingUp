@@ -11,6 +11,8 @@ class Webcam
 		Webcam(string dev,unsigned int imageWidth, unsigned int imageHeight,uint8_t frameRate);
 		void generate_test_card(unsigned char *buf, int32_t * filledLen, int frame);
 		void grabImage(unsigned char *buf, int32_t * filledLen);
+		
+		bool imageAvailable();
 		bool testWebcam();
 
 		bool initCamera();
