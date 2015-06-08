@@ -81,8 +81,8 @@ public class Configuration extends JFrame {
 		
 		
 		String[] titreColonnes = {"Identifiant", 
-				   "Prï¿½nom","Nom",
-				   "Email","Date de dï¿½but","Date de fin"}; 
+				   "Prénom","Nom",
+				   "Email","Date de début","Date de fin"}; 
 		
 		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
 		Model m = new Model(arrayUserRecorder,titreColonnes);

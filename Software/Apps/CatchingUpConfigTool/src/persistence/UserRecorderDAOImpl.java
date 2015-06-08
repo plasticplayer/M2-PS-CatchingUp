@@ -37,7 +37,7 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 			req += "<end>" + sdf.format(user.getDateEnd()) + "</end>";	
 		
 		String res = communication.Server.sendData(req + "</user></users>");
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines =res.split("["+System.getProperty("line.separator")+"]");
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("UPDATES_USERSRECORDERS") != 0 )
@@ -86,7 +86,7 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 				+ "</user>"; 
 
 		String res = communication.Server.sendData(req);
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("CREATE_USERSRECORDER") != 0 )
@@ -100,7 +100,7 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 			
 			idUser 	= Tools.getValue( line ,"iduser");
 			if ( idUser.trim().compareTo("0") == 0 ){
-				new MessageBox("Erreur de le crÃ©ation de l'intervenant").setVisible(true);
+				new MessageBox("Erreur de le création de l'intervenant").setVisible(true);
 				Tools.LOGGER_ERROR("Cannot create userRecorder");
 				return false;
 			}
@@ -121,7 +121,7 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 		
 		String res = communication.Server.sendData("<type>need_users_recorders</type>");
 
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
 		String type = Tools.getValue( lines[0] ,"type");

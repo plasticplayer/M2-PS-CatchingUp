@@ -1,7 +1,7 @@
 package communication;
 
 public class Tools {
-	public static boolean enableDebug = false;
+	public static boolean enableDebug = true;
 	public static String getValue ( String req, String id ){
 		String s = "<" + id + ">";
 		

@@ -1,5 +1,6 @@
 package persistence;
 
+import java.awt.Image;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +24,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 				+ "</recorder></recorders>";
 		
 		String res = communication.Server.sendData(req);
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"");
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("CREATE_RECORDERS") != 0 )
@@ -47,7 +48,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 				int idCMod = Integer.parseInt(idCModule.trim());
 				
 				if ( idR == 0 || idRMod == 0 || idCMod == 0 ){
-					new MessageBox("Erreur de crÃ©ation de enregistrer").setVisible(true);
+					new MessageBox("Erreur de création de enregistrer").setVisible(true);
 					Tools.LOGGER_ERROR( "Cannot create Recorder");
 					return false;
 				}
@@ -64,7 +65,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 				return true;
 			}
 		}
-		new MessageBox("Erreur de crÃ©ation de enregistrer").setVisible(true);
+		new MessageBox("Erreur de création de enregistrer").setVisible(true);
 		Tools.LOGGER_ERROR( "Cannot create Recorder");
 		return false;
 	}
@@ -76,7 +77,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 		String req = "<type>parring_recorders</type><recorders><recorder><id>" + rec.getId() + "</id></recorder></recorders>";
 		
 		String res = communication.Server.sendData(req);
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("PARRING_RECORDERS") != 0 )
@@ -121,7 +122,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 		_unconnectedRecorders = new ArrayList<Recorder>();
 		
 		String res = communication.Server.sendData("<type>need_recorders</type>");
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("GET_RECORDERS") != 0 )
@@ -178,11 +179,11 @@ public class RecorderDAOImpl implements RecorderDAO {
 		return _recorders;
 	}
 
-	public String getImage( Recorder rec ){
+	public Image getImage( Recorder rec ){
 		String req = "<type>get_image</type><image><idrecorder>" + rec.getId() + "</idrecorder></image>";
 		
-		return communication.Server.sendData(req);
-		//String[] lines = res.split(System.getProperty("line.separator"));
+		return communication.Server.getImage(req);
+		//String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		/*try {
 			ImageIO.read( new ByteArrayInputStream(res.getBytes()));
 		} catch (IOException e) {
@@ -196,7 +197,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 		String req = "<type>update_recorders</type><recorders><recorder><idrecorder>"+ rec.getId() + "</idrecorder><room>" + rec.getRoom().getId() +"</room></recorder></recorders>" ;
 		
 		String res = communication.Server.sendData(req);
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("UPDATE_RECORDERS") != 0 )

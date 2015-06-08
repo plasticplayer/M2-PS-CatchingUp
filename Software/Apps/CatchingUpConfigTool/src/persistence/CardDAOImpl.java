@@ -46,7 +46,7 @@ public class CardDAOImpl implements CardDAO {
 		
 		
 		String res = communication.Server.sendData( req );
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines =  res.split("["+System.getProperty("line.separator")+"]");
 		
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("CREATE_CARDS") != 0 )
@@ -66,7 +66,7 @@ public class CardDAOImpl implements CardDAO {
 				int id = Integer.parseInt(idCard.trim());
 				card.setId(id);
 				if ( id == 0 ){
-					new MessageBox("CrÃ©ation de la carte impossible").setVisible(true);
+					new MessageBox("Création de la carte impossible").setVisible(true);
 					Tools.LOGGER_ERROR("Cannot create card");
 					return false;
 				}
@@ -74,7 +74,7 @@ public class CardDAOImpl implements CardDAO {
 				return true;
 			}
 		}		
-		new MessageBox("Erreur lors de la crÃ©ation de la carte").setVisible(true);
+		new MessageBox("Erreur lors de la création de la carte").setVisible(true);
 		return false;
 		
 	}
@@ -84,7 +84,7 @@ public class CardDAOImpl implements CardDAO {
 		cards = new ArrayList<Card>();
 		
 		String res = communication.Server.sendData("<type>need_cards</type>");
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("GET_CARDS") != 0 )
@@ -121,7 +121,7 @@ public class CardDAOImpl implements CardDAO {
 			req = "<type>update_cards</type><cards><card><idcard>" + card.getId() + "</idcard><iduser>0</iduser></card></cards>";
 		
 		String res = communication.Server.sendData( req );
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo( "UPDATE_CARDS" ) != 0 )

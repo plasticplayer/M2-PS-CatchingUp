@@ -27,7 +27,7 @@ public class RoomDAOImpl implements RoomDAO {
 	public boolean createRoom ( Room room ){
 		String req = "<type>create_rooms</type>"+ System.getProperty("line.separator") + "<room><name>" + room.getName() + "</name><description>" + room.getDescription() + "</description></room>";
 		String res = communication.Server.sendData( req );
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("CREATE_ROOMS") != 0 )
@@ -51,7 +51,7 @@ public class RoomDAOImpl implements RoomDAO {
 				return true;
 			}
 		}
-		new MessageBox("Erreur de crÃ©ation de la salle").setVisible(true);
+		new MessageBox("Erreur de création de la salle").setVisible(true);
 		Tools.LOGGER_ERROR("Cannot create room");
 		return false;
 	}
@@ -68,7 +68,7 @@ public class RoomDAOImpl implements RoomDAO {
 
 		String res = communication.Server.sendData( req + "</room>\n" );
 		
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("UPDATES_ROOMS") != 0 )
@@ -98,7 +98,7 @@ public class RoomDAOImpl implements RoomDAO {
 		_freeRooms = new ArrayList<Room>();
 		
 		String res = communication.Server.sendData("<type>need_rooms</type>");
-		String[] lines = res.split(System.getProperty("line.separator"));
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("GET_ROOMS") != 0 )
