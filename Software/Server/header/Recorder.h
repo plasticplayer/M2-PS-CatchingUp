@@ -63,8 +63,9 @@ class Recorder{
 		static list<Recorder *> _Recorders;
 
 
-		/// UDP CALLbacks
-		
+		static void REC_TO_SRV_TCP_ACK( BYTE* data, unsigned long size, void *sender);
+		static void REC_TO_SRV_UDP_ACK( BYTE* data, unsigned long size, void *sender);
+		/// UDP CALLbacks	
 		static void REC_TO_SRV_getMacAddress( BYTE* data, unsigned long size, void *sender);
 		static void REC_TO_SRV_ImageInfo( BYTE* data, unsigned long size, void *sender );
 		static void REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, void *sender );

@@ -182,6 +182,9 @@ void ConfigAppli::decodeRequest ( char *req ){
 
 	else if ( type.compare( "need_cards" ) == 0 )
 		getCards();
+	
+	else if ( type.compare ( "need_logs") == 0 )
+		getLogs();
 
 	/// Create
 	else if ( type.compare( "create_rooms" ) == 0 )
@@ -224,6 +227,20 @@ void ConfigAppli::decodeRequest ( char *req ){
 
 
 /****************  Getters ****************/
+void ConfigAppli::getLogs( ){
+	string log = "<type>logs</type></logs>";
+
+	ifstream file("log.log");
+	string str;
+	if ( file != NULL ){
+		while ( getline ( file , str ))
+			log = SSTR ( endl << "<log>" << str << "</log>");
+		file.close();
+	}
+	sendData ( SSTR( log << endl << "</logs>" << endl )) ;
+}
+
+
 void ConfigAppli::getCards(){
 	Result* res = Mysql::getCards();
 	if ( res == NULL ) 
@@ -731,7 +748,7 @@ void ConfigAppli::getImageFromRecorder ( string req ){
 							send( client_sock , &memblock[i*sizeUpload], sizeUpload ,0);
 						}
 					}
-					char * newLine = "\r\n";
+					char * newLine = (char*)"\r\n";
 					send(client_sock,newLine,sizeof(newLine),0);
 					LOGGER_VERB("Image Sent to configuration aplication");
 					delete[] memblock;

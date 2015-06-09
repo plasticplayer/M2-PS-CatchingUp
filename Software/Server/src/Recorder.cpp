@@ -46,8 +46,8 @@ Recorder::Recorder ( Udp *udp, char* ip ){
 	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_ImageInfo), (int)GET_IMAGE_INFO);
 	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_ImagePart), (int)GET_IMAGE_PARTS);
 	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_getMacAddress), (int)GET_MAC_ADDR);
+	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_UDP_ACK), (int)ACK_UDP);	
 	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_imageCompletlySend), (int)GET_IMAGE_COMPLETLY_SEND);
-
 	// Add recorder to List
 	_Recorders.push_back(this);
 }
@@ -111,6 +111,7 @@ void Recorder::setTcpSocket( Tcp* s ){
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_endFilesTransfert), (int)GET_END_TRANSFERT_FILES);
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_recordingEnd), (int)GET_RecordingEnd);
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_createRecording), (int)GET_RECORDING_START );
+	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_TCP_ACK), (int)ACK_TCP );
 }
 
 void Recorder::setUdpSocket ( void* sock, int size ){
@@ -666,3 +667,8 @@ void Recorder::REC_TO_SRV_recordingEnd( BYTE* data, unsigned long size, void *se
 bool Recorder::isRecording ( ){
 	return _IsRecording;
 }
+
+
+void Recorder::REC_TO_SRV_TCP_ACK( BYTE* data, unsigned long size, void *sender){}
+
+void Recorder::REC_TO_SRV_UDP_ACK( BYTE* data, unsigned long size, void *sender){}

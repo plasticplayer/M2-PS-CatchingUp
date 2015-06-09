@@ -31,7 +31,8 @@ class ConfigAppli{
 		static void getUsersWebsite( );
 		static void getRooms( );
 		static void getCards( );
-		
+		static void getLogs( );
+	
 		static void createRooms( string req );
 		static void createCards( string req );
 		static void createRecorders( string req );
