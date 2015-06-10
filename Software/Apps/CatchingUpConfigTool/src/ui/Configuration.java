@@ -9,14 +9,17 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.table.JTableHeader;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 
 import persistence.CardDAOImpl;
+import persistence.LogsImpl;
 import persistence.RecorderDAOImpl;
 import persistence.RoomDAOImpl;
 import persistence.UserRecorderDAOImpl;
@@ -29,19 +32,47 @@ import dm.Recorder;
 import dm.Room;
 import dm.UserRecorder;
 
-import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JButton;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
 public class Configuration extends JFrame {
-
 	private JPanel contentPane;
 	private JTable tableSpeakers;
 	private JTable tableCards;
 	private JTable tableModuls;
 	private JTable tableClassrooms;
+	private static JTextArea logsArea = null;
+	private CardDAO cardDao= new CardDAOImpl();
+	private UserRecorderDAO userRecorderDao= new UserRecorderDAOImpl();
+	private RoomDAO roomDao = new RoomDAOImpl();
+	private JTabbedPane tabbedPane ;
+
+	private Model mRoom;
+	private Model mCard;
+	private Model mModul;
+	private Model mSpeacker;
+
+
+
+	private Thread refreshRecorderStates = new Thread( new Runnable() {
+		@Override
+		public void run() {
+			while ( true ){
+				try {
+					Thread.sleep(5000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if ( tabbedPane.getSelectedIndex() == 4 && !RecorderCreation.isOpen )
+					reloadRecorder();
+
+			}
+		}
+	});
+	String[] connectingModuleColumnTitle = { "Id Enregistreur","Id Activateur", "Salle", "Statut", "Fichiers en attente" };
 
 	/**
 	 * Create the frame.
@@ -52,324 +83,431 @@ public class Configuration extends JFrame {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 825, 499);
 		contentPane = new JPanel();
-		//contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+
 		setContentPane(contentPane);
-		
-		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
-			gl_contentPane.createParallelGroup(Alignment.LEADING)
+				gl_contentPane.createParallelGroup(Alignment.LEADING)
 				.addGroup(Alignment.TRAILING, gl_contentPane.createSequentialGroup()
-					.addContainerGap(132, Short.MAX_VALUE)
-					.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 654, GroupLayout.PREFERRED_SIZE))
-		);
+						.addContainerGap(132, Short.MAX_VALUE)
+						.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 654, GroupLayout.PREFERRED_SIZE))
+				);
 		gl_contentPane.setVerticalGroup(
-			gl_contentPane.createParallelGroup(Alignment.LEADING)
+				gl_contentPane.createParallelGroup(Alignment.LEADING)
 				.addGroup(Alignment.TRAILING, gl_contentPane.createSequentialGroup()
-					.addContainerGap(25, Short.MAX_VALUE)
-					.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 436, GroupLayout.PREFERRED_SIZE))
-		);
-		
-		/*JPanel cameraManagementPanel = new JPanel();
-		tabbedPane.addTab("Calibrage camï¿½ra", null, cameraManagementPanel, null);*/
-		
-		JPanel speakersManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des intervenants", null, speakersManagementPanel, null);
-		
-		UserRecorderDAO userRecorderDao= new UserRecorderDAOImpl();
-		final List<UserRecorder> userRecorder = userRecorderDao.getUserRecorderList();
-		
-		
-		String[] titreColonnes = {"Identifiant", 
-				   "Prénom","Nom",
-				   "Email","Date de début","Date de fin"}; 
-		
-		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
-		Model m = new Model(arrayUserRecorder,titreColonnes);
-		
-		JScrollPane scrollPaneUser = new JScrollPane();
-		
-		JButton UserButton = new JButton("Nouvel utilisateur");
-		UserButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				SpeakerCreation spCreationSpeaker = new SpeakerCreation();
-				spCreationSpeaker.show();
+						.addContainerGap(25, Short.MAX_VALUE)
+						.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 436, GroupLayout.PREFERRED_SIZE))
+				);
+		tabbedPane.addChangeListener( new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				switch (tabbedPane.getSelectedIndex()) {
+				case 0 : // Logs
+					//loadLogs();
+					break;
+				case 1:
+					reloadSpeacker();
+					break;
+				case 2:
+					reloadCard();
+					break;
+				case 3:
+					reloadRoom();
+					break;
+				case 4:
+					//reloadRecorder();
+					break;
+				default:
+					break;
+				}
 			}
 		});
-				
+
+
+
+		// Logs
+		tabbedPane.addTab("Logs", null, createLogPannel(), null);
+
+
+		// Speackers Managment
+		tabbedPane.addTab("Gestion des intervenants", null, createSpeackerPanel(), null);
+
+
+		// Cards Managment
+		tabbedPane.addTab("Gestion des cartes", null, createCardPanel(), null);
+
+		// Rooms Managment
+		tabbedPane.addTab("Gestion des salles", null, createRoomPanel(), null);
+
+		// Recorder Manamgment
+		tabbedPane.addTab("Gestion des enregistreurs", null, createRecorderPanel(), null);
+
+		refreshRecorderStates.start();
+	}
+
+
+	/// Create Panel
+	public JPanel createLogPannel(){
+		JPanel logsPannel = new JPanel();
+		logsArea = new JTextArea();
+		logsArea.setEditable(false);
+
+		JButton btnRafraichir = new JButton("Rafraichir");
+		btnRafraichir.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				loadLogs();
+			}
+		});
+
+
+		JScrollPane scrollPaneLog = new JScrollPane(logsArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+
+
+		GroupLayout gl_logsPanel = new GroupLayout(logsPannel);
+		gl_logsPanel.setHorizontalGroup(
+				gl_logsPanel.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_logsPanel.createSequentialGroup()
+						.addGap(25)
+						.addComponent(scrollPaneLog, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+						)
+						.addComponent(btnRafraichir)
+				);
+		gl_logsPanel.setVerticalGroup(
+				gl_logsPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_logsPanel.createSequentialGroup()
+						.addComponent(scrollPaneLog, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnRafraichir)
+						)
+				);
+		logsPannel.setLayout(gl_logsPanel);
+		loadLogs();
+		return logsPannel;
+	}
+
+
+	public JPanel createSpeackerPanel() throws ParseException{
+		JPanel speakersManagementPanel = new JPanel();
+
+
+		final List<UserRecorder> userRecorder = userRecorderDao.getUserRecorderList();
+
+
+		String[] titreColonnes = {"Identifiant",  "Prï¿½nom","Nom", "Email","Date de dï¿½but","Date de fin"}; 
+
+		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
+		mSpeacker = new Model(arrayUserRecorder,titreColonnes);
+
+		JScrollPane scrollPaneUser = new JScrollPane();
+
+		JButton createUserButton = new JButton("Nouvel utilisateur");
+		createUserButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				new SpeakerCreation().setVisible(true);;
+			}
+		});
+
 		GroupLayout gl_speakersManagementPanel = new GroupLayout(speakersManagementPanel);
 		gl_speakersManagementPanel.setHorizontalGroup(
-			gl_speakersManagementPanel.createParallelGroup(Alignment.LEADING)
+				gl_speakersManagementPanel.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
-					.addGap(39)
-					.addComponent(scrollPaneUser, GroupLayout.DEFAULT_SIZE, 650, Short.MAX_VALUE)
-					.addGap(46))
-				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
-					.addGap(89)
-					.addComponent(UserButton)
-					.addContainerGap(557, Short.MAX_VALUE))
-		);
+						.addGap(25)
+						.addComponent(scrollPaneUser, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+						)
+						.addComponent(createUserButton)
+				);
 		gl_speakersManagementPanel.setVerticalGroup(
-			gl_speakersManagementPanel.createParallelGroup(Alignment.LEADING)
+				gl_speakersManagementPanel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
-					.addGap(68)
-					.addComponent(scrollPaneUser, GroupLayout.PREFERRED_SIZE, 241, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 64, Short.MAX_VALUE)
-					.addComponent(UserButton)
-					.addGap(31))
-		);
-		tableSpeakers = new JTable(m);
+						.addComponent(scrollPaneUser, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+						.addComponent(createUserButton)
+						)
+				);
+
+
+
+		tableSpeakers = new JTable(mSpeacker);
 		scrollPaneUser.setViewportView(tableSpeakers);
 		speakersManagementPanel.setLayout(gl_speakersManagementPanel);
 		tableSpeakers.addMouseListener(new MouseAdapter() {
-		    public void mouseClicked(MouseEvent e) {
-		        JTable table =(JTable) e.getSource();
-		        Point p = e.getPoint();
-		       
-		        int row = table.rowAtPoint(p);
-		        if (e.getClickCount() == 2) {
-		        	UserRecorder r = userRecorder.get(row);
-		        	
-		        	SpeakerUpdate speakerUpdate = new SpeakerUpdate( r );
-		        	speakerUpdate.setVisible(true);
-		        }
-		    }
-		    
-		    public void mousePressed(MouseEvent e){
-		    	JTable table =(JTable) e.getSource();
-		        Point p = e.getPoint();
-		        int row = table.rowAtPoint(p);
-		    	if(table.isRowSelected(row)){
-			        if (e.isPopupTrigger())
-			            doPop(e);
-		    	}
-		    }
+			public void mouseClicked(MouseEvent e) {
+				JTable table =(JTable) e.getSource();
+				Point p = e.getPoint();
 
-		    public void mouseReleased(MouseEvent e){
-		    		if (e.isPopupTrigger())
-		            doPop(e);
-		    }
+				int row = table.rowAtPoint(p);
+				if (e.getClickCount() == 2) {
+					UserRecorder r = userRecorder.get(row);
 
-		    private void doPop(MouseEvent e){
-		        PopUp menu = new PopUp();
-		        menu.show(e.getComponent(), e.getX(), e.getY());
-		    }
+					SpeakerUpdate speakerUpdate = new SpeakerUpdate( r );
+					speakerUpdate.setVisible(true);
+				}
+			}
+
+			public void mousePressed(MouseEvent e){
+				JTable table =(JTable) e.getSource();
+				Point p = e.getPoint();
+				int row = table.rowAtPoint(p);
+				if(table.isRowSelected(row)){
+					if (e.isPopupTrigger())
+						doPop(e);
+				}
+			}
+
+			public void mouseReleased(MouseEvent e){
+				if (e.isPopupTrigger())
+					doPop(e);
+			}
+
+			private void doPop(MouseEvent e){
+				PopUp menu = new PopUp();
+				menu.show(e.getComponent(), e.getX(), e.getY());
+			}
 		});
-		//tableSpeakers.addMouseListener(new PopClickListener());
-		
+
+		return speakersManagementPanel;
+	}
+
+
+	public JPanel createCardPanel(){
 		JPanel cardsManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des cartes", null, cardsManagementPanel, null);
-		
-		JScrollPane scrollPane = new JScrollPane();	
+		String[] cardColumnTitle = { "Id","Utilisateur associÃ©"};
+
+
 		JButton btnNewCard = new JButton("Nouvelle carte");
 		btnNewCard.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-						CardCreation spCreationCard = new CardCreation();
-						spCreationCard.show();
+				new CardCreation().setVisible(true);
 			}
 		});
+
+
+
+		JScrollPane scrollPaneCard = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+
+
 		GroupLayout gl_cardsManagementPanel = new GroupLayout(cardsManagementPanel);
 		gl_cardsManagementPanel.setHorizontalGroup(
-			gl_cardsManagementPanel.createParallelGroup(Alignment.TRAILING)
+				gl_cardsManagementPanel.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_cardsManagementPanel.createSequentialGroup()
-					.addContainerGap(193, Short.MAX_VALUE)
-					.addComponent(scrollPane, GroupLayout.PREFERRED_SIZE, 384, GroupLayout.PREFERRED_SIZE)
-					.addGap(184))
-				.addGroup(Alignment.LEADING, gl_cardsManagementPanel.createSequentialGroup()
-					.addGap(98)
-					.addComponent(btnNewCard)
-					.addContainerGap(574, Short.MAX_VALUE))
-		);
+						.addGap(25)
+						.addComponent(scrollPaneCard, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+						)
+						.addComponent(btnNewCard)
+				);
 		gl_cardsManagementPanel.setVerticalGroup(
-			gl_cardsManagementPanel.createParallelGroup(Alignment.LEADING)
+				gl_cardsManagementPanel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_cardsManagementPanel.createSequentialGroup()
-					.addGap(76)
-					.addComponent(scrollPane, GroupLayout.PREFERRED_SIZE, 229, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 52, Short.MAX_VALUE)
-					.addComponent(btnNewCard)
-					.addGap(48))
-		);
-		
-		CardDAO cardDao= new CardDAOImpl();
+						.addComponent(scrollPaneCard, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnNewCard)
+						)
+				);
+
 		List<Card> card = cardDao.getCardList();
-		String[] cardColumnTitle = { 
-				   "Id","modele","Utilisateur"}; 
-		Model mCard = new Model(toArrayCard(card),cardColumnTitle);
-		tableCards = new JTable(mCard);
-	//	JTableHeader headerCard = tableCards.getTableHeader();
-	
-		scrollPane.setViewportView(tableCards);
+
+		mCard =  new Model(toArrayCard(card),cardColumnTitle);
+		tableCards = new JTable( mCard );
+
+		scrollPaneCard.setViewportView(tableCards);
 		cardsManagementPanel.setLayout(gl_cardsManagementPanel);
-		
+
+		return cardsManagementPanel;
+	}
+
+
+	public JPanel createRoomPanel(){
 		JPanel classroomsManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des salles", null, classroomsManagementPanel, null);
-		
 		JScrollPane scrollPaneRoom = new JScrollPane();
-		
+
 		JButton btnRoom = new JButton("Nouvelle salle");
 		btnRoom.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				RoomCreation spCreationRoom = new RoomCreation();
-				spCreationRoom.show();
+				new RoomCreation().setVisible(true);
 			}
 		});
-		GroupLayout gl_classroomsManagementPanel = new GroupLayout(classroomsManagementPanel);
-		gl_classroomsManagementPanel.setHorizontalGroup(
-			gl_classroomsManagementPanel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_classroomsManagementPanel.createSequentialGroup()
-					.addContainerGap(219, Short.MAX_VALUE)
-					.addComponent(scrollPaneRoom, GroupLayout.PREFERRED_SIZE, 409, GroupLayout.PREFERRED_SIZE)
-					.addGap(145))
-				.addGroup(Alignment.LEADING, gl_classroomsManagementPanel.createSequentialGroup()
-					.addGap(92)
-					.addComponent(btnRoom)
-					.addContainerGap(592, Short.MAX_VALUE))
-		);
-		gl_classroomsManagementPanel.setVerticalGroup(
-			gl_classroomsManagementPanel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_classroomsManagementPanel.createSequentialGroup()
-					.addGap(75)
-					.addComponent(scrollPaneRoom, GroupLayout.PREFERRED_SIZE, 234, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 49, Short.MAX_VALUE)
-					.addComponent(btnRoom)
-					.addGap(47))
-		);
-		
-		RoomDAO roomDao= new RoomDAOImpl();
+
+		GroupLayout gl_roomManagementPanel = new GroupLayout(classroomsManagementPanel);
+		gl_roomManagementPanel.setHorizontalGroup(
+				gl_roomManagementPanel.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_roomManagementPanel.createSequentialGroup()
+						.addGap(25)
+						.addComponent(scrollPaneRoom, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+						)
+						.addComponent(btnRoom)
+				);
+		gl_roomManagementPanel.setVerticalGroup(
+				gl_roomManagementPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_roomManagementPanel.createSequentialGroup()
+						.addComponent(scrollPaneRoom, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnRoom)
+						)
+				);
+
 		final List<Room> room = roomDao.getRoomList();
 		String[] roomColumnTitle = {"nom","description"}; 
 		final Object[][] arrayRoom = toArrayRoom(room);
-		Model mRoom = new Model(arrayRoom,roomColumnTitle);
+		mRoom = new Model(arrayRoom,roomColumnTitle);
 		tableClassrooms= new JTable(mRoom);
-		//JTableHeader headerRoom = tableClassrooms.getTableHeader();
-		//scrollPane_1.setColumnHeaderView(tableClassrooms);
-		scrollPaneRoom.setViewportView(tableClassrooms);   // affiche titres
-		classroomsManagementPanel.setLayout(gl_classroomsManagementPanel);
+
+		scrollPaneRoom.setViewportView(tableClassrooms);
+		classroomsManagementPanel.setLayout(gl_roomManagementPanel);
 		tableClassrooms.addMouseListener(new MouseAdapter() {
-		    public void mouseClicked(MouseEvent e) {
-		        JTable table =(JTable) e.getSource();
-		        Point p = e.getPoint();
-		        int row = table.rowAtPoint(p);
-		        if (e.getClickCount() == 2) {
-		            // your valueChanged overridden method 
-		        	Room updated = room.get(row);
-		        	//RoomUpdate roomUpdate = new RoomUpdate((String)arrayRoom[row][0],(String)arrayRoom[row][1]);
-		        	RoomUpdate roomUpdate = new RoomUpdate(updated);
-		        	roomUpdate.setVisible(true);
-		        }
-		    }
+			public void mouseClicked(MouseEvent e) {
+				JTable table =(JTable) e.getSource();
+				Point p = e.getPoint();
+				int row = table.rowAtPoint(p);
+				if (e.getClickCount() == 2) {
+					Room updated = room.get(row);
+					new RoomUpdate(updated).setVisible(true);
+				}
+			}
 		});
-			
+		return classroomsManagementPanel;
+	}
+
+
+	public JPanel createRecorderPanel(){
 		JPanel recordersManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des enregistreurs", null, recordersManagementPanel, null);
-		
 		JScrollPane scrollPane_enregistreurs = new JScrollPane();
-		
-		JButton btnCard = new JButton("Nouvel enregistreur");
-		btnCard.addActionListener(new ActionListener() {
+
+		JButton btnRecorder = new JButton("Nouvel enregistreur");
+		btnRecorder.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				new RecorderCreation().setVisible(true);
 			}
 		});
-		GroupLayout gl_recordersManagementPanel = new GroupLayout(recordersManagementPanel);
-		gl_recordersManagementPanel.setHorizontalGroup(
-			gl_recordersManagementPanel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_recordersManagementPanel.createSequentialGroup()
-					.addContainerGap(257, Short.MAX_VALUE)
-					.addComponent(scrollPane_enregistreurs, GroupLayout.PREFERRED_SIZE, 347, GroupLayout.PREFERRED_SIZE)
-					.addGap(177))
-				.addGroup(Alignment.LEADING, gl_recordersManagementPanel.createSequentialGroup()
-					.addGap(90)
-					.addComponent(btnCard)
-					.addContainerGap(602, Short.MAX_VALUE))
-		);
-		gl_recordersManagementPanel.setVerticalGroup(
-			gl_recordersManagementPanel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_recordersManagementPanel.createSequentialGroup()
-					.addGap(96)
-					.addComponent(scrollPane_enregistreurs, GroupLayout.PREFERRED_SIZE, 229, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 41, Short.MAX_VALUE)
-					.addComponent(btnCard)
-					.addGap(39))
-		);
-		
+
+
+		GroupLayout gl_roomManagementPanel = new GroupLayout(recordersManagementPanel);
+		gl_roomManagementPanel.setHorizontalGroup(
+				gl_roomManagementPanel.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_roomManagementPanel.createSequentialGroup()
+						.addGap(25)
+						.addComponent(scrollPane_enregistreurs, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+						)
+						.addComponent(btnRecorder)
+				);
+		gl_roomManagementPanel.setVerticalGroup(
+				gl_roomManagementPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_roomManagementPanel.createSequentialGroup()
+						.addComponent(scrollPane_enregistreurs, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnRecorder)
+						)
+				);
+
 		RecorderDAO connectingModuleDao = new RecorderDAOImpl();
 		List<Recorder> recorders = connectingModuleDao.getRecorderList();
-		String[] connectingModuleColumnTitle = { "Id Enregistreur","Id Activateur", "Salle", "Statut" }; 
-		Model mModul = new Model(toArrayModuls(recorders),connectingModuleColumnTitle);
+
+		mModul = new Model(toArrayModuls(recorders),connectingModuleColumnTitle);
 		tableModuls = new JTable(mModul);
-		
+
+
 		tableModuls.addMouseListener(new MouseAdapter() {
-		    public void mouseClicked(MouseEvent e) {
-		        JTable table =(JTable) e.getSource();
-		        Point p = e.getPoint();
-		        int row = table.rowAtPoint(p);
-		        if (e.getClickCount() == 2) {
-		           Recorder rec =  RecorderDAOImpl._instance._recorders.get(row);
-		           if ( rec != null )
-		        	   new Parring(rec);
-		        }
-		    }
+			public void mouseClicked(MouseEvent e) {
+				JTable table =(JTable) e.getSource();
+				Point p = e.getPoint();
+				int row = table.rowAtPoint(p);
+				if (e.getClickCount() == 2) {
+					Recorder rec =  RecorderDAOImpl._recorders.get(row);
+					if ( rec != null )
+						new Parring(rec);
+				}
+			}
 		});
-	
+
 		scrollPane_enregistreurs.setViewportView(tableModuls);
-		recordersManagementPanel.setLayout(gl_recordersManagementPanel);
+		recordersManagementPanel.setLayout(gl_roomManagementPanel);
+
+		return recordersManagementPanel;
 	}
-	
+
+
+
+
+	/// Reload functions
+	public void loadLogs(){
+		logsArea.setText( LogsImpl._instance.getLogs() );
+	}
+
+	public void reloadRoom(){
+		mRoom.donnees = toArrayRoom( roomDao.getRoomList() );
+		mRoom.fireTableDataChanged();
+	}
+
+	public void reloadSpeacker(){
+		try {
+			mSpeacker.donnees = toArrayUserRecorder(userRecorderDao.getUserRecorderList());
+		} catch (ParseException e) {
+		}
+		mSpeacker.fireTableDataChanged();
+	}
+
+	public void reloadCard(){
+		mCard.donnees = toArrayCard( cardDao.getCardList() );
+		mCard.fireTableDataChanged();	
+	}
+
+	public void reloadRecorder(){
+		List<Recorder> recorders = RecorderDAOImpl._instance.getRecorderList();
+		mModul.donnees = toArrayModuls(recorders);
+		mModul.fireTableDataChanged();
+	}
+
+
+
+	///  List to Object[][]
 	private Object[][] toArrayUserRecorder(List<UserRecorder> datas){
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
-		    ArrayList<String> row = new ArrayList<String>();
-		    row.add(""+datas.get(i).getId());
-		    row.add(datas.get(i).getFirstName());
-		    row.add(datas.get(i).getLastName());
-		   // row.add(datas.get(i).getPassword());
-		    row.add(datas.get(i).getEmail());
-		    row.add(datas.get(i).getDateBegin().toString());
-		    row.add(datas.get(i).getDateEnd().toString());
-		    array[i] = row.toArray(new String[row.size()]);
+			ArrayList<String> row = new ArrayList<String>();
+			row.add(""+datas.get(i).getId());
+			row.add(datas.get(i).getFirstName());
+			row.add(datas.get(i).getLastName());
+			row.add(datas.get(i).getEmail());
+			row.add(datas.get(i).getDateBegin().toString());
+			row.add(datas.get(i).getDateEnd().toString());
+			array[i] = row.toArray(new String[row.size()]);
 		}
 		return array;
 	}
-	
+
 	private Object[][] toArrayCard(List<Card> datas){
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
-		    ArrayList<String> row = new ArrayList<String>();
-		    row.add(datas.get(i).getNumberCard());
-		    if(datas.get(i).getUser()!=null){
-		    	row.add(datas.get(i).getUser().getFirstName());
-		    	row.add(datas.get(i).getUser().getLastName());
-		    }
-		    else{
-		    	row.add("");
-		    	row.add("");
-		    }
-		    array[i] = row.toArray(new String[row.size()]);
+			ArrayList<String> row = new ArrayList<String>();
+			row.add(datas.get(i).getNumberCard());
+			if(datas.get(i).getUser()!=null){
+				row.add(datas.get(i).getUser().getFirstName() + " " + datas.get(i).getUser().getLastName() );
+			}
+			else{
+				row.add("");
+			}
+			array[i] = row.toArray(new String[row.size()]);
 		}
 		return array;
 	}
-	
+
 	private Object[][] toArrayRoom(List<Room> datas){
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
-		    ArrayList<String> row = new ArrayList<String>();
-		    row.add(datas.get(i).getName());
-		    row.add(datas.get(i).getDescription());
-		    array[i] = row.toArray(new String[row.size()]);
+			ArrayList<String> row = new ArrayList<String>();
+			row.add(datas.get(i).getName());
+			row.add(datas.get(i).getDescription());
+			array[i] = row.toArray(new String[row.size()]);
 		}
 		return array;
 	}
-	
+
 	private Object[][] toArrayModuls(List<Recorder> recorders){
 		Object[][] array = new Object[recorders.size()][];
 		for (int i = 0; i < recorders.size(); i++) {
-		    ArrayList<String> row = new ArrayList<String>();
-		    row.add(recorders.get(i).getRecordingModule().getIdNetwork()+"");
-		    row.add(recorders.get(i).getConnectingModule().getIdNetworkRecording()+"");
-		    row.add(recorders.get(i).getRoom().getName() );
-		    row.add( recorders.get(i).toString() );
-		    array[i] = row.toArray(new String[row.size()]);
+			ArrayList<String> row = new ArrayList<String>();
+			row.add(recorders.get(i).getRecordingModule().getIdNetwork()+"");
+			row.add(recorders.get(i).getConnectingModule().getIdNetworkRecording()+"");
+			row.add(recorders.get(i).getRoom().getName() );
+			row.add( recorders.get(i).toString() );
+			row.add( recorders.get(i).getFilesInQueue() + "" );
+			array[i] = row.toArray(new String[row.size()]);
 		}
 		return array;
 	}
