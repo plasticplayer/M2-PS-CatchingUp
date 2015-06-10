@@ -9,7 +9,6 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.table.JTableHeader;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JTabbedPane;
@@ -31,14 +30,12 @@ import dm.Recorder;
 import dm.Room;
 import dm.UserRecorder;
 
-import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JButton;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
 public class Configuration extends JFrame {
-
 	private JPanel contentPane;
 	private JTable tableSpeakers;
 	private JTable tableCards;
@@ -71,86 +68,109 @@ public class Configuration extends JFrame {
 					.addContainerGap(25, Short.MAX_VALUE)
 					.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 436, GroupLayout.PREFERRED_SIZE))
 		);
-		JPanel logsPannel = new JPanel();
-		tabbedPane.addTab("Logs", null, logsPannel, null);
 		
-		JTextArea textArea = new JTextArea();
+		
+		
+		
+		// Logs
+		tabbedPane.addTab("Logs", null, createLogPannel(), null);
+		
+		
+		// Speackers Managment
+		tabbedPane.addTab("Gestion des intervenants", null, createIntervenantPanel(), null);
+		
+		
+		// Cards Managment
+		tabbedPane.addTab("Gestion des cartes", null, createCardPanel(), null);
+		
+		// Rooms Managment
+		tabbedPane.addTab("Gestion des salles", null, createRoomPanel(), null);
+		
+		// Recorder Manamgment
+		tabbedPane.addTab("Gestion des enregistreurs", null, createRecorderPanel(), null);
+		
+	}
+	
+	
+	
+	public JPanel createLogPannel(){
+		JPanel logsPannel = new JPanel();
+		final JTextArea textArea = new JTextArea();
 		textArea.setText( LogsImpl._instance.getLogs() );
 		textArea.setEditable(false);
+		
+		JButton btnRafraichir = new JButton("Rafraichir");
+		btnRafraichir.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				textArea.setText( LogsImpl._instance.getLogs() );
+			}
+		});
+		
 		
 		JScrollPane scrollPaneLog = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
 		
 		GroupLayout gl_logsPanel = new GroupLayout(logsPannel);
 		gl_logsPanel.setHorizontalGroup(
-				gl_logsPanel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_logsPanel.createSequentialGroup()
-					.addGap(25)
-					.addComponent(scrollPaneLog, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
-					)
+			gl_logsPanel.createParallelGroup(Alignment.TRAILING)
+			.addGroup(gl_logsPanel.createSequentialGroup()
+				.addGap(25)
+				.addComponent(scrollPaneLog, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+				)
+				.addComponent(btnRafraichir)
 		);
 		gl_logsPanel.setVerticalGroup(
 				gl_logsPanel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_logsPanel.createSequentialGroup()
 					.addComponent(scrollPaneLog, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 41, Short.MAX_VALUE)
+					.addComponent(btnRafraichir)
 					)
 		);
 		logsPannel.setLayout(gl_logsPanel);
-		
-		
-		
-		
-		
-		
-		/*JPanel cameraManagementPanel = new JPanel();
-		tabbedPane.addTab("Calibrage cam�ra", null, cameraManagementPanel, null);*/
-		
+		return logsPannel;
+	}
+
+	
+	public JPanel createIntervenantPanel() throws ParseException{
 		JPanel speakersManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des intervenants", null, speakersManagementPanel, null);
 		
 		UserRecorderDAO userRecorderDao= new UserRecorderDAOImpl();
 		final List<UserRecorder> userRecorder = userRecorderDao.getUserRecorderList();
 		
 		
-		String[] titreColonnes = {"Identifiant", 
-				   "Pr�nom","Nom",
-				   "Email","Date de d�but","Date de fin"}; 
+		String[] titreColonnes = {"Identifiant",  "Pr�nom","Nom", "Email","Date de d�but","Date de fin"}; 
 		
 		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
 		Model m = new Model(arrayUserRecorder,titreColonnes);
 		
 		JScrollPane scrollPaneUser = new JScrollPane();
 		
-		JButton UserButton = new JButton("Nouvel utilisateur");
-		UserButton.addActionListener(new ActionListener() {
+		JButton createUserButton = new JButton("Nouvel utilisateur");
+		createUserButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				SpeakerCreation spCreationSpeaker = new SpeakerCreation();
-				spCreationSpeaker.show();
+				new SpeakerCreation().setVisible(true);;
 			}
 		});
-				
+		
 		GroupLayout gl_speakersManagementPanel = new GroupLayout(speakersManagementPanel);
 		gl_speakersManagementPanel.setHorizontalGroup(
-			gl_speakersManagementPanel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
-					.addGap(39)
-					.addComponent(scrollPaneUser, GroupLayout.DEFAULT_SIZE, 650, Short.MAX_VALUE)
-					.addGap(46))
-				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
-					.addGap(89)
-					.addComponent(UserButton)
-					.addContainerGap(557, Short.MAX_VALUE))
+				gl_speakersManagementPanel.createParallelGroup(Alignment.TRAILING)
+			.addGroup(gl_speakersManagementPanel.createSequentialGroup()
+				.addGap(25)
+				.addComponent(scrollPaneUser, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+				)
+				.addComponent(createUserButton)
 		);
 		gl_speakersManagementPanel.setVerticalGroup(
-			gl_speakersManagementPanel.createParallelGroup(Alignment.LEADING)
+				gl_speakersManagementPanel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_speakersManagementPanel.createSequentialGroup()
-					.addGap(68)
-					.addComponent(scrollPaneUser, GroupLayout.PREFERRED_SIZE, 241, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 64, Short.MAX_VALUE)
-					.addComponent(UserButton)
-					.addGap(31))
+					.addComponent(scrollPaneUser, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+					.addComponent(createUserButton)
+					)
 		);
+		
+		
+		
 		tableSpeakers = new JTable(m);
 		scrollPaneUser.setViewportView(tableSpeakers);
 		speakersManagementPanel.setLayout(gl_speakersManagementPanel);
@@ -188,84 +208,82 @@ public class Configuration extends JFrame {
 		        menu.show(e.getComponent(), e.getX(), e.getY());
 		    }
 		});
-		//tableSpeakers.addMouseListener(new PopClickListener());
 		
+		return speakersManagementPanel;
+	}
+
+	
+	public JPanel createCardPanel(){
 		JPanel cardsManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des cartes", null, cardsManagementPanel, null);
 		
-		JScrollPane scrollPane = new JScrollPane();	
+		
 		JButton btnNewCard = new JButton("Nouvelle carte");
 		btnNewCard.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-						CardCreation spCreationCard = new CardCreation();
-						spCreationCard.show();
+					new CardCreation().setVisible(true);
 			}
 		});
-		GroupLayout gl_cardsManagementPanel = new GroupLayout(cardsManagementPanel);
-		gl_cardsManagementPanel.setHorizontalGroup(
-			gl_cardsManagementPanel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_cardsManagementPanel.createSequentialGroup()
-					.addContainerGap(193, Short.MAX_VALUE)
-					.addComponent(scrollPane, GroupLayout.PREFERRED_SIZE, 384, GroupLayout.PREFERRED_SIZE)
-					.addGap(184))
-				.addGroup(Alignment.LEADING, gl_cardsManagementPanel.createSequentialGroup()
-					.addGap(98)
-					.addComponent(btnNewCard)
-					.addContainerGap(574, Short.MAX_VALUE))
-		);
-		gl_cardsManagementPanel.setVerticalGroup(
-			gl_cardsManagementPanel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_cardsManagementPanel.createSequentialGroup()
-					.addGap(76)
-					.addComponent(scrollPane, GroupLayout.PREFERRED_SIZE, 229, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 52, Short.MAX_VALUE)
-					.addComponent(btnNewCard)
-					.addGap(48))
-		);
 		
 		CardDAO cardDao= new CardDAOImpl();
+		
+		JScrollPane scrollPaneCard = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		
+		
+		GroupLayout gl_cardsManagementPanel = new GroupLayout(cardsManagementPanel);
+		gl_cardsManagementPanel.setHorizontalGroup(
+				gl_cardsManagementPanel.createParallelGroup(Alignment.TRAILING)
+			.addGroup(gl_cardsManagementPanel.createSequentialGroup()
+				.addGap(25)
+				.addComponent(scrollPaneCard, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+				)
+				.addComponent(btnNewCard)
+		);
+		gl_cardsManagementPanel.setVerticalGroup(
+				gl_cardsManagementPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_cardsManagementPanel.createSequentialGroup()
+					.addComponent(scrollPaneCard, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+					.addComponent(btnNewCard)
+					)
+		);
+		
 		List<Card> card = cardDao.getCardList();
-		String[] cardColumnTitle = { 
-				   "Id","modele","Utilisateur"}; 
-		Model mCard = new Model(toArrayCard(card),cardColumnTitle);
-		tableCards = new JTable(mCard);
-	//	JTableHeader headerCard = tableCards.getTableHeader();
-	
-		scrollPane.setViewportView(tableCards);
+		String[] cardColumnTitle = { "Id","modele","Utilisateur"};
+		
+		tableCards = new JTable( new Model(toArrayCard(card),cardColumnTitle) );
+		
+		scrollPaneCard.setViewportView(tableCards);
 		cardsManagementPanel.setLayout(gl_cardsManagementPanel);
 		
+		return cardsManagementPanel;
+	}
+	
+	
+	public JPanel createRoomPanel(){
 		JPanel classroomsManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des salles", null, classroomsManagementPanel, null);
-		
 		JScrollPane scrollPaneRoom = new JScrollPane();
 		
 		JButton btnRoom = new JButton("Nouvelle salle");
 		btnRoom.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				RoomCreation spCreationRoom = new RoomCreation();
-				spCreationRoom.show();
+				new RoomCreation().setVisible(true);
 			}
 		});
-		GroupLayout gl_classroomsManagementPanel = new GroupLayout(classroomsManagementPanel);
-		gl_classroomsManagementPanel.setHorizontalGroup(
-			gl_classroomsManagementPanel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_classroomsManagementPanel.createSequentialGroup()
-					.addContainerGap(219, Short.MAX_VALUE)
-					.addComponent(scrollPaneRoom, GroupLayout.PREFERRED_SIZE, 409, GroupLayout.PREFERRED_SIZE)
-					.addGap(145))
-				.addGroup(Alignment.LEADING, gl_classroomsManagementPanel.createSequentialGroup()
-					.addGap(92)
-					.addComponent(btnRoom)
-					.addContainerGap(592, Short.MAX_VALUE))
+		
+		GroupLayout gl_roomManagementPanel = new GroupLayout(classroomsManagementPanel);
+		gl_roomManagementPanel.setHorizontalGroup(
+				gl_roomManagementPanel.createParallelGroup(Alignment.TRAILING)
+			.addGroup(gl_roomManagementPanel.createSequentialGroup()
+				.addGap(25)
+				.addComponent(scrollPaneRoom, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+				)
+				.addComponent(btnRoom)
 		);
-		gl_classroomsManagementPanel.setVerticalGroup(
-			gl_classroomsManagementPanel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_classroomsManagementPanel.createSequentialGroup()
-					.addGap(75)
-					.addComponent(scrollPaneRoom, GroupLayout.PREFERRED_SIZE, 234, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 49, Short.MAX_VALUE)
+		gl_roomManagementPanel.setVerticalGroup(
+				gl_roomManagementPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_roomManagementPanel.createSequentialGroup()
+					.addComponent(scrollPaneRoom, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
 					.addComponent(btnRoom)
-					.addGap(47))
+					)
 		);
 		
 		RoomDAO roomDao= new RoomDAOImpl();
@@ -274,61 +292,59 @@ public class Configuration extends JFrame {
 		final Object[][] arrayRoom = toArrayRoom(room);
 		Model mRoom = new Model(arrayRoom,roomColumnTitle);
 		tableClassrooms= new JTable(mRoom);
-		//JTableHeader headerRoom = tableClassrooms.getTableHeader();
-		//scrollPane_1.setColumnHeaderView(tableClassrooms);
-		scrollPaneRoom.setViewportView(tableClassrooms);   // affiche titres
-		classroomsManagementPanel.setLayout(gl_classroomsManagementPanel);
+
+		scrollPaneRoom.setViewportView(tableClassrooms);
+		classroomsManagementPanel.setLayout(gl_roomManagementPanel);
 		tableClassrooms.addMouseListener(new MouseAdapter() {
 		    public void mouseClicked(MouseEvent e) {
 		        JTable table =(JTable) e.getSource();
 		        Point p = e.getPoint();
 		        int row = table.rowAtPoint(p);
 		        if (e.getClickCount() == 2) {
-		            // your valueChanged overridden method 
 		        	Room updated = room.get(row);
-		        	//RoomUpdate roomUpdate = new RoomUpdate((String)arrayRoom[row][0],(String)arrayRoom[row][1]);
-		        	RoomUpdate roomUpdate = new RoomUpdate(updated);
-		        	roomUpdate.setVisible(true);
+		        	new RoomUpdate(updated).setVisible(true);
 		        }
 		    }
 		});
-			
-		JPanel recordersManagementPanel = new JPanel();
-		tabbedPane.addTab("Gestion des enregistreurs", null, recordersManagementPanel, null);
+		return classroomsManagementPanel;
+	}
+
+	
+	public JPanel createRecorderPanel(){
+		String[] connectingModuleColumnTitle = { "Id Enregistreur","Id Activateur", "Salle", "Statut" }; 
 		
+
+		JPanel recordersManagementPanel = new JPanel();
 		JScrollPane scrollPane_enregistreurs = new JScrollPane();
 		
-		JButton btnCard = new JButton("Nouvel enregistreur");
-		btnCard.addActionListener(new ActionListener() {
+		JButton btnRecorder = new JButton("Nouvel enregistreur");
+		btnRecorder.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				new RecorderCreation().setVisible(true);
 			}
 		});
-		GroupLayout gl_recordersManagementPanel = new GroupLayout(recordersManagementPanel);
-		gl_recordersManagementPanel.setHorizontalGroup(
-			gl_recordersManagementPanel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_recordersManagementPanel.createSequentialGroup()
-					.addContainerGap(257, Short.MAX_VALUE)
-					.addComponent(scrollPane_enregistreurs, GroupLayout.PREFERRED_SIZE, 347, GroupLayout.PREFERRED_SIZE)
-					.addGap(177))
-				.addGroup(Alignment.LEADING, gl_recordersManagementPanel.createSequentialGroup()
-					.addGap(90)
-					.addComponent(btnCard)
-					.addContainerGap(602, Short.MAX_VALUE))
+		
+		
+		GroupLayout gl_roomManagementPanel = new GroupLayout(recordersManagementPanel);
+		gl_roomManagementPanel.setHorizontalGroup(
+				gl_roomManagementPanel.createParallelGroup(Alignment.TRAILING)
+			.addGroup(gl_roomManagementPanel.createSequentialGroup()
+				.addGap(25)
+				.addComponent(scrollPane_enregistreurs, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+				)
+				.addComponent(btnRecorder)
 		);
-		gl_recordersManagementPanel.setVerticalGroup(
-			gl_recordersManagementPanel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_recordersManagementPanel.createSequentialGroup()
-					.addGap(96)
-					.addComponent(scrollPane_enregistreurs, GroupLayout.PREFERRED_SIZE, 229, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 41, Short.MAX_VALUE)
-					.addComponent(btnCard)
-					.addGap(39))
+		gl_roomManagementPanel.setVerticalGroup(
+				gl_roomManagementPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_roomManagementPanel.createSequentialGroup()
+					.addComponent(scrollPane_enregistreurs, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+					.addComponent(btnRecorder)
+					)
 		);
 		
 		RecorderDAO connectingModuleDao = new RecorderDAOImpl();
 		List<Recorder> recorders = connectingModuleDao.getRecorderList();
-		String[] connectingModuleColumnTitle = { "Id Enregistreur","Id Activateur", "Salle", "Statut" }; 
+		
 		Model mModul = new Model(toArrayModuls(recorders),connectingModuleColumnTitle);
 		tableModuls = new JTable(mModul);
 		
@@ -338,7 +354,7 @@ public class Configuration extends JFrame {
 		        Point p = e.getPoint();
 		        int row = table.rowAtPoint(p);
 		        if (e.getClickCount() == 2) {
-		           Recorder rec =  RecorderDAOImpl._instance._recorders.get(row);
+		           Recorder rec =  RecorderDAOImpl._recorders.get(row);
 		           if ( rec != null )
 		        	   new Parring(rec);
 		        }
@@ -346,8 +362,13 @@ public class Configuration extends JFrame {
 		});
 	
 		scrollPane_enregistreurs.setViewportView(tableModuls);
-		recordersManagementPanel.setLayout(gl_recordersManagementPanel);
+		recordersManagementPanel.setLayout(gl_roomManagementPanel);
+		
+		return recordersManagementPanel;
 	}
+	
+	
+	
 	
 	private Object[][] toArrayUserRecorder(List<UserRecorder> datas){
 		Object[][] array = new Object[datas.size()][];
@@ -393,7 +414,7 @@ public class Configuration extends JFrame {
 		}
 		return array;
 	}
-	
+
 	private Object[][] toArrayModuls(List<Recorder> recorders){
 		Object[][] array = new Object[recorders.size()][];
 		for (int i = 0; i < recorders.size(); i++) {
