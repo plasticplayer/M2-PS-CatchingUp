@@ -34,7 +34,6 @@ class StillCamera{
         static StillCamera *_instance;
 		static void * _threadRecord( void * arg);
 		string _folderRecording;
-		int _RecordingNumber;
 		bool _recording;
 		unsigned int _sleepTimeMS;
 		pthread_t _ThreadRecording;

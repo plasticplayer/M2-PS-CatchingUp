@@ -292,7 +292,7 @@ void * Webcam::_threadRecord( void * arg)
 				// Adding the file to the current recording
 				thisObj->_CurrentRecording->addFile(file);
 
-				string fileName = SSTR(thisObj->_folderRecording << "/" << ++thisObj->_RecordingNumber << ".h264");
+				fileName = SSTR(thisObj->_folderRecording << "/" << ++thisObj->_RecordingNumber << ".h264");
 				fichierH264 = fopen (fileName.c_str()  ,"wb+");
 				if(fichierH264 == NULL)
 				{

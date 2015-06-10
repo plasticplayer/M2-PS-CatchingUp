@@ -45,6 +45,12 @@ bool SoundRecord::stopRecording()
                 usleep(100);
             }
             LOGGER_VERB("Recording stopped ");
+            RecordingFile * file = new RecordingFile();
+            file->isInRecord = false;
+            file->fileName = SSTR("sound.mp3");
+            file->path = SSTR( _CurrentRecording->_folderRecording << "/sound.mp3");
+            // Adding the file to the current recording
+            _CurrentRecording->addFile(file);
             return true;
         }
         else
