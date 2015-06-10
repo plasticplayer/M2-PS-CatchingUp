@@ -1,4 +1,12 @@
-<!DOCTYPE html>
+<?php
+require("config.php");
+$link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
+if (!$link) { 
+	die('Could not connect to MySQL: ' . mysqli_error()); 
+} 
+//echo 'Connection OK'; //mysql_close($link); 
+$connection=mysqli_select_db($link,$databaseName);
+?><!DOCTYPE html>
 <html lang="en">
   <head>
     <meta name="generator"
@@ -144,12 +152,7 @@ $(document).ready(function(){
 				</a>
 			  </li>
 			  <?php 
-						$link = mysqli_connect('localhost','priseCours','priseCours'); 
-						if (!$link) { 
-							die('Could not connect to MySQL: ' . mysqli_error()); 
-						} 
-						//echo 'Connection OK'; //mysql_close($link); 
-						$connection=mysqli_select_db($link,'catchingup');
+						
 						$query = " SELECT NameCategory FROM `category` "; 
 						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
 						while ($row=mysqli_fetch_array($result)) 
@@ -185,12 +188,7 @@ $(document).ready(function(){
 				<tr>
 					<td>
 						<?php 
-						$link = mysqli_connect('localhost','root',''); 
-						if (!$link) { 
-							die('Could not connect to MySQL: ' . mysqli_error()); 
-						} 
-						//echo 'Connection OK'; //mysql_close($link); 
-						$connection=mysqli_select_db($link,'catchingup');
+
 
 							//On insère des données variables grâce à une requète préparée
 						//$query="INSERT INTO `User` (`IdUser`, `FirstName`, `LastName`, `Password`, `Email`) VALUES

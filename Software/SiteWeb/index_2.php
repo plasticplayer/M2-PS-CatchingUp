@@ -1,4 +1,11 @@
 <?php
+require("config.php");
+$link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
+if (!$link) { 
+	die('Could not connect to MySQL: ' . mysqli_error()); 
+} 
+//echo 'Connection OK'; //mysql_close($link); 
+$connection=mysqli_select_db($link,$databaseName);
 					$idChapter=$_GET['var'];
 					echo "<script>alert($idChapter)</script>";
 					//echo"<source src='$pathVideoBoard'/>";
@@ -106,12 +113,7 @@ video {
 			  <video preload="auto" id="a" muted>
 				<?php
 					echo"<script>alert($idChapter)</script>";
-					$link = mysqli_connect('localhost','root',''); 
-						if (!$link) { 
-							die('Could not connect to MySQL: ' . mysqli_error()); 
-						} 
-						//echo 'Connection OK'; //mysql_close($link); 
-						$connection=mysqli_select_db($link,'catchingup');
+					
 
 						$query = " SELECT NameFileLesson FROM `fileLesson` WHERE fileLesson.idChapter = $idChapter and  fileLesson.typeFile = 'VIDEO_TRACKING'"; 
 						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 

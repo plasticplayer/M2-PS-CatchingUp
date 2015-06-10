@@ -2,12 +2,13 @@
 	$c=$_POST['var'];
 	//echo"value is $c";
 	//echo "<script>alert(\"la variable est nulle\")</script>";
-						$link = mysqli_connect('localhost','root',''); 
-						if (!$link) { 
-							die('Could not connect to MySQL: ' . mysqli_error()); 
-						} 
-						//echo 'Connection OK'; //mysql_close($link); 
-						$connection=mysqli_select_db($link,'catchingup');
+						require("config.php");
+$link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
+if (!$link) { 
+	die('Could not connect to MySQL: ' . mysqli_error()); 
+} 
+//echo 'Connection OK'; //mysql_close($link); 
+$connection=mysqli_select_db($link,$databaseName);
 
 						$query = " SELECT NameLesson,DateLesson FROM `lesson` WHERE IdCategory = $c "; 
 						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
