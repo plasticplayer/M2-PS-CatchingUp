@@ -37,7 +37,7 @@ class Recorder{
 	public:
 		Recorder ( Udp *udp, char* ip );
 		//	~Recorder();
-		bool getImage ( char* image, int* size );	
+		bool getImage ( char* image, int* size );
 		static void decoTcp( void* recorder );
 		void getFrameUdp( BYTE* data, unsigned long size );
 		void setUdpSocket ( void* sock,  int size );
@@ -51,12 +51,14 @@ class Recorder{
 		void SRV_TO_REC_askStatut();
 		void SRV_TO_REC_sendParring( );
 		char**_Image;
-		
+
 		char *_IpAddr;
 		bool Parring();
 		static list<UnconnectedClient*> _UnconnectedClients;
 		static Recorder* getRecorderByMac ( BYTE* mac );
 		static Recorder* getRecorderById( uint64_t id );
+
+		static void* convertFiles(void * data);
 	private:
 		static void addUnconnectedClient ( BYTE* mac );
 		static void delUnconnectedClient ( BYTE* mac );
@@ -65,7 +67,7 @@ class Recorder{
 
 		static void REC_TO_SRV_TCP_ACK( BYTE* data, unsigned long size, void *sender);
 		static void REC_TO_SRV_UDP_ACK( BYTE* data, unsigned long size, void *sender);
-		/// UDP CALLbacks	
+		/// UDP CALLbacks
 		static void REC_TO_SRV_getMacAddress( BYTE* data, unsigned long size, void *sender);
 		static void REC_TO_SRV_ImageInfo( BYTE* data, unsigned long size, void *sender );
 		static void REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, void *sender );
@@ -92,7 +94,7 @@ class Recorder{
 		Udp *_UdpSrv;
 		void* _UdpSocket;
 		BYTE _MacAddress[12];
-		
+
 		int _Count, _SizeImage;
 		//int _TcpSocket;
 		int* _ImageParts;

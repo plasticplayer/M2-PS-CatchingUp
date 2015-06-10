@@ -48,7 +48,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 				int idCMod = Integer.parseInt(idCModule.trim());
 				
 				if ( idR == 0 || idRMod == 0 || idCMod == 0 ){
-					new MessageBox("Erreur de création de enregistrer").setVisible(true);
+					new MessageBox("Erreur de crï¿½ation de enregistrer").setVisible(true);
 					Tools.LOGGER_ERROR( "Cannot create Recorder");
 					return false;
 				}
@@ -65,7 +65,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 				return true;
 			}
 		}
-		new MessageBox("Erreur de création de enregistrer").setVisible(true);
+		new MessageBox("Erreur de crï¿½ation de enregistrer").setVisible(true);
 		Tools.LOGGER_ERROR( "Cannot create Recorder");
 		return false;
 	}
@@ -118,8 +118,8 @@ public class RecorderDAOImpl implements RecorderDAO {
 
 	@Override
 	public List<Recorder> getRecorderList() {
-		_recorders = new ArrayList<Recorder>();
-		_unconnectedRecorders = new ArrayList<Recorder>();
+		_recorders.clear();
+		_unconnectedRecorders.clear();
 		
 		String res = communication.Server.sendData("<type>need_recorders</type>");
 		String[] lines = res.split("["+System.getProperty("line.separator")+"]");

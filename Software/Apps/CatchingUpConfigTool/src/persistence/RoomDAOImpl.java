@@ -51,7 +51,7 @@ public class RoomDAOImpl implements RoomDAO {
 				return true;
 			}
 		}
-		new MessageBox("Erreur de création de la salle").setVisible(true);
+		new MessageBox("Erreur de crï¿½ation de la salle").setVisible(true);
 		Tools.LOGGER_ERROR("Cannot create room");
 		return false;
 	}
@@ -94,6 +94,9 @@ public class RoomDAOImpl implements RoomDAO {
 	
 	@Override
 	public List<Room> getRoomList() {
+		if ( !_rooms.isEmpty() )
+			return _rooms;
+		
 		_rooms = new ArrayList<Room>();
 		_freeRooms = new ArrayList<Room>();
 		
