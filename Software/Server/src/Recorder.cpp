@@ -15,6 +15,50 @@
 list<Recorder *> Recorder::_Recorders;
 list<UnconnectedClient*> Recorder::_UnconnectedClients;
 using namespace std;
+bool sortFileNames (const itemRecording& first, const itemRecording& second)
+{
+	string fnFirst  = first.fileName;
+	string fnSecond = second.fileName;
+
+	size_t posSlash1 = fnFirst.find_last_of("/");
+	if(posSlash1 != string::npos)
+		fnFirst = fnFirst.substr(posSlash1);
+
+	size_t posSlash2 = fnSecond.find_last_of("/");
+	if(posSlash2 != string::npos)
+		fnSecond = fnSecond.substr(posSlash2);
+
+	size_t posPoint1 = fnFirst.find_last_of(".");
+	if(posPoint1 != string::npos)
+		fnFirst = fnFirst.substr(0,posPoint1);
+
+	size_t posPoint2 = fnSecond.find_last_of(".");
+	if(posPoint2 != string::npos)
+		fnSecond = fnSecond.substr(0,posPoint2);
+
+	unsigned int num1 = 0;
+	unsigned int num2 = 0;
+	for(unsigned int i = 0 ; i < fnFirst.length(); i++)
+	{
+		char charValue = fnFirst.at(i);
+		if(charValue >= '0' && charValue <= '9')
+		{
+			num1 += (charValue - '0');
+			num1 *= 10;
+		}
+	}
+
+	for(unsigned int i = 0 ; i < fnSecond.length(); i++)
+	{
+		char charValue = fnSecond.at(i);
+		if(charValue >= '0' && charValue <= '9')
+		{
+			num2 += (charValue - '0');
+			num2 *= 10;
+		}
+	}
+	return ( num1 < num2 );
+}
 
 void gen_random(char *s, const int len) {
     static const char alphanum[] ="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -24,9 +68,9 @@ void gen_random(char *s, const int len) {
     }
     s[len -1] = '\0';
 }
-/****************  Constructor  ****************/ 
+/****************  Constructor  ****************/
 Recorder::Recorder ( Udp *udp, char* ip ){
-	// Init Variables	
+	// Init Variables
 	this->_Image = NULL;
 	this->_StatutRasp = 0x00;
 	this->_StatutArd  = 0x00;
@@ -42,11 +86,11 @@ Recorder::Recorder ( Udp *udp, char* ip ){
 	memcpy( _IpAddr,ip,strlen(ip) );
 
 	// Configure Udp callbacks
-	this->_CommunicationUdp = new Communication( 0x10, 0x22, 0x20, IMAGE_SIZE_MAX ); 
+	this->_CommunicationUdp = new Communication( 0x10, 0x22, 0x20, IMAGE_SIZE_MAX );
 	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_ImageInfo), (int)GET_IMAGE_INFO);
 	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_ImagePart), (int)GET_IMAGE_PARTS);
 	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_getMacAddress), (int)GET_MAC_ADDR);
-	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_UDP_ACK), (int)ACK_UDP);	
+	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_UDP_ACK), (int)ACK_UDP);
 	_CommunicationUdp->setFunction((FuncType)&(this->REC_TO_SRV_imageCompletlySend), (int)GET_IMAGE_COMPLETLY_SEND);
 	// Add recorder to List
 	_Recorders.push_back(this);
@@ -61,7 +105,7 @@ void Recorder::decoTcp( void* recorder ){
 }
 
 
-/****************  Getters / Setters  ****************/ 
+/****************  Getters / Setters  ****************/
 Recorder* Recorder::findRecorderByIp( char* ip ){
 	if ( _Recorders.empty() )
 		return NULL;
@@ -72,7 +116,7 @@ Recorder* Recorder::findRecorderByIp( char* ip ){
 			return rec;
 	}
 	return NULL;
-} 
+}
 
 Recorder* Recorder::getRecorderById( uint64_t id ){
 	if ( _Recorders.empty() )
@@ -132,7 +176,7 @@ bool Recorder::Parring(){
 
 
 
-/****************  Communications functions  ****************/ 
+/****************  Communications functions  ****************/
 void Recorder::getFrameUdp( BYTE* data, unsigned long size  ){
 	if ( _CommunicationUdp == NULL )
 		return;
@@ -166,16 +210,16 @@ bool Recorder::getImage ( char* image, int* size ){
 	_stateGetImage = WORKING;
 	SRV_TO_REC_askVisuImage( 0x01 );
 	while ( _stateGetImage == WORKING ) usleep(10000);
-	
+
 	return ( _stateGetImage == PASS );
 }
 
-	
+
 /** SRV_TO_REC_askVisuImage
  * Send to Recorder a request to get an image from Camera
  **/
 void Recorder::SRV_TO_REC_askVisuImage( BYTE idCam ){
-	BYTE req[] = { ASK_VISU_CAM , idCam } ; 
+	BYTE req[] = { ASK_VISU_CAM , idCam } ;
 	sendTcpFrame(req,2,false);
 }
 
@@ -183,7 +227,7 @@ void Recorder::SRV_TO_REC_askVisuImage( BYTE idCam ){
  * Ask to recorder his status
  **/
 void Recorder::SRV_TO_REC_askStatut(){
-	BYTE req[] = { SEND_ASK_STATUT } ; 
+	BYTE req[] = { SEND_ASK_STATUT } ;
 	sendTcpFrame(req,1,false);
 }
 
@@ -202,7 +246,7 @@ void Recorder::SRV_TO_REC_sendParring( ){
 		LOGGER_ERROR("Cannot generate NRF ADDRESSES");
 		return;
 	}
-	BYTE req[] = { SEND_ASK_PAIRING , 
+	BYTE req[] = { SEND_ASK_PAIRING ,
 		(uint8_t) (( addressGenerateRpi >> 24 ) & 0xFF),
 		(uint8_t) (( addressGenerateRpi >> 16 ) & 0xFF),
 		(uint8_t) (( addressGenerateRpi >> 8  ) & 0xFF),
@@ -259,7 +303,7 @@ void Recorder::REC_TO_SRV_getMacAddress( BYTE* data, unsigned long size, void *s
 	delUnconnectedClient ( rec->_MacAddress );
 	BYTE req[] = { 0x42 , (BYTE)(CurrentApplicationConfig.TCP_serverPort >> 8),
 		(BYTE)(CurrentApplicationConfig.TCP_serverPort & 0xFF),
-		(BYTE)(CurrentApplicationConfig.FTP_serverPort >> 8), 
+		(BYTE)(CurrentApplicationConfig.FTP_serverPort >> 8),
 		(BYTE)(CurrentApplicationConfig.FTP_serverPort & 0xFF) };
 	BYTE* ans = NULL;
 
@@ -344,7 +388,7 @@ void Recorder::REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, vo
 		if ( l.size() > 150 )
 			break;
 	}
-	int siz = 1 + l.size() * 2 ; 
+	int siz = 1 + l.size() * 2 ;
 	BYTE* req = new BYTE[ 1 + l.size() * 2];
 	req[0] = SEND_PARTS_NOT_RECIEVED ;
 	int i = 1;
@@ -380,7 +424,7 @@ void Recorder::REC_TO_SRV_imageCompletlySend( BYTE* data, unsigned long size, vo
 
 
 
-/****************  TCP CallBacks  ****************/ 
+/****************  TCP CallBacks  ****************/
 
 /** REC_TO_SRV_getSatut
  * Recieve Status from Recorder
@@ -411,11 +455,11 @@ void Recorder::REC_TO_SRV_authentificationAsk( BYTE* data, unsigned long size, v
 	uint64_t idCard = (uint64_t) ( (uint64_t) data[0] << 56 | (uint64_t) data[1] << 48 | (uint64_t )data[2] << 40 | (uint64_t) data[3] << 32 |
 			(uint64_t) data[4] << 24 | (uint64_t) data[5] << 16 | (uint64_t) data[6] << 8  | (uint64_t) data[7]);
 
-	LOGGER_DEBUG("Search  authentification for: " << idCard );				  
+	LOGGER_DEBUG("Search  authentification for: " << idCard );
 	rec->_IdUserRecording = Mysql::getIdUserRecorderFromTag( idCard );
 
 	if ( rec->_IdUserRecording != 0x00 ){
-		BYTE req[] = { ANS_AUTHENTIFICATION , 0x01, 
+		BYTE req[] = { ANS_AUTHENTIFICATION , 0x01,
 			(uint8_t) (( rec->_IdUserRecording >> 56 ) & 0xFF),
 			(uint8_t) (( rec->_IdUserRecording >> 48 ) & 0xFF),
 			(uint8_t) (( rec->_IdUserRecording >> 40 ) & 0xFF),
@@ -465,18 +509,18 @@ void Recorder::REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sen
 	rec->filesInWait = 0;
 	for ( unsigned long  i = 0; i < size; i++ ) rec->filesInWait = ( rec->filesInWait << 8) | data[i];
 	LOGGER_DEBUG( "Storage Ask from: " << rec->_IdRecorder << " Files in wait: " << rec->filesInWait );
-	
+
 	// TODO : Verifiy if can send File
 	bool canSend = true;
 	if ( canSend ){
 		LOGGER_DEBUG("Can Send File");
 		char pass[PASS_SIZE+1];
-		gen_random(pass, PASS_SIZE);	
+		gen_random(pass, PASS_SIZE);
 		string s = string ( pass );
 		//cout << "Rand Password: " << pass  << "::" << s << endl;
 		Ftp::_Ftp->deleteUser( SSTR ( rec->_MacAddress ).substr(0,12) );
-		Ftp::_Ftp->addUser ( SSTR ( rec->_MacAddress).substr(0,12), s ,CurrentApplicationConfig.FolderPathTmp , false ); 
-		BYTE req[2+PASS_SIZE]; 
+		Ftp::_Ftp->addUser ( SSTR ( rec->_MacAddress).substr(0,12), s ,CurrentApplicationConfig.FolderPathTmp , false );
+		BYTE req[2+PASS_SIZE];
 		req[0] = ANS_STORAGE;
 		req[1] = 0x01;
 		memcpy(req+2,pass,PASS_SIZE);
@@ -484,7 +528,7 @@ void Recorder::REC_TO_SRV_askSendFile( BYTE* data, unsigned long size, void *sen
 	}
 	else{
 		LOGGER_DEBUG("Can't send file" );
-		BYTE req[1]; 
+		BYTE req[1];
 		req[0] = ANS_STORAGE;
 		req[2] = 0x00;
 		rec->sendTcpFrame(req,2,true);
@@ -501,9 +545,9 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	Recorder *rec = (Recorder*) sender;
 	if ( rec->_IdRecorder == 0 )
 		return;
-	
+
 	Ftp::_Ftp->deleteUser( SSTR ( rec->_MacAddress ).substr(0,12) );
-	BYTE req[2]; 
+	BYTE req[2];
 	req[0] = ANS_END_FILE_TRANSFERT;
 	req[1] = 0x00;
 	string s = "", md5 = "";
@@ -511,29 +555,29 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	for ( i = 2; i <= data[0] ; i++){
 		s = SSTR( s << data[i] );
 	}
-		
+
 	for (  ; i < size ; i++){
 		md5 = SSTR( md5 << data[i] );
 	}
 
-	LOGGER_VERB("File transfert : " << s << " MD5: " << md5 ); 
-	
+	LOGGER_VERB("File transfert : " << s << " MD5: " << md5 );
+
 	hashwrapper *myWrapper = new md5wrapper();
 	try
 	{
 		myWrapper->test();
 	}
 	catch(hlException &e)
-	{	
+	{
 		rec->sendTcpFrame(req,2,true);
 		return;
 	}
 
-	
+
 	string oldPath = SSTR ( CurrentApplicationConfig.FolderPathTmp << s);
 	string hash = "";
 	uint64_t idRecording = strtoull ( s.substr(0,s.find('/')).c_str(),NULL, 0);
-	
+
 	if ( idRecording == 0 ){
 		LOGGER_WARN("IdRecording error: " << s.substr(0,s.find('/')));
 		rec->sendTcpFrame(req,2,true);
@@ -561,7 +605,7 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	if ( sameChkSum ){
 		string newPath =  SSTR( CurrentApplicationConfig.FolderPathMedia << s );
 		mkdir((const char *) newPath.substr(0,newPath.find_last_of('/')).c_str(),0777);
- 
+
 		string type = newPath.substr( newPath.find_last_of('.'));
 		if ( type.compare(".jpeg") == 0 )
 			type = "PHOTO_BOARD";
@@ -576,7 +620,7 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 			rec->sendTcpFrame(req,2,true);
 			return;
 		}
-		if ( rename ( oldPath.c_str()  , newPath.c_str() )==0){	
+		if ( rename ( oldPath.c_str()  , newPath.c_str() )==0){
 			Mysql::addFileToRecording ( idRecording , newPath, type );
 		}
 		else{
@@ -597,7 +641,7 @@ void Recorder::REC_TO_SRV_endFileTransfert( BYTE* data, unsigned long size, void
 	rec->sendTcpFrame(req,2,true);
 }
 
-/** REC_TO_SRV_endFilesTransfert 
+/** REC_TO_SRV_endFilesTransfert
  * Get signal for all files will be send for recording
  **/
 void Recorder::REC_TO_SRV_endFilesTransfert( BYTE* data, unsigned long size, void *sender ){
@@ -611,12 +655,73 @@ void Recorder::REC_TO_SRV_endFilesTransfert( BYTE* data, unsigned long size, voi
 	LOGGER_INFO("All File Transfered from recording: " << idRecording );
 
 	rec->_Tcp->sendAck( ( BYTE * )GET_END_TRANSFERT_FILES);
+	Mysql::RecordingTransferFinished(idRecording);
+	LOGGER_DEBUG("Start Convert Thread");
+	pthread_t thread;
+	int * idRec = (int*)malloc(sizeof(int));
+	*idRec = idRecording;
+    pthread_create(&thread, NULL, &convertFiles, ( void * ) idRec );
+}
+void* Recorder::convertFiles(void * data)
+{
+    int * pRecId = (int*)data;
+    if(pRecId != NULL)
+    {
+        LOGGER_DEBUG("Will convert files for recording "<< (*pRecId));
+        list<itemRecording> liste = Mysql::getFilesRecording(*pRecId);
+        //liste.sort(sortFileNames);
+       // for (list<itemRecording>::iterator it = liste.begin(); it != liste.end(); it++)
+       list<itemRecording>::iterator it = liste.begin();
+        //{
+            //std::cout << (*it).fileName << endl;
+            string fileName = (*it).fileName;
+            string folder;
+            size_t posSlash = fileName.find_last_of("/");
+            if(posSlash != string::npos)
+                folder = fileName.substr(0,posSlash+1);
+            LOGGER_DEBUG("Folder :" << folder);
+            string cmd = SSTR("ffmpeg -y -framerate 1 -i "<< folder <<"snap%d.jpeg -vf scale=-1:720 -vcodec libx264 -crf 0 -preset veryslow -threads 0 -r 30 "<<folder<<"tableau.mp4");
+            LOGGER_DEBUG("Command : "<<cmd);
+            system(cmd.c_str());
+            bool firstFile = true;
+            for (it = liste.begin(); it != liste.end(); it++)
+            {
+                //LOGGER_DEBUG("Fichier  : "<<(*it).fileName );
+                if((*it).type == itemRecording::VIDEO_TRACKING)
+                {
+                    if(firstFile)
+                    {
+                         cmd = SSTR("cat " << (*it).fileName << " >  " << folder <<"cours.h264");
+                        firstFile = false;
+                    }
+                    else
+                        cmd = SSTR("cat " << (*it).fileName << " >> " << folder <<"cours.h264");
+                    //LOGGER_DEBUG("Command : "<<cmd);
+                    system(cmd.c_str());
+                }
+            }
+            cmd = SSTR("avconv -y -r 7 -i " << folder << "cours.h264 -i " << folder << "sound.mp3 -vcodec libx264 -preset veryslow -crf 0 -r 30 -threads 0 " << folder << "cours.mp4");
+            LOGGER_DEBUG("Command : "<<cmd);
+            system(cmd.c_str());
+            for (it = liste.begin(); it != liste.end(); it++)
+            {
+                if( remove( (*it).fileName.c_str() ) != 0 )
+                    LOGGER_WARN("Cannot delete file : "<< (*it).fileName);
+            }
+            Mysql::removeFilesRecording(*pRecId);
+            Mysql::addFileToRecording(*pRecId,SSTR( folder << "cours.mp4"),"VIDEO_TRACKING","TREATED");
+            Mysql::addFileToRecording(*pRecId,SSTR( folder << "tableau.mp4"),"VIDEO_BOARD","TREATED");
+            Mysql::RecordingTreated ( *pRecId);
+
+        //}
+    }
+    return NULL;
 }
 
 /** REC_TO_SRV_createRecording
  * Receive a signal to create a recording
  **/
-void Recorder::REC_TO_SRV_createRecording( BYTE* data, unsigned long size, void *sender) {	
+void Recorder::REC_TO_SRV_createRecording( BYTE* data, unsigned long size, void *sender) {
 	Recorder *rec = (Recorder*) sender;
 	if ( rec->_IdRecorder == 0x00 || rec->_IdUserRecording == 0x00 ){
 		LOGGER_WARN("Create Recording request ignore");
@@ -630,7 +735,7 @@ void Recorder::REC_TO_SRV_createRecording( BYTE* data, unsigned long size, void 
 
 	LOGGER_INFO("Create new Recording " << idRecording << " to Recorder: " << rec->_IdRecorder );
 
-	BYTE req[] = { SEND_RECORDING_ID , 
+	BYTE req[] = { SEND_RECORDING_ID ,
 		(uint8_t) (( idRecording >> 56 ) & 0xFF),
 		(uint8_t) (( idRecording >> 48 ) & 0xFF),
 		(uint8_t) (( idRecording >> 40 ) & 0xFF),
