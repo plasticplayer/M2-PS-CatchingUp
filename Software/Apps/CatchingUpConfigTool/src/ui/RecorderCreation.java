@@ -24,11 +24,12 @@ import java.awt.event.ActionEvent;
 public class RecorderCreation extends JDialog {
 
 	private final JPanel contentPanel = new JPanel();
-
+	public static boolean isOpen = false;
 	/**
 	 * Create the dialog.
 	 */
 	public RecorderCreation() {
+		isOpen = true;
 		setTitle("Ajout d'un enregistreur");
 		
 		setBounds(100, 100, 435, 191);
@@ -67,6 +68,7 @@ public class RecorderCreation extends JDialog {
 		JButton btnAnnulation = new JButton("Annuler");
 		btnAnnulation.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				isOpen = false;
 				dispose();
 			}
 		});
@@ -78,8 +80,10 @@ public class RecorderCreation extends JDialog {
 				Recorder rec = RecorderDAOImpl._unconnectedRecorders.get( choice.getSelectedIndex() );
 				Room r = RoomDAOImpl._freeRooms.get( choice_1.getSelectedIndex() );
 				rec.setRoom(r);
-				if ( RecorderDAOImpl._instance.createRecorder(rec) )
+				if ( RecorderDAOImpl._instance.createRecorder(rec) ){
+					isOpen = false;
 					dispose();
+				}
 			}
 		});
 		buttonPanel.add(btnOk);
