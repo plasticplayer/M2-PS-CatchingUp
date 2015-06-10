@@ -72,7 +72,7 @@ public class Configuration extends JFrame {
 			}
 		}
 	});
-	String[] connectingModuleColumnTitle = { "Id Enregistreur","Id Activateur", "Salle", "Statut" };
+	String[] connectingModuleColumnTitle = { "Id Enregistreur","Id Activateur", "Salle", "Statut", "Fichiers en attente" };
 
 	/**
 	 * Create the frame.
@@ -506,6 +506,7 @@ public class Configuration extends JFrame {
 			row.add(recorders.get(i).getConnectingModule().getIdNetworkRecording()+"");
 			row.add(recorders.get(i).getRoom().getName() );
 			row.add( recorders.get(i).toString() );
+			row.add( recorders.get(i).getFilesInQueue() + "" );
 			array[i] = row.toArray(new String[row.size()]);
 		}
 		return array;
