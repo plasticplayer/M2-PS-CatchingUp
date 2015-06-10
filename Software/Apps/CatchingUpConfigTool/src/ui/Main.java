@@ -24,7 +24,7 @@ public class Main {
 
 		});
 		new CardReader();
-
+		
 	//	Tools.enableDebug = true;
 
 		try {

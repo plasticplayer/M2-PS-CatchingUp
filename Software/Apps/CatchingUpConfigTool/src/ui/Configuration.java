@@ -15,8 +15,10 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 
 import persistence.CardDAOImpl;
+import persistence.LogsImpl;
 import persistence.RecorderDAOImpl;
 import persistence.RoomDAOImpl;
 import persistence.UserRecorderDAOImpl;
@@ -69,6 +71,37 @@ public class Configuration extends JFrame {
 					.addContainerGap(25, Short.MAX_VALUE)
 					.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 436, GroupLayout.PREFERRED_SIZE))
 		);
+		JPanel logsPannel = new JPanel();
+		tabbedPane.addTab("Logs", null, logsPannel, null);
+		
+		JTextArea textArea = new JTextArea();
+		textArea.setText( LogsImpl._instance.getLogs() );
+		textArea.setEditable(false);
+		
+		JScrollPane scrollPaneLog = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		
+		
+		GroupLayout gl_logsPanel = new GroupLayout(logsPannel);
+		gl_logsPanel.setHorizontalGroup(
+				gl_logsPanel.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_logsPanel.createSequentialGroup()
+					.addGap(25)
+					.addComponent(scrollPaneLog, GroupLayout.PREFERRED_SIZE, 800, GroupLayout.PREFERRED_SIZE)
+					)
+		);
+		gl_logsPanel.setVerticalGroup(
+				gl_logsPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_logsPanel.createSequentialGroup()
+					.addComponent(scrollPaneLog, GroupLayout.PREFERRED_SIZE, 400, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED, 41, Short.MAX_VALUE)
+					)
+		);
+		logsPannel.setLayout(gl_logsPanel);
+		
+		
+		
+		
+		
 		
 		/*JPanel cameraManagementPanel = new JPanel();
 		tabbedPane.addTab("Calibrage camï¿½ra", null, cameraManagementPanel, null);*/
@@ -81,8 +114,8 @@ public class Configuration extends JFrame {
 		
 		
 		String[] titreColonnes = {"Identifiant", 
-				   "Prénom","Nom",
-				   "Email","Date de début","Date de fin"}; 
+				   "Prï¿½nom","Nom",
+				   "Email","Date de dï¿½but","Date de fin"}; 
 		
 		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
 		Model m = new Model(arrayUserRecorder,titreColonnes);

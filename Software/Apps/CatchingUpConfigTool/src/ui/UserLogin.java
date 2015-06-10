@@ -17,7 +17,7 @@ import java.text.ParseException;
 
 public class UserLogin extends JFrame {
 
-	private static String defaultIp = "catchingup.fr:1918";
+	private static String defaultIp = "192.168.43.90:1918";
 	/**
 	 * Launch the application.
 	 */
