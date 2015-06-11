@@ -1,23 +1,15 @@
 <?php 
 	$text=$_POST['var'];
-	//$idChapter=$_POST['var2'];
-	//$time=$_POST['var3'];
-	echo "<script>alert($text)</script>";
-	//echo"value is $c";
-	//echo "<script>alert(\"la variable est nulle\")</script>";
-						/*$link = mysqli_connect('localhost','root',''); 
-						if (!$link) { 
-							die('Could not connect to MySQL: ' . mysqli_error()); 
-						} 
-						//echo 'Connection OK'; //mysql_close($link); 
-						$connection=mysqli_select_db($link,'catchingup');
+	$idChapter=$_POST['var2'];
+	$time=$_POST['var3'];
+	require("config.php");
+	$link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
+	if (!$link) { 
+		die('Could not connect to MySQL: ' . mysqli_error()); 
+	} 
 
-						$query = " SELECT NameLesson,DateLesson FROM `lesson` WHERE IdCategory = $c "; 
-						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
-						
-						while ($row=mysqli_fetch_array($result)) 
-						{ 
-							echo"<tr><td id='titleLesson'>$row[0]</td><td>$row[1]</td></tr>"; 
-						} */
+	$connection=mysqli_select_db($link,$databaseName);
+	$query = " INSERT INTO `reference`(`TextReference`, `IdChapter`, `TimeCode`, `Relevance`) VALUES ('$text',$idChapter,$time,1) "; 
+	$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
 						
 ?>
