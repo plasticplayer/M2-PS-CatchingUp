@@ -71,6 +71,7 @@ public class CardDAOImpl implements CardDAO {
 					return false;
 				}
 				Tools.LOGGER_INFO("Create card OK" );
+				cards.add(card);
 				return true;
 			}
 		}		
