@@ -182,7 +182,7 @@ void ConfigAppli::decodeRequest ( char *req ){
 
 	else if ( type.compare( "need_cards" ) == 0 )
 		getCards();
-	
+
 	else if ( type.compare ( "need_logs") == 0 )
 		getLogs();
 
@@ -228,16 +228,47 @@ void ConfigAppli::decodeRequest ( char *req ){
 
 /****************  Getters ****************/
 void ConfigAppli::getLogs( ){
-	string log = "<type>logs</type></logs>";
-
-	ifstream file("log.log");
-	string str;
-	if ( file != NULL ){
-		while ( getline ( file , str ))
-			log = SSTR ( log <<  endl << "<log>" << str << "</log>");
+	ifstream file ( "log.log" , ios::in|ios::binary|ios::ate);
+	if (file.is_open())
+	{
+		int sizeUpload = 512;
+		streampos size;
+		char * memblock;	
+		size = file.tellg();
+		memblock = new char [size];
+		file.seekg (0, ios::beg);
+		file.read (memblock, size);
 		file.close();
+
+		int partNo = size / sizeUpload;
+		int lastSize = size % sizeUpload;
+		cout << "PartNo: " << partNo << endl; 
+		char sizes[] = {
+			((char)((size) & 0xFF)),
+			((char)((size>>8) & 0xFF)),
+			((char)((size>>16) & 0xFF)),
+			((char)((size>>24) & 0xFF))
+		};
+		LOGGER_VERB("Size Logs sent : "<< size);
+		send(client_sock,sizes,4,0);
+		for ( int i = 0; i <= partNo ; i++ ){
+			if ( i == partNo){
+				if ( lastSize != 0 )
+					send( client_sock , &memblock[i*sizeUpload] , lastSize ,0);
+			}
+			else {
+				send( client_sock , &memblock[i*sizeUpload], sizeUpload ,0);
+			}
+		}
+		char * newLine = (char*)"\r\n";
+		send(client_sock,newLine,sizeof(newLine),0);
+		LOGGER_VERB("Image Sent to configuration aplication");
+		delete[] memblock;
 	}
-	sendData ( SSTR( log << endl << "</logs>" << endl )) ;
+	else {
+		char a[] = { 0, 0, 0 , 0};
+		send( client_sock, &a, 4,0);
+	}
 }
 
 
@@ -299,7 +330,7 @@ void ConfigAppli::getRecorders(){
 		idRModule	= res->GetCurrentRow()->GetField(6);
 		idNC		= res->GetCurrentRow()->GetField(7);
 		idNR		= res->GetCurrentRow()->GetField(8);
-		
+
 		rec = Recorder::getRecorderByMac( (BYTE*) mac.c_str() );
 
 		status = ( rec != NULL && rec->isTcpConnected() ) ? "CONNECTED" : "UNCONNECTED" ;
@@ -741,7 +772,7 @@ void ConfigAppli::getImageFromRecorder ( string req ){
 					//LOGGER_VERB("["<<(unsigned int)sizes[0]<< ","<<(unsigned int)sizes[1]<<","<<(unsigned int)sizes[2]<<","<<(unsigned int)sizes[3]<<"]"); 				
 					send(client_sock,sizes,4,0);
 					for ( int i = 0; i <= partNo ; i++ ){
-					
+
 						if ( i == partNo){
 							if ( lastSize != 0 )
 								send( client_sock , &memblock[i*sizeUpload] , lastSize ,0);
