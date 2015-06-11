@@ -205,7 +205,9 @@ public class SpeakerCreation extends JDialog {
 								Card card = (Card) cardList.getSelectedItem();
 								card.setUser(user);
 								CardDAOImpl._instance.updateCard(card);
+								
 							}
+							dispose();
 						}
 					}
 				});

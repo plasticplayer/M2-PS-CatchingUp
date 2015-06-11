@@ -6,6 +6,9 @@ import java.util.List;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.awt.event.WindowStateListener;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -45,44 +48,42 @@ public class Configuration extends JFrame {
 	private JTable tableModuls;
 	private JTable tableClassrooms;
 	private static JTextArea logsArea = null;
-	private CardDAO cardDao= new CardDAOImpl();
-	private UserRecorderDAO userRecorderDao= new UserRecorderDAOImpl();
+	private CardDAO cardDao = new CardDAOImpl();
+	private UserRecorderDAO userRecorderDao = new UserRecorderDAOImpl();
 	private RoomDAO roomDao = new RoomDAOImpl();
-	private JTabbedPane tabbedPane ;
+	private JTabbedPane tabbedPane;
 
 	private Model mRoom;
 	private Model mCard;
 	private Model mModul;
 	private Model mSpeacker;
 
-
-
-	private Thread refreshRecorderStates = new Thread( new Runnable() {
+	private Thread refreshRecorderStates = new Thread(new Runnable() {
 		@Override
 		public void run() {
-			while ( true ){
+			while (true) {
 				try {
 					Thread.sleep(5000);
-					if ( tabbedPane.getSelectedIndex() == 4 && !RecorderCreation.isOpen )
-					reloadRecorder();
+					if (tabbedPane.getSelectedIndex() == 4
+							&& !RecorderCreation.isOpen)
+						reloadRecorder();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}
-				catch(Exception e)
-				{
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				
 
 			}
 		}
 	});
-	String[] connectingModuleColumnTitle = { "Id Enregistreur","Id Activateur", "Salle", "Statut", "Fichiers en attente" };
+	String[] connectingModuleColumnTitle = { "Id Enregistreur",
+			"Id Activateur", "Salle", "Statut", "Fichiers en attente" };
 
 	/**
 	 * Create the frame.
-	 * @throws ParseException 
+	 * 
+	 * @throws ParseException
 	 */
 	public Configuration() throws ParseException {
 		setTitle("Configuration");
@@ -93,12 +94,12 @@ public class Configuration extends JFrame {
 		setContentPane(contentPane);
 
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		tabbedPane.addChangeListener( new ChangeListener() {
+		tabbedPane.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
 				switch (tabbedPane.getSelectedIndex()) {
-				case 0 : // Logs
-					//loadLogs();
+				case 0: // Logs
+					// loadLogs();
 					break;
 				case 1:
 					reloadSpeacker();
@@ -110,7 +111,7 @@ public class Configuration extends JFrame {
 					reloadRoom();
 					break;
 				case 4:
-					//reloadRecorder();
+					// reloadRecorder();
 					break;
 				default:
 					break;
@@ -119,15 +120,12 @@ public class Configuration extends JFrame {
 		});
 		contentPane.setLayout(new BorderLayout(0, 0));
 
-
-
 		// Logs
 		tabbedPane.addTab("Logs", null, createLogPannel(), null);
 
-
 		// Speackers Managment
-		tabbedPane.addTab("Gestion des intervenants", null, createSpeackerPanel(), null);
-
+		tabbedPane.addTab("Gestion des intervenants", null,
+				createSpeackerPanel(), null);
 
 		// Cards Managment
 		tabbedPane.addTab("Gestion des cartes", null, createCardPanel(), null);
@@ -136,15 +134,15 @@ public class Configuration extends JFrame {
 		tabbedPane.addTab("Gestion des salles", null, createRoomPanel(), null);
 
 		// Recorder Manamgment
-		tabbedPane.addTab("Gestion des enregistreurs", null, createRecorderPanel(), null);
+		tabbedPane.addTab("Gestion des enregistreurs", null,
+				createRecorderPanel(), null);
 		contentPane.add(tabbedPane);
 
 		refreshRecorderStates.start();
 	}
 
-
-	/// Create Panel
-	public JPanel createLogPannel(){
+	// / Create Panel
+	public JPanel createLogPannel() {
 		JPanel logsPannel = new JPanel();
 		logsArea = new JTextArea();
 		logsArea.setEditable(false);
@@ -157,38 +155,45 @@ public class Configuration extends JFrame {
 		});
 		logsPannel.setLayout(new BorderLayout(0, 0));
 
-
-		JScrollPane scrollPaneLog = new JScrollPane(logsArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		JScrollPane scrollPaneLog = new JScrollPane(logsArea,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		logsPannel.add(scrollPaneLog);
 		logsPannel.add(btnRafraichir, BorderLayout.SOUTH);
 		loadLogs();
 		return logsPannel;
 	}
 
-
-	public JPanel createSpeackerPanel() throws ParseException{
+	public JPanel createSpeackerPanel() throws ParseException {
 		JPanel speakersManagementPanel = new JPanel();
 
+		final List<UserRecorder> userRecorder = userRecorderDao
+				.getUserRecorderList();
 
-		final List<UserRecorder> userRecorder = userRecorderDao.getUserRecorderList();
-
-
-		String[] titreColonnes = {"Identifiant",  "Pr�nom","Nom", "Email","Date de d�but","Date de fin"}; 
+		String[] titreColonnes = { "Identifiant", "Pr\u00E9nom", "Nom", "Email",
+				"Date de d\u00E9but", "Date de fin" };
 
 		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
-		mSpeacker = new Model(arrayUserRecorder,titreColonnes);
+		mSpeacker = new Model(arrayUserRecorder, titreColonnes);
 
 		JScrollPane scrollPaneUser = new JScrollPane();
 
 		JButton createUserButton = new JButton("Nouvel utilisateur");
 		createUserButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				new SpeakerCreation().setVisible(true);;
+				SpeakerCreation r = new SpeakerCreation();
+				r.addWindowListener(new closeWinListener() {
+					@Override
+					public void windowClosed(WindowEvent e) {
+						super.windowClosed(e);
+						reloadSpeacker();
+					};
+				});
+				r.setVisible(true);
+				
 			}
 		});
 		speakersManagementPanel.setLayout(new BorderLayout(0, 0));
-
-
 
 		tableSpeakers = new JTable(mSpeacker);
 		scrollPaneUser.setViewportView(tableSpeakers);
@@ -196,64 +201,58 @@ public class Configuration extends JFrame {
 		speakersManagementPanel.add(createUserButton, BorderLayout.SOUTH);
 		tableSpeakers.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
-				JTable table =(JTable) e.getSource();
+				JTable table = (JTable) e.getSource();
 				Point p = e.getPoint();
 
 				int row = table.rowAtPoint(p);
 				if (e.getClickCount() == 2) {
 					UserRecorder r = userRecorder.get(row);
 
-					SpeakerUpdate speakerUpdate = new SpeakerUpdate( r );
+					SpeakerUpdate speakerUpdate = new SpeakerUpdate(r);
+					speakerUpdate.addWindowListener(new closeWinListener() {
+						@Override
+						public void windowClosed(WindowEvent e) {
+							super.windowClosed(e);
+							reloadSpeacker();
+						};
+					});
 					speakerUpdate.setVisible(true);
 				}
 			}
 
-			public void mousePressed(MouseEvent e){
-				JTable table =(JTable) e.getSource();
-				Point p = e.getPoint();
-				int row = table.rowAtPoint(p);
-				if(table.isRowSelected(row)){
-					if (e.isPopupTrigger())
-						doPop(e);
-				}
-			}
-
-			public void mouseReleased(MouseEvent e){
-				if (e.isPopupTrigger())
-					doPop(e);
-			}
-
-			private void doPop(MouseEvent e){
-				PopUp menu = new PopUp();
-				menu.show(e.getComponent(), e.getX(), e.getY());
-			}
 		});
 
 		return speakersManagementPanel;
 	}
 
-
-	public JPanel createCardPanel(){
+	public JPanel createCardPanel() {
 		JPanel cardsManagementPanel = new JPanel();
-		String[] cardColumnTitle = { "Id","Utilisateur associé"};
-
+		String[] cardColumnTitle = { "Id", "Utilisateur associ\u00E9" };
 
 		JButton btnNewCard = new JButton("Nouvelle carte");
 		btnNewCard.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				new CardCreation().setVisible(true);
+				CardCreation r = new CardCreation();
+				r.addWindowListener(new closeWinListener() {
+					@Override
+					public void windowClosed(WindowEvent e) {
+						super.windowClosed(e);
+						reloadCard();
+					};
+				});
+				r.setVisible(true);
 			}
 		});
 
-
-
-		JScrollPane scrollPaneCard = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		JScrollPane scrollPaneCard = new JScrollPane(
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
 		List<Card> card = cardDao.getCardList();
 
-		mCard =  new Model(toArrayCard(card),cardColumnTitle);
+		mCard = new Model(toArrayCard(card), cardColumnTitle);
 		cardsManagementPanel.setLayout(new BorderLayout(0, 0));
-		tableCards = new JTable( mCard );
+		tableCards = new JTable(mCard);
 
 		scrollPaneCard.setViewportView(tableCards);
 		cardsManagementPanel.add(scrollPaneCard);
@@ -262,70 +261,103 @@ public class Configuration extends JFrame {
 		return cardsManagementPanel;
 	}
 
-
-	public JPanel createRoomPanel(){
+	public JPanel createRoomPanel() {
 		JPanel classroomsManagementPanel = new JPanel();
 		JScrollPane scrollPaneRoom = new JScrollPane();
 
 		JButton btnRoom = new JButton("Nouvelle salle");
 		btnRoom.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				new RoomCreation().setVisible(true);
+				RoomCreation r= new RoomCreation();
+				r.addWindowListener(new closeWinListener() {
+					@Override
+					public void windowClosed(WindowEvent e) {
+						super.windowClosed(e);
+						reloadRoom();
+					};
+				});
+				r.setVisible(true);
 			}
 		});
 
 		final List<Room> room = roomDao.getRoomList();
-		String[] roomColumnTitle = {"nom","description"}; 
+		String[] roomColumnTitle = { "nom", "description" };
 		final Object[][] arrayRoom = toArrayRoom(room);
-		mRoom = new Model(arrayRoom,roomColumnTitle);
+		mRoom = new Model(arrayRoom, roomColumnTitle);
 		classroomsManagementPanel.setLayout(new BorderLayout(0, 0));
-		tableClassrooms= new JTable(mRoom);
+		tableClassrooms = new JTable(mRoom);
 
 		scrollPaneRoom.setViewportView(tableClassrooms);
 		classroomsManagementPanel.add(scrollPaneRoom);
 		classroomsManagementPanel.add(btnRoom, BorderLayout.SOUTH);
 		tableClassrooms.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
-				JTable table =(JTable) e.getSource();
+				JTable table = (JTable) e.getSource();
 				Point p = e.getPoint();
 				int row = table.rowAtPoint(p);
 				if (e.getClickCount() == 2) {
 					Room updated = room.get(row);
-					new RoomUpdate(updated).setVisible(true);
+					RoomUpdate r = new RoomUpdate(updated);
+					
+					r.addWindowListener(new closeWinListener() {
+						@Override
+						public void windowClosed(WindowEvent e) {
+							super.windowClosed(e);
+							reloadRoom();
+						};
+					});
+					r.setVisible(true);
 				}
 			}
 		});
 		return classroomsManagementPanel;
 	}
 
-
-	public JPanel createRecorderPanel(){
+	public JPanel createRecorderPanel() {
 		JPanel recordersManagementPanel = new JPanel();
 		JScrollPane scrollPane_enregistreurs = new JScrollPane();
 
 		JButton btnRecorder = new JButton("Nouvel enregistreur");
 		btnRecorder.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				new RecorderCreation().setVisible(true);
+				RecorderCreation r = new RecorderCreation();
+				r.addWindowListener(new closeWinListener() {
+					@Override
+					public void windowClosed(WindowEvent e) {
+						super.windowClosed(e);
+						reloadRecorder();
+					};
+				});
+				r.setVisible(true);
 			}
 		});
 
 		RecorderDAO connectingModuleDao = RecorderDAOImpl._instance;
 		List<Recorder> recorders = connectingModuleDao.getRecorderList();
 
-		mModul = new Model(toArrayModuls(recorders),connectingModuleColumnTitle);
+		mModul = new Model(toArrayModuls(recorders),
+				connectingModuleColumnTitle);
 		tableModuls = new JTable(mModul);
-
 
 		tableModuls.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
-				JTable table =(JTable) e.getSource();
+				JTable table = (JTable) e.getSource();
 				Point p = e.getPoint();
 				int row = table.rowAtPoint(p);
 				if (e.getClickCount() == 2) {
-					Recorder rec =  RecorderDAOImpl._recorders.get(row);
-					if ( rec != null )
-						new Parring(rec);
+					Recorder rec = RecorderDAOImpl._recorders.get(row);
+					if (rec != null)
+					{
+						Parring r = new Parring(rec);
+						r.addWindowListener(new closeWinListener() {
+							@Override
+							public void windowClosed(WindowEvent e) {
+								super.windowClosed(e);
+								reloadRecorder();
+							};
+						});
+						//r.setVisible(true);
+					}
 				}
 			}
 		});
@@ -338,46 +370,50 @@ public class Configuration extends JFrame {
 		return recordersManagementPanel;
 	}
 
-
-
-
-	/// Reload functions
-	public void loadLogs(){
-		logsArea.setText( LogsImpl._instance.getLogs() );
+	// / Reload functions
+	public void loadLogs() {
+		new Thread()
+		{
+			public void run() {	
+				logsArea.setText("");
+				LogsImpl._instance.getLogs(logsArea);
+			};
+	
+		}.run();
+		 //logsArea.setText( LogsImpl._instance.getLogs() );
 	}
 
-	public void reloadRoom(){
-		mRoom.donnees = toArrayRoom( roomDao.getRoomList() );
+	public void reloadRoom() {
+		mRoom.donnees = toArrayRoom(roomDao.getRoomList());
 		mRoom.fireTableDataChanged();
 	}
 
-	public void reloadSpeacker(){
+	public void reloadSpeacker() {
 		try {
-			mSpeacker.donnees = toArrayUserRecorder(userRecorderDao.getUserRecorderList());
+			mSpeacker.donnees = toArrayUserRecorder(userRecorderDao
+					.getUserRecorderList());
 		} catch (ParseException e) {
 		}
 		mSpeacker.fireTableDataChanged();
 	}
 
-	public void reloadCard(){
-		mCard.donnees = toArrayCard( cardDao.getCardList() );
-		mCard.fireTableDataChanged();	
+	public void reloadCard() {
+		mCard.donnees = toArrayCard(cardDao.getCardList());
+		mCard.fireTableDataChanged();
 	}
 
-	public void reloadRecorder(){
+	public void reloadRecorder() {
 		List<Recorder> recorders = RecorderDAOImpl._instance.getRecorderList();
 		mModul.donnees = toArrayModuls(recorders);
 		mModul.fireTableDataChanged();
 	}
 
-
-
-	///  List to Object[][]
-	private Object[][] toArrayUserRecorder(List<UserRecorder> datas){
+	// / List to Object[][]
+	private Object[][] toArrayUserRecorder(List<UserRecorder> datas) {
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
 			ArrayList<String> row = new ArrayList<String>();
-			row.add(""+datas.get(i).getId());
+			row.add("" + datas.get(i).getId());
 			row.add(datas.get(i).getFirstName());
 			row.add(datas.get(i).getLastName());
 			row.add(datas.get(i).getEmail());
@@ -388,15 +424,15 @@ public class Configuration extends JFrame {
 		return array;
 	}
 
-	private Object[][] toArrayCard(List<Card> datas){
+	private Object[][] toArrayCard(List<Card> datas) {
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
 			ArrayList<String> row = new ArrayList<String>();
 			row.add(datas.get(i).getNumberCard());
-			if(datas.get(i).getUser()!=null){
-				row.add(datas.get(i).getUser().getFirstName() + " " + datas.get(i).getUser().getLastName() );
-			}
-			else{
+			if (datas.get(i).getUser() != null) {
+				row.add(datas.get(i).getUser().getFirstName() + " "
+						+ datas.get(i).getUser().getLastName());
+			} else {
 				row.add("");
 			}
 			array[i] = row.toArray(new String[row.size()]);
@@ -404,7 +440,7 @@ public class Configuration extends JFrame {
 		return array;
 	}
 
-	private Object[][] toArrayRoom(List<Room> datas){
+	private Object[][] toArrayRoom(List<Room> datas) {
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
 			ArrayList<String> row = new ArrayList<String>();
@@ -415,17 +451,64 @@ public class Configuration extends JFrame {
 		return array;
 	}
 
-	private Object[][] toArrayModuls(List<Recorder> recorders){
+	private Object[][] toArrayModuls(List<Recorder> recorders) {
 		Object[][] array = new Object[recorders.size()][];
 		for (int i = 0; i < recorders.size(); i++) {
 			ArrayList<String> row = new ArrayList<String>();
-			row.add(recorders.get(i).getRecordingModule().getIdNetwork()+"");
-			row.add(recorders.get(i).getConnectingModule().getIdNetworkRecording()+"");
-			row.add(recorders.get(i).getRoom().getName() );
-			row.add( recorders.get(i).toString() );
-			row.add( recorders.get(i).getFilesInQueue() + "" );
+			row.add(recorders.get(i).getRecordingModule().getIdNetwork() + "");
+			row.add(recorders.get(i).getConnectingModule()
+					.getIdNetworkRecording()
+					+ "");
+			row.add(recorders.get(i).getRoom().getName());
+			row.add(recorders.get(i).toString());
+			row.add(recorders.get(i).getFilesInQueue() + "");
 			array[i] = row.toArray(new String[row.size()]);
 		}
 		return array;
 	}
+
+	public class closeWinListener implements WindowListener {
+		@Override
+		public void windowActivated(WindowEvent e) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void windowClosed(WindowEvent e) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void windowClosing(WindowEvent e) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void windowDeactivated(WindowEvent e) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void windowDeiconified(WindowEvent e) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void windowIconified(WindowEvent e) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void windowOpened(WindowEvent e) {
+			// TODO Auto-generated method stub
+
+		}
+	}
+
 }

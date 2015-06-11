@@ -6,6 +6,7 @@ if (!$link) {
 } 
 //echo 'Connection OK'; //mysql_close($link); 
 $connection=mysqli_select_db($link,$databaseName);
+mysqli_query($link,"SET NAMES UTF8");
 ?><!DOCTYPE html>
 <html lang="en">
   <head>
@@ -157,50 +158,24 @@ $(document).ready(function(){
 						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
 						while ($row=mysqli_fetch_array($result)) 
 						{ 
-							echo"<li><a href='./#'>$row[0]</a></li>"; 
+						echo"<li><a href='./#'>".htmlentities($row[0], ENT_NOQUOTES, "UTF-8")."</a></li>"; 
 						} 
 			 ?>
-			 <!-- <li class="active">
-				<a href="./#">Mathématiques</a>
-			  </li>
-			  <li>
-				<a href="./#">Reports</a>
-			  </li>
-			  <li>
-				<a href="./#">Analytics</a>
-			  </li>
-			  <li>
-				<a href="./#">Export</a>
-			  </li>-->
 			</ul>
 		  </div>
 		 <!-- SELECT NameLesson FROM lesson WHERE IdCategory = 1 -->
 		  <div class="col-sm-1 col-sm-offset-12 col-md-12 col-md-offset-2 main">
-			<ol class="breadcrumb">
-			  <li><a href="#">Home</a></li>
-			  <li><a href="#">Library</a></li>
-			  <li class="active">Data</li>
-			</ol>
-			<h1 class="page-header">Dashboard</h1>
-			
-			<h2 class="sub-header">Section title</h2>
 			<table>
 				<tr>
 					<td>
 						<?php 
 
-
-							//On insère des données variables grâce à une requète préparée
-						//$query="INSERT INTO `User` (`IdUser`, `FirstName`, `LastName`, `Password`, `Email`) VALUES
-						//(2, 'AMIR', 'ABDELAOUI', 'PASSWD', 'amir.abdelaoui@gmail.com')";
-						// execution de la requète
-						//mysqli_query($link,$query);
-
 						$query = " SELECT NameCategory FROM `category` "; 
 						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
 						echo "
 						 <table> 
-						<select id='ListCategory' name='NameCategory' id='NameCategory' onchange='getLessonSelected(this.value)' >"; 
+						<select id='ListCategory' name='NameCategory' id='NameCategory' onchange='getLessonSelected(this.value)' > 
+							<option value=-1>    - - Catégories - -    </option>";
 						$i=1;
 						while ($row=mysqli_fetch_array($result)) 
 						{ 
@@ -211,23 +186,14 @@ $(document).ready(function(){
 						</table> ";
 						?>
 					</td>
-					<td>
-						<?php 
-						echo "<table>
-						<select name='Statut' id='Statut'>"; 
-						echo"<option>Fini</option>"; 
-						echo"<option>En cours</option>"; 
-						echo"</select>
-						</table> ";
-						?>
-					</td>
+					
 					<td>
 						 <input id="rechercher" type="submit" class="button" name="insert" value="rechercher" />
 					</td>
 				</tr>
 			</table>
 		  </div>
-		  <div id="test"class="col-sm-1 col-sm-offset-12 col-md-12 col-md-offset-2 main">
+		  <div id="test"class="col-sm-1 col-sm-offset-12 col-md-8 col-md-offset-2 main">
 			<table id "displaytable" class="table table-striped table-bordered" cellspacing="0" width="100%">
 				<thead>
 				  <tr>
