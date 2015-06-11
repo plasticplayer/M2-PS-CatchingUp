@@ -526,7 +526,7 @@ bool startWebCam(applicationConfiguration& conf)
 		Webcam * cam = new Webcam(conf.webcam.device,conf.webcam.width, conf.webcam.height,conf.webcam.fps);
 		cam->setSplitTime(conf.webcam.split);
 		resultTest = cam->testWebcam();
-	//	cam->initImageRef();
+		cam->initImageRef();
 	}
 
 

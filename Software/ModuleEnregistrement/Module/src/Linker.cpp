@@ -986,7 +986,7 @@ void* ftpSenderThread( void* data )
 		if ( ! fileInUpload ) {
 			fileInUpload = Recording::getNextFile();
 			if ( !fileInUpload )
-				sleep( 60 );
+				sleep( 30 );
 			continue;
 		}
 		fileInUpload->generateChksum();
@@ -1014,7 +1014,8 @@ void* ftpSenderThread( void* data )
 				if ( !r->isRecording() ){
 					cout << "Is Not Recording " << endl;
 					if ( r->_Files.empty() ){
-						REC_TO_SRV_RECORDING_END( r->_IdRecording );
+						//REC_TO_SRV_RECORDING_END( r->_IdRecording );
+						REC_TO_SRV_allFilesSends( r->_IdRecording );
 						rmdir ( (char*) r->_folderRecording.c_str() );
 						Recording::_Recordings.remove( r );
 						r = NULL;
@@ -1022,7 +1023,7 @@ void* ftpSenderThread( void* data )
 				}
 			}
 		}
-		sleep(1);
+		usleep(10000);
 	}
 	return NULL;
 }

@@ -362,7 +362,7 @@ bool StillCamera::startRecording(Recording * recording)
 		return false;
 	_recording = true;
 	_folderRecording = _CurrentRecording->_folderRecording;
-	_RecordingNumber = 1;
+	_frameID = 1;
 	LOGGER_VERB("Creating Image Recording Thread ! Folder : " << this->_folderRecording );
 	int ret = pthread_create(&_ThreadRecording , NULL, &(this->_threadRecord), (void *) this) ;
 	return ret == 0;

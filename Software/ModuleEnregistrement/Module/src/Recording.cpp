@@ -142,6 +142,7 @@ void Recording::addFile(RecordingFile *f ){
 	if ( f == NULL )
 		return;
 	f->recording = this;
+	f->idRecording = SSTR(_IdRecording);
 	_Files.push_back( f );
 	LOGGER_VERB( "Add File " << f->fileName );
 	_FilesNotUpload++;

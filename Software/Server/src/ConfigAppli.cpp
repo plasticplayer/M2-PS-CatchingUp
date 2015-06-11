@@ -234,7 +234,7 @@ void ConfigAppli::getLogs( ){
 	string str;
 	if ( file != NULL ){
 		while ( getline ( file , str ))
-			log = SSTR ( endl << "<log>" << str << "</log>");
+			log = SSTR ( log <<  endl << "<log>" << str << "</log>");
 		file.close();
 	}
 	sendData ( SSTR( log << endl << "</logs>" << endl )) ;
