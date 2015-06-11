@@ -305,7 +305,7 @@ public class Configuration extends JFrame {
 			}
 		});
 
-		RecorderDAO connectingModuleDao = new RecorderDAOImpl();
+		RecorderDAO connectingModuleDao = RecorderDAOImpl._instance;
 		List<Recorder> recorders = connectingModuleDao.getRecorderList();
 
 		mModul = new Model(toArrayModuls(recorders),connectingModuleColumnTitle);

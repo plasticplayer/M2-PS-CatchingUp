@@ -58,7 +58,7 @@ public class SpeakerUpdate extends JDialog {
 		this.password = user.getPassword();
 		this.email = user.getEmail();
 		this.dateBegin = user.getDateBegin();
-		this.dateEnd = user.getDateBegin();
+		this.dateEnd = user.getDateEnd();
 
 		
 		
@@ -149,8 +149,8 @@ public class SpeakerUpdate extends JDialog {
 		dateBeginPanel.add(lblDateBegin, BorderLayout.NORTH);
 		final calendar calBegin = new calendar();
 		dateBeginPanel.add(calBegin, BorderLayout.CENTER);
-		//calBegin.setDate(1900+dateBegin.getYear(),dateBegin.getMonth()-1,dateBegin.getDate());
-		calBegin.setDate(dateBegin.getYear(), dateBegin.getMonth(), dateBegin.getDate() );
+		calBegin.setDate(1900+dateBegin.getYear(),dateBegin.getMonth(),dateBegin.getDate());
+		//calBegin.setDate(dateBegin.getYear(), dateBegin.getMonth(), dateBegin.getDate() );
 		
 		JPanel dateEndPanel = new JPanel();
 		calendarGridLayout.add(dateEndPanel);
@@ -159,8 +159,8 @@ public class SpeakerUpdate extends JDialog {
 		JLabel lblDateEnd = new JLabel("Date de d\u00E9but :");
 		dateEndPanel.add(lblDateEnd, BorderLayout.NORTH);
 		final calendar calEnd = new calendar();
-		//calEnd.setDate(1900+dateEnd.getYear(),dateEnd.getMonth()-1,dateEnd.getDate());
-		calEnd.setDate(dateEnd.getYear(), dateEnd.getMonth(), dateEnd.getDate() );
+		calEnd.setDate(1900+dateEnd.getYear(),dateEnd.getMonth(),dateEnd.getDate());
+		//calEnd.setDate(dateEnd.getYear(), dateEnd.getMonth(), dateEnd.getDate() );
 		
 		dateEndPanel.add(calEnd);
 		{
@@ -219,8 +219,8 @@ public class SpeakerUpdate extends JDialog {
 						boolean updateLn = ( userUpdated.getLastName().compareTo(txtBoxLastname.getText()) != 0 );
 						boolean updateMail = ( userUpdated.getEmail().compareTo(txtBoxEmail.getText()) != 0 );
 						boolean updatePassword = !passwordFieldPassword.getText().isEmpty();
-						boolean updateBeginDate = (deb != userUpdated.getDateBegin() );
-						boolean updateEndDate = (end != userUpdated.getDateEnd() );
+						boolean updateBeginDate = (deb.compareTo(userUpdated.getDateBegin()) != 0);
+						boolean updateEndDate = (end.compareTo(userUpdated.getDateEnd()) != 0 );
 						
 						
 						if ( updateFn )
@@ -239,9 +239,12 @@ public class SpeakerUpdate extends JDialog {
 						UserRecorderDAO dao = UserRecorderDAOImpl._instance;
 						if ( dao.updateUserRecorder(userUpdated, updateFn, updateLn, updateMail, updatePassword, updateBeginDate, updateEndDate) ){
 							Card userCard = CardDAOImpl._instance.getCardFromIdUser(userUpdated);
-							if ( cardList.getSelectedIndex() == 0 && userCard != null ){
-								userCard.setUser(null);
-								CardDAOImpl._instance.updateCard(userCard);
+							if ( cardList.getSelectedIndex() == 0 ){
+								if(userCard != null)
+								{
+									userCard.setUser(null);
+									CardDAOImpl._instance.updateCard(userCard);
+								}
 							}
 							else{
 								Card newCard = (Card) cardList.getSelectedItem();
@@ -254,6 +257,7 @@ public class SpeakerUpdate extends JDialog {
 									CardDAOImpl._instance.updateCard(newCard);
 								}
 							}
+							dispose();
 						}
 					}
 				});

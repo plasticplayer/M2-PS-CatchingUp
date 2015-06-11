@@ -133,7 +133,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 		RecordingModule recordingModule = null;
 		Recorder recorder;
 		
-		String id, status, mac, idCmodule, idRModule, idRoom, filesinqueue, isRecording;
+		String id, status, mac, idCmodule, idRModule, idRoom, filesinqueue, isRecording,idNC,idNR;
 		  
 		  for ( int i = 1; i < lines.length; i++ ){
 			 id 	= Tools.getValue( lines[i] ,"id");
@@ -141,13 +141,15 @@ public class RecorderDAOImpl implements RecorderDAO {
 			 mac = Tools.getValue( lines[i] ,"mac");
 			 idCmodule = Tools.getValue( lines[i] ,"idCModule");
 			 idRModule = Tools.getValue( lines[i] ,"idRModule");
+			 idNC = Tools.getValue( lines[i] ,"idNC");
+			 idNR = Tools.getValue( lines[i] ,"idNR");
 			 idRoom = Tools.getValue( lines[i] ,"roomid");
 			 
 			 if ( status.compareTo("CONNECTED") == 0 || status.compareTo("UNCONNECTED") == 0 ){
-				 connectingModule = new ConnectingModule( 0 );
+				 connectingModule = new ConnectingModule( Long.parseLong(idNC.trim()) );
 				 connectingModule.setId(Integer.parseInt(idCmodule.trim()));
 				 
-				 recordingModule = new RecordingModule(mac, "0");
+				 recordingModule = new RecordingModule(mac, "", Long.parseLong(idNR.trim()));
 				 recordingModule.setId(Integer.parseInt(idRModule.trim()));
 				 room = RoomDAOImpl._instance.getRoom(Integer.parseInt(idRoom.trim()) );
 				 
