@@ -63,12 +63,17 @@ public class Configuration extends JFrame {
 			while ( true ){
 				try {
 					Thread.sleep(5000);
+					if ( tabbedPane.getSelectedIndex() == 4 && !RecorderCreation.isOpen )
+					reloadRecorder();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				if ( tabbedPane.getSelectedIndex() == 4 && !RecorderCreation.isOpen )
-					reloadRecorder();
+				catch(Exception e)
+				{
+					e.printStackTrace();
+				}
+				
 
 			}
 		}
