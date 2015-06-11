@@ -102,7 +102,8 @@ public class RoomUpdate extends JDialog {
 						if ( enableDescription )
 							_updatedRoom.setDescription(( tbxDescription.getText() ));
 						
-						roomDao.updateRoom( _updatedRoom, enableName, enableDescription);
+						if(roomDao.updateRoom( _updatedRoom, enableName, enableDescription))
+								dispose();
 					}
 				});
 				okButton.setActionCommand("OK");

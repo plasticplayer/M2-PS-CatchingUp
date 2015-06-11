@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.swing.JTextArea;
 
 import sun.org.mozilla.javascript.internal.UintMap;
 import ui.MessageBox;
@@ -113,6 +114,7 @@ public class Server {
 			toServer.println("<request>" + data + "</request>");
 
 			while (!_Server._inFromServer.ready())
+				Thread.sleep(10);
 				;
 
 			while (_Server._inFromServer.ready()) {
@@ -134,11 +136,71 @@ public class Server {
 			e.printStackTrace();
 			isWorking = false;
 			return ans;
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		isWorking = false;
 		return ans;
 	}
+	public static void getLogs(JTextArea n) {
+		if (_Server == null) {
+			Tools.LOGGER_ERROR("Server is null");
+			return;
+		} else if (_Server._inFromServer == null) {
+			Tools.LOGGER_ERROR("_inFromServer is null");
+			return;
+		}
+		
 
+		while (isWorking)
+			;
+		isWorking = true;
+
+		try {
+			_Server._inFromServer.reset();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			// e1.printStackTrace();
+		}
+
+		try {
+
+			toServer.println("<request><type>need_logs</type></request>");
+			 Tools.LOGGER_DEBUG("Need logs");
+			while ( !_Server._inFromServer.ready() );
+			
+			BufferedInputStream st = new BufferedInputStream(
+					_Server._clientSocket.getInputStream());
+			// while ( !_Server._inFromServer.ready() );
+			int r = st.read();
+			int imageSizeBytes = r;
+			Tools.LOGGER_DEBUG("1 : "+ r);
+			r = st.read();
+			imageSizeBytes += ((r&0xFF) << 8) ;
+			Tools.LOGGER_DEBUG("2 : "+ r);
+			r = st.read();
+			imageSizeBytes += ((r&0xFF) << 16) ;
+			Tools.LOGGER_DEBUG("3 : "+ r);
+			r = st.read();
+			imageSizeBytes += ((r&0xFF) << 24) ;
+			Tools.LOGGER_DEBUG("4 : "+ r);
+			
+			int byteCountRead = 0;
+			Tools.LOGGER_DEBUG("Size image " + imageSizeBytes);
+			while (imageSizeBytes > byteCountRead) {
+				n.append(""+(char)st.read());
+				byteCountRead++;
+			}
+			
+		}
+		catch(Exception e)
+		{
+			
+		}
+		isWorking = false;
+		return ;
+	}
 	public static Image getImage(String data) {
 		if (_Server == null) {
 			Tools.LOGGER_ERROR("Server is null");

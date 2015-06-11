@@ -25,12 +25,12 @@ public class Recorder {
 				return "En enregistrement";
 			else if ( filesInQueue != 0 )
 				return "Envoie fichier";
-			return "Connecté";
+			return "Connect\u00E9";
 			
 		case UNCONNECTED:
-			return "Non connecté";
+			return "Non connect\u00E9";
 		case UNASSOCIATED:
-			return "Non associé";
+			return "Non associ\u00E9";
 		}
 		return "";
 	};

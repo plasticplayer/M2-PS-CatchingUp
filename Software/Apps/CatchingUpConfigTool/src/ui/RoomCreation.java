@@ -94,6 +94,7 @@ public class RoomCreation extends JDialog {
 						if ( roomdao.createRoom(r) )
 						{
 							Tools.LOGGER_DEBUG("Create room ok  ");
+							dispose();
 						}
 						
 					}
