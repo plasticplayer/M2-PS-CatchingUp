@@ -222,12 +222,21 @@ bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *a
 	*(rec) = (uint64_t) ( ((uint64_t)rand())<<32 | ((uint64_t)rand())<<16 | rand() ) & 0x00FFFFFFFF;
 	*(act) = (uint64_t) ( ((uint64_t)rand())<<32 | ((uint64_t)rand())<<16 | rand() ) & 0x00FFFFFFFF;
 
+	string req = SSTR( "SELECT " << _RecorderTable.idRecordingModule.value << "," << _RecorderTable.idConnectingModule.value << " FROM " << _RecorderTable.name << " WHERE " << _RecorderTable.idRecorder.value << "=" << recorderId );
+	
+	Result *res = _DataBase->_Connection->Query(( char*) req.c_str()  );
+        if ( res->Next() ){
+                idRecordingModule  = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
+                idConnectingModule = strtoull ( res->GetCurrentRow()->GetField(2),NULL,0);
+        }
+	
 	if ( idConnectingModule == 0x00 || idRecordingModule == 0x00 ){
 		LOGGER_ERROR("Cannot generate NRF Address");
 		return true;
 	}
-	string req = SSTR( "UPDATE " << _RecordingTable.name << " SET " << _RecordingTable.idNetwork.value << "=" << *rec << " WHERE " << _RecordingTable.id.value << "=" << idRecordingModule << ";") ;
-
+	
+	req = SSTR( "UPDATE " << _RecordingTable.name << " SET " << _RecordingTable.idNetwork.value << "=" << *rec << " WHERE " << _RecordingTable.id.value << "=" << idRecordingModule << ";") ;
+	LOGGER_DEBUG( req );
 	while ( _DataBase->_IsInsertingRow ) usleep( 10 );
 	_DataBase->_IsInsertingRow = true;
 
@@ -235,6 +244,7 @@ bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *a
 
 	req = SSTR ( "UPDATE " << _ConnectingModuleTable.name << " SET " << _ConnectingModuleTable.idNetwork.value << "=" << *act << " WHERE " << _ConnectingModuleTable.id.value << "=" << idConnectingModule << ";" );
 	_DataBase->_Connection->Query( (char*) req.c_str() );
+	LOGGER_DEBUG( req );
 
 	_DataBase->_IsInsertingRow = false;
 
@@ -323,12 +333,14 @@ Result* Mysql::getCards(){
 Result* Mysql::getRecorders(){
 	string req = SSTR (
 			"SELECT " << _RecorderTable.idRecorder.value << ",ro." << _RoomTable.id.value << "," << _RoomTable.roomName.value << "," << _RecordingTable.adressMAC.value
-			<< ",r." << _RecorderTable.idConnectingModule.value << ",r." << _RecorderTable.idRecordingModule.value
-			<< " FROM " << _RecorderTable.name << " r," << _RoomTable.name << " ro," << _RecordingTable.name << " re WHERE r."
+			<< ",r." << _RecorderTable.idConnectingModule.value << ",r." << _RecorderTable.idRecordingModule.value << ", re." << _RecordingTable.idNetwork.value
+			<< ", c." << _ConnectingModuleTable.idNetwork.value 
+			<< " FROM " << _RecorderTable.name << " r," << _RoomTable.name << " ro," << _RecordingTable.name << " re," << _ConnectingModuleTable.name << " c WHERE r."
 			<< _RecorderTable.idRecordingModule.value  << "=re." << _RecordingTable.id.value << " AND r." << _RecorderTable.idRoom.value << "=ro."
-			<< _RoomTable.id.value << ";"
+			<< _RoomTable.id.value << " AND c." << _ConnectingModuleTable.id.value << "=r." << _RecorderTable.idConnectingModule.value
+			<< ";"
 	);
-
+	//LOGGER_DEBUG( req );
 	return _DataBase->_Connection->Query(( char* ) req.c_str() );
 }
 
@@ -677,6 +689,7 @@ bool Mysql::updateUserTable ( uint64_t Id, bool eFName, string fName, bool eLNam
 
 
 	req = SSTR ( req.substr(0,req.length()-1) << " WHERE " << _UserTable.id.value << "=" << Id << ";" );
+	LOGGER_VERB( "Update User: " << req );
 
 	while ( _DataBase->_IsInsertingRow ) usleep(10);
    	_DataBase->_IsInsertingRow = true;
