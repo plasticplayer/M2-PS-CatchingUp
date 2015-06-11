@@ -104,11 +104,15 @@ uint64_t Mysql::getIdRecorderFromMac( string mac ){
 	uint64_t idRecorder = 0;
 	string req = SSTR("SELECT " << _RecordingTable.id.value << " FROM " << _RecordingTable.name << " WHERE " << _RecordingTable.adressMAC.value << "='" << mac  << "'");
 	LOGGER_VERB("Get id Recorder req: " << req );
-	Result* res = _DataBase->_Connection->Query( (char*) req.c_str() );
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+
+	Result* res = _DataBase->_Connection->Query( (char*) req.c_str() );	
 	if (res->Next())
 	{
 		idRecorder = strtoull(res->GetCurrentRow()->GetField(1), NULL, 0);
 	}
+	_DataBase->_IsInsertingRow = false;
 	return idRecorder;
 }
 
@@ -124,12 +128,17 @@ uint64_t Mysql::getIdUserRecorderFromTag( uint64_t idCard ){
 
 
 	LOGGER_VERB("Get id UserRecorder req: " << req );
-
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	
 	Result* res = _DataBase->_Connection->Query( (char*) req.c_str() );
 	if (res->Next())
 	{
 		idUserRecorder = strtoull(res->GetCurrentRow()->GetField(1), NULL, 0);
 	}
+	
+	_DataBase->_IsInsertingRow = false;
 	return idUserRecorder;
 }
 
@@ -162,17 +171,26 @@ void Mysql::stopRecording ( uint64_t idRecording ){
 	LOGGER_INFO("Stop Recording:" << idRecording);
 
 	string req = SSTR("UPDATE " << _ChapterTable.name << " SET " << _ChapterTable.status.value << "='TRANSFER' WHERE " << _ChapterTable.id.value << "=" << idRecording << "; " );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	
 	_DataBase->_Connection->Query( (char*) req.c_str() );
+	_DataBase->_IsInsertingRow = false;
 }
 
 list<itemRecording> Mysql::getFilesRecording(uint64_t idRecording ){
     LOGGER_INFO("Get Files Recording:" << idRecording);
 	string req = SSTR("SELECT " << _FileLessonTable.id.value << "," << _FileLessonTable.fileLessonName.value << "," << _FileLessonTable.type.value  << "," << _FileLessonTable.status.value  << " FROM " << _FileLessonTable.name << " WHERE " << _FileLessonTable.idChapter.value << "=" << idRecording << "; " );
 	LOGGER_INFO("Rq :" << req);
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	
 	Result *res = _DataBase->_Connection->Query( (char*) req.c_str() );
 	list<itemRecording> * liste = new list<itemRecording>();
 	while( res->Next())
-    {
+    	{
         int idFile = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
         string fileName = res->GetCurrentRow()->GetField(2);
         string type = res->GetCurrentRow()->GetField(3);
@@ -205,13 +223,18 @@ list<itemRecording> Mysql::getFilesRecording(uint64_t idRecording ){
         itemRecording * item = new itemRecording(idFile,idRecording,t,fileName,s);
         liste->push_back(*item);
     }
+	_DataBase->_IsInsertingRow = false;
     return *liste;
 }
 void Mysql::removeFilesRecording(uint64_t idRecording ){
     LOGGER_INFO("Remove Files Recording:" << idRecording);
 	string req = SSTR("DELETE FROM " << _FileLessonTable.name << " WHERE "<< _FileLessonTable.type.value  << " IN ('PHOTO_BOARD','SOUND','VIDEO_TRACKING') AND "<< _FileLessonTable.idChapter.value <<"="<<idRecording<<"; " );
 	LOGGER_INFO("Rq :" << req);
-	Result *res = _DataBase->_Connection->Query( (char*) req.c_str() );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	_DataBase->_Connection->Query( (char*) req.c_str() );
+	_DataBase->_IsInsertingRow = false;
 }
 
 bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *act ){
@@ -224,6 +247,9 @@ bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *a
 
 	string req = SSTR( "SELECT " << _RecorderTable.idRecordingModule.value << "," << _RecorderTable.idConnectingModule.value << " FROM " << _RecorderTable.name << " WHERE " << _RecorderTable.idRecorder.value << "=" << recorderId );
 	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	
 	Result *res = _DataBase->_Connection->Query(( char*) req.c_str()  );
         if ( res->Next() ){
                 idRecordingModule  = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
@@ -232,13 +258,12 @@ bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *a
 	
 	if ( idConnectingModule == 0x00 || idRecordingModule == 0x00 ){
 		LOGGER_ERROR("Cannot generate NRF Address");
+		_DataBase->_IsInsertingRow = false;
 		return true;
 	}
 	
 	req = SSTR( "UPDATE " << _RecordingTable.name << " SET " << _RecordingTable.idNetwork.value << "=" << *rec << " WHERE " << _RecordingTable.id.value << "=" << idRecordingModule << ";") ;
 	LOGGER_DEBUG( req );
-	while ( _DataBase->_IsInsertingRow ) usleep( 10 );
-	_DataBase->_IsInsertingRow = true;
 
 	_DataBase->_Connection->Query( (char*) req.c_str() );
 
@@ -254,10 +279,15 @@ bool Mysql::generateNrfAddress ( uint64_t recorderId, uint64_t *rec, uint64_t *a
 uint64_t Mysql::getIdFromTagNumber ( string cardNumber ){
 	uint64_t idCard = 0x00;
 	string req = SSTR ( "SELECT " << _CardTable.idcard.value << " FROM " << _CardTable.name << " WHERE " << _CardTable.number.value << "='" << cardNumber <<"';") ;
+		
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	
 	Result *res = _DataBase->_Connection->Query(( char*) req.c_str()  );
         if ( res->Next() ){
                 idCard = strtoull ( res->GetCurrentRow()->GetField(1),NULL,0);
         }
+	_DataBase->_IsInsertingRow = false;
 	return idCard;
 }
 
@@ -310,7 +340,13 @@ Result* Mysql::getUsers(){
 			<< ",w." << _WebsiteUserTable.registration.value
 			<< " FROM " << _UserTable.name << " u, " << _WebsiteUserTable.name << " w WHERE u." << _UserTable.id.value << "=w." << _RecorderUserTable.id.value << ";"
 	);
-	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	
+	Result* res = _DataBase->_Connection->Query(( char* ) req.c_str() );
+	_DataBase->_IsInsertingRow = false;
+	return res;
 }
 
 Result* Mysql::getRooms(){
@@ -318,7 +354,14 @@ Result* Mysql::getRooms(){
 			"SELECT DISTINCT ro." << _RoomTable.id.value << "," << _RoomTable.roomName.value << "," << _RoomTable.description.value << ", IFNULL(" << _RecorderTable.idRecorder.value
 			<< ",0) FROM " << _RoomTable.name << " ro LEFT OUTER JOIN " << _RecorderTable.name << " re  on re." << _RecorderTable.idRoom.value << "=ro."  << _RoomTable.id.value  << ";"
 	);
-	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	
+	Result* res = _DataBase->_Connection->Query(( char* ) req.c_str() );
+	_DataBase->_IsInsertingRow = false;
+
+	return res;
 }
 
 Result* Mysql::getCards(){
@@ -326,8 +369,13 @@ Result* Mysql::getCards(){
 			"SELECT " << _CardTable.idcard.value << ",IFNULL(" << _CardTable.iduser.value << ",0)," << _CardTable.number.value
 			<< " FROM " << _CardTable.name << ";"
 	);
-
-	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	
+	Result* res = _DataBase->_Connection->Query(( char* ) req.c_str() );
+	_DataBase->_IsInsertingRow = false;
+	return res;
 }
 
 Result* Mysql::getRecorders(){
@@ -339,9 +387,12 @@ Result* Mysql::getRecorders(){
 			<< _RecorderTable.idRecordingModule.value  << "=re." << _RecordingTable.id.value << " AND r." << _RecorderTable.idRoom.value << "=ro."
 			<< _RoomTable.id.value << " AND c." << _ConnectingModuleTable.id.value << "=r." << _RecorderTable.idConnectingModule.value
 			<< ";"
-	);
-	//LOGGER_DEBUG( req );
-	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+	);	
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	Result* res = _DataBase->_Connection->Query(( char* ) req.c_str() );
+	_DataBase->_IsInsertingRow = false;
+	return res;
 }
 
 Result* Mysql::getUsersRecorders(){
@@ -351,7 +402,11 @@ Result* Mysql::getUsersRecorders(){
 			<< " FROM " << _UserTable.name << " u, " << _RecorderUserTable.name << " r WHERE u." << _UserTable.id.value << "=r." << _RecorderUserTable.id.value << ";"
 	);
 
-	return _DataBase->_Connection->Query(( char* ) req.c_str() );
+	while ( _DataBase->_IsInsertingRow ) usleep( 10);
+	_DataBase->_IsInsertingRow = true;
+	Result* res = _DataBase->_Connection->Query(( char* ) req.c_str() );
+	_DataBase->_IsInsertingRow = false;
+	return res;
 }
 
 
