@@ -97,6 +97,17 @@ $(document).ready(function(){
 	  );*/
 	 }
    });
+   
+   $("#listcategorie li").click(function() {
+    //alert(this.id); // id of clicked li by directly accessing DOMElement property
+    alert($(this).attr('id')); // jQuery's .attr() method, same but more verbose
+    $('#ListLesson').load(
+      "getLessons.php",{var:$(this).attr('id')},
+	  function() {
+           // alert('Got the data.');
+      }
+	  );
+});
 
 });
 </script>
@@ -146,7 +157,7 @@ $(document).ready(function(){
 	  <div class="container-fluid">
 		<div class="row">
 		  <div class="col-sm-3 col-md-2 sidebar">
-			<ul class="nav nav-sidebar">
+			<ul id="listcategorie" class="nav nav-sidebar">
 			 <li class="header">
 				<a href="categories.php">
 				Catégories
@@ -156,9 +167,11 @@ $(document).ready(function(){
 						
 						$query = " SELECT NameCategory FROM `category` "; 
 						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+						$i=1;
 						while ($row=mysqli_fetch_array($result)) 
 						{ 
-						echo"<li><a href='./#'>".htmlentities($row[0], ENT_NOQUOTES, "UTF-8")."</a></li>"; 
+							echo"<li id='$i'><a>".htmlentities($row[0], ENT_NOQUOTES, "UTF-8")."</a></li>"; 
+							$i++;
 						} 
 			 ?>
 			</ul>

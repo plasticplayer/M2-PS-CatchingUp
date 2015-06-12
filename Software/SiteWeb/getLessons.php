@@ -15,7 +15,7 @@ $connection=mysqli_select_db($link,$databaseName);
 						
 						while ($row=mysqli_fetch_array($result)) 
 						{ 
-							echo"<tr><td id='titleLesson'>$row[0]</td><td>$row[1]</td></tr>"; 
+							echo"<tr><td id='titleLesson'><a>$row[0]</a></td><td>$row[1]</td></tr>"; 
 						} 
 						
 ?>
