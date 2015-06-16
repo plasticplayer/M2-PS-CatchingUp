@@ -1,15 +1,15 @@
-#include "../header/Config.h"
+#include "Config.h"
 #include <string>
 #include <fstream>
 #include <iostream>
-#include "../header/logger.h"
+#include "logger.h"
 #include <ctime>
 #include <pthread.h>
 #include <sys/types.h>
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
-
+#include <queue>
 using namespace std;
 // --------------------------------------
 // function implementations
@@ -37,37 +37,66 @@ Logger::Logger() : active(false) {}
 
 void Logger::Start(Priority minPriority, const string& logFile,bool outputBoth)
 {
-    instance.active = true;
-	instance.outputBoth = outputBoth;
-	instance.minPriority = minPriority;
-	if (logFile.compare("") != 0)
+	if(instance.active == false)
 	{
-		instance.fileStream.open(logFile.c_str());
+		instance.active = true;
+		instance.outputBoth = outputBoth;
+		instance.minPriority = minPriority;
+		if (logFile.compare("") != 0)
+		{
+			instance.fileStream.open(logFile.c_str());
+		}
+		LOGGER_INFO("Starting logger in "<< PRIORITY_NAMES[minPriority] << " mode !");
+		instance._threadWrite = new pthread_t();
+		pthread_create(instance._threadWrite,NULL,Logger::_threadFunc,(void *)NULL);
 	}
-	LOGGER_INFO("Starting logger in "<< PRIORITY_NAMES[minPriority] << " mode !");
-
 }
 void Logger::Start(Priority minPriority, const string& logFile)
 {
-	instance.active = true;
-	instance.outputBoth = false;
-	instance.minPriority = minPriority;
-	if (logFile.compare("") != 0)
+	if(instance.active == false)
 	{
-		instance.fileStream.open(logFile.c_str());
+		instance.active = true;
+		instance.outputBoth = false;
+		instance.minPriority = minPriority;
+		if (logFile.compare("") != 0)
+		{
+			instance.fileStream.open(logFile.c_str());
+		}
+		LOGGER_INFO("Starting logger in "<< PRIORITY_NAMES[minPriority] << " mode !");
+		instance._threadWrite = new pthread_t();
+		pthread_create(instance._threadWrite,NULL,Logger::_threadFunc,(void *)NULL);
 	}
-	LOGGER_INFO("Starting logger in "<< PRIORITY_NAMES[minPriority] << " mode !");
 }
 
 void Logger::Stop()
 {
+	void * retVal;
 	instance.active = false;
+	if(instance._threadWrite != NULL)
+	pthread_join(*instance._threadWrite,&retVal);
+
 	if (instance.fileStream.is_open())
 	{
 		instance.fileStream.close();
 	}
 }
-
+void * Logger::_threadFunc(void * d)
+{
+	while(Logger::instance.active || !instance.fifo.empty())
+	{
+		while(!Logger::instance.fifo.empty())
+		{
+			// identify current output stream
+			ostream& stream = instance.fileStream.is_open() ? instance.fileStream : std::cout;
+			stream << instance.fifo.front();
+			if(stream != std::cout && instance.outputBoth)
+				std::cout << instance.fifo.front();
+			instance.fifo.pop();
+		}
+		usleep(10000);
+	}
+	return NULL;
+}
 void Logger::Write(Priority priority, const string& message)
 {
 	if (instance.active && priority >= instance.minPriority)
@@ -87,35 +116,34 @@ void Logger::Write(Priority priority, const string& message)
 			snprintf(buf, sizeof buf, fmt, (tv.tv_usec/1000));
 		}
 		// identify current output stream
-		ostream& stream
-			= instance.fileStream.is_open() ? instance.fileStream : std::cout;
+		//ostream& stream
+		//	= instance.fileStream.is_open() ? instance.fileStream : std::cout;
 
-
-
+		stringstream stream;
 		stream  << "[" << PRIORITY_NAMES[priority] <<"]"
-				<< "[" <<  buf <<"]";
+			<< "[" <<  buf <<"]";
 
 		if(instance.minPriority <= DEBUG)
 			stream  << "[" << pthread_self() << "]";
 
 		stream << " : "
-			   << message
-			   << endl;
+			<< message
+			<< endl;
 
-		if(instance.outputBoth && instance.fileStream.is_open())
-		{
+		instance.fifo.push(stream.str());
+		/*if(instance.outputBoth && instance.fileStream.is_open())
+		  {
 
-			std::cout  << "[" << PRIORITY_NAMES[priority] <<"]"
-					<< "[" <<  buf <<"]";
+		  std::cout  << "[" << PRIORITY_NAMES[priority] <<"]"
+		  << "[" <<  buf <<"]";
 
-			if(instance.minPriority <= DEBUG)
-				std::cout  << "[" << pthread_self() << "]";
+		  if(instance.minPriority <= DEBUG)
+		  std::cout  << "[" << pthread_self() << "]";
 
-			std::cout << " : "
-				   << message
-				   << endl;
-		}
+		  std::cout << " : "
+		  << message
+		  << endl;
+		  }*/
 
 	}
 }
-
