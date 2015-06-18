@@ -10,8 +10,8 @@ if (!$link) {
 //echo 'Connection OK'; //mysql_close($link); 
 $connection=mysqli_select_db($link,$databaseName);
 
-						$query = " SELECT NameLesson,DateLesson FROM `lesson` WHERE IdCategory = $c "; 
-						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+						$query = " SELECT NameLesson,DateLesson FROM Lesson WHERE IdCategory = $c "; 
+						$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
 						
 						while ($row=mysqli_fetch_array($result)) 
 						{ 

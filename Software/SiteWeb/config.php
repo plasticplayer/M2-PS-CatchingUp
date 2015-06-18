@@ -1,8 +1,8 @@
 <?php
 
-$databaseUser = "root";
-$databasePass = "";
-$databaseName = "catchingup";
+$databaseUser = "priseCours";
+$databasePass = "priseCours";
+$databaseName = "CatchingUp";
 $databaseHost = "localhost";
 
 ?>

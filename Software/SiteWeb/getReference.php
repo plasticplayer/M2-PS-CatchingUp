@@ -7,8 +7,8 @@
 	} 
 
 	$connection=mysqli_select_db($link,$databaseName);
-	$query = " SELECT `TextReference`, `TimeCode` FROM `reference` WHERE idChapter=$idChapter "; 
-	$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+	$query = " SELECT `TextReference`, `TimeCode` FROM Reference WHERE idChapter=$idChapter "; 
+	$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
 	
 	//echo "<script type='text/javascript'>";
 	while ($row=mysqli_fetch_array($result)) 

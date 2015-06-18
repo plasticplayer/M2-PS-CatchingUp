@@ -10,8 +10,8 @@ if (!$link) {
 //echo 'Connection OK'; //mysql_close($link); 
 $connection=mysqli_select_db($link,$databaseName);
 
-						$query = " SELECT DateChapter,FirstName,IdChapter FROM `user`,`chapter`,`lesson` WHERE lesson.NameLesson = '$c' and user.idUser = chapter.idUser  and lesson.idLesson = chapter.idLesson "; 
-						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+						$query = " SELECT DateChapter,FirstName,IdChapter FROM User,Chapter,Lesson WHERE Lesson.NameLesson = '$c' and User.idUser = Chapter.idUser and Lesson.idLesson = Chapter.idLesson "; 
+						$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
 						
 						while ($row=mysqli_fetch_array($result)) 
 						{ 
