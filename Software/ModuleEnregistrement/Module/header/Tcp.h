@@ -39,6 +39,8 @@ private:
 	SSL_CTX *_Ctx;
 	SSL *_Ssl;
 	#endif
+	bool _isConnected;
+	bool connectS();
 	static void *listen ( void * data );
 	int _Sock;
 	pthread_t _Listenner;

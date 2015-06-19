@@ -39,6 +39,9 @@ void REC_TO_SRV_TcpAck( BYTE command );
 void REC_TO_SRV_ImagePart( int noPart );
 void REC_TO_SRV_Authenification( uint64_t idTag );
 
+void* REC_TO_SRV_TCP_POOL_THREAD( void* data );
+
+
 // Nrf
 void ACT_TO_REC_ACK(BYTE data[], int size);
 void ACT_TO_REC_StatusAns( BYTE data[], int size);
@@ -57,6 +60,7 @@ void SRV_TO_REC_VisuCam( BYTE* data, unsigned long size);
 void SRV_TO_REC_StorageAns( BYTE* data, unsigned long size);
 void SRV_TO_REC_ParringAsk( BYTE* data, unsigned long size);
 void SRV_TO_REC_StatutRequest( BYTE* data, unsigned long size);
+void SRV_TO_REC_StatutAns( BYTE* data, unsigned long size);
 void SRV_TO_REC_GetIdRecording( BYTE* data, unsigned long size);
 void SRV_TO_REC_FileTransfertAck( BYTE* data, unsigned long size );
 void SRV_TO_REC_Authentification( BYTE* data, unsigned long size );
@@ -65,6 +69,7 @@ void SRV_TO_REC_Authentification( BYTE* data, unsigned long size );
 
 /******** -------------------------- 	Global Variables -------------------------- ********/
 /// Status
+bool getTcpStatutReq = false;
 bool _WaitAckImage;
 bool isParking = false;
 bool isRecording = false;
@@ -163,7 +168,9 @@ void initTcpCallBacks()
 	Tcp::_tcp->setFunction( (FuncType) &SRV_TO_REC_StorageAns, (int)GET_STORAGE_ANS );
 	Tcp::_tcp->setFunction( (FuncType) &SRV_TO_REC_FileTransfertAck, (int)ACK_FILE_SEND_TCP );
 	Tcp::_tcp->setFunction( (FuncType) &SRV_TO_REC_GetIdRecording, (int)ANS_ID_RECORDING );
-
+		
+	pthread_t _PoolThread;
+	pthread_create( &_PoolThread , NULL ,  &REC_TO_SRV_TCP_POOL_THREAD , (void*) NULL );
 	// Set FTP User
 	char s[13];
 	getMac( (char * )CurrentApplicationConfig.UDP_interface.c_str() , s );
@@ -201,6 +208,16 @@ void forceStopRecording()
 
 
 /******** -------------------------- 	Request -------------------------- ********/
+void* REC_TO_SRV_TCP_POOL_THREAD( void* data ){
+	for ( ;; ){
+		usleep(20000000);
+		if ( ! getTcpStatutReq )
+			LOGGER_WARN("Failed get TCP Pooling Ans");
+		else getTcpStatutReq = false;
+	}
+}
+
+
 /** ParringNrf
  *	Set Module in NRF Parking Mode. Send pooling Frame
  **/
@@ -213,7 +230,7 @@ void ParringNrf()
 	// TODO : UPDATE MODULE STATUS
 	Nrf24::_Nrf->updateAddr(ADDR_PARKING_RX,ADDR_PARKING_TX, false);
 	BYTE answer[] = { POOL_PARK_ADDR } ;
-	Nrf24::_Nrf->sendBuffer(POOL_PARK_ADDR,answer,1,false, 10);
+	Nrf24::_Nrf->sendBuffer(POOL_PARK_ADDR,answer,1,false, 128);
 }
 
 /** REC_TO_SRV_AckImage
@@ -722,7 +739,10 @@ void SRV_TO_REC_Authentification( BYTE* data, unsigned long size )
  * 	CallBack when Server ask for Status
  **/
 void SRV_TO_REC_StatutRequest( BYTE* data, unsigned long size )
-{
+{	
+	LOGGER_DEBUG("GetInfo Serveur");
+	getTcpStatutReq = true;
+	
 	BYTE res[3];
 	res[0] = ANS_STATUS_TCP;
 	res[1] = _StateArduino;
@@ -975,7 +995,7 @@ bool ftpSendFile( )
 void* ftpSenderThread( void* data )
 {
 	LOGGER_DEBUG("Ftp Client Start : Start Sender Thread ");
-
+	int retry;
 	/** Register signal handler for SIGPIPE **/
 	signal(SIGPIPE, sigpipe_handler);
 	sleep(15);
@@ -983,6 +1003,7 @@ void* ftpSenderThread( void* data )
 	Recording *r = NULL;
 	while ( true )
 	{
+		
 		if ( ! fileInUpload ) {
 			fileInUpload = Recording::getNextFile();
 			if ( !fileInUpload )
@@ -996,10 +1017,15 @@ void* ftpSenderThread( void* data )
 		_FtpWaitAckMd5 = true;
 
 		REC_TO_SRV_StorageAsk( Recording::_FilesNotUpload );
-
-		while ( _FtpWaitStorageAns == true ) usleep(10000);
+		retry = 0;
+		while ( _FtpWaitStorageAns == true && retry < 100 ) {
+			usleep(25000);
+			cout << "Wait FTp ans " << retry << endl;
+			++retry;
+		}
 
 		if ( ! _FtpCanUploadFile ) {
+			LOGGER_WARN( "FTP cannot send. Wait 60 seconds" );
 			sleep(60);
 			continue;
 		}
@@ -1023,6 +1049,8 @@ void* ftpSenderThread( void* data )
 				}
 			}
 		}
+		else
+			LOGGER_ERROR("FTP_SEND: Failed");
 		usleep(10000);
 	}
 	return NULL;

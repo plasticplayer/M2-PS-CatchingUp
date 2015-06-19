@@ -24,8 +24,9 @@ class Udp : public Communication {
 		void start();
 		void send( BYTE* data, int size, char*ipDest );
 		static InfoTCP *_TcpInfo;
-		void sendImage();
+		void sendImage();	
 		InfoTCP* getInfoSrv( );
+
 		static Udp*_udp;
 		char _IpSender[20];
 	protected:
