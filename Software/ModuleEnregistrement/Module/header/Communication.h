@@ -111,6 +111,5 @@ class Communication {
 		int _PosDecodeData;
 		time_t _LastFrameRecieve;
 };
-
-
+ 
 #endif /* defined(__ProtocolCommunication__Communication__) */

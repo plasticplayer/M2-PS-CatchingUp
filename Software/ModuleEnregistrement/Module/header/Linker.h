@@ -4,12 +4,6 @@
 #include "Udp.h"
 #include "Tcp.h"
 
-
-
-
-
-
-
 bool initRecording();
 void initNrfCallBacks();
 void initUdpCallBacks();
