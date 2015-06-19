@@ -22,5 +22,5 @@ typedef struct applicationConfiguration
 } applicationConfiguration;
 
 extern applicationConfiguration CurrentApplicationConfig;
-#define SSL_ENABLE 1
+//#define SSL_ENABLE 1
 #endif

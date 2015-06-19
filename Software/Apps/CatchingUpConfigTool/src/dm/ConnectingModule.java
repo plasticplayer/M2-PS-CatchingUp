@@ -2,9 +2,9 @@ package dm;
 
 public class ConnectingModule { 
 	private int id;
-	private int idNetworkRecording;
+	private long idNetworkRecording;
 	
-	public ConnectingModule(int idNetworkRecording){
+	public ConnectingModule(long idNetworkRecording){
 		this.idNetworkRecording = idNetworkRecording;
 	}
 	
@@ -16,11 +16,11 @@ public class ConnectingModule {
         this.id = id;
     }
     
-    public int getIdNetworkRecording() {
+    public long getIdNetworkRecording() {
         return idNetworkRecording;
     }
 
-	public void setIdNetworkRecording(int idNetworkRecording) {
+	public void setIdNetworkRecording(long idNetworkRecording) {
 	    this.idNetworkRecording = idNetworkRecording;
 	}
 

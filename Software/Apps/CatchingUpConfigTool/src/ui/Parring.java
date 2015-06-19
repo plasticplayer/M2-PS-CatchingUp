@@ -49,7 +49,7 @@ public class Parring extends JFrame {
 	 */
 	public Parring(Recorder rec) {
 		if (rec.getStatus() != RecorderStatus.CONNECTED) {
-			new MessageBox("Module d'enregistrement non connecté")
+			new MessageBox("Module d'enregistrement non connect\u00E9")
 					.setVisible(true);
 			dispose();
 		} else if (rec.isRecording()) {
@@ -68,19 +68,11 @@ public class Parring extends JFrame {
 			setContentPane(contentPane);
 
 			final JLabel text = new JLabel(
-					"Pour appairer, cliquer sur Appairer");
+					"Pour appairer, cliquer sur le bouton 'Appairer'");
 			final JLabel text2 = new JLabel(
-					"Presser pendant 5 secondes le bouton");
+					"Et Presser pendant 5 secondes le bouton sur le module de controle");
 			text.setHorizontalAlignment(SwingConstants.CENTER);
 			text2.setHorizontalAlignment(SwingConstants.CENTER);
-
-			final JButton btnAppairer = new JButton("Appairer");
-			btnAppairer.addActionListener(new ActionListener() {
-				public void actionPerformed(ActionEvent arg0) {
-					if (RecorderDAOImpl._instance.parringRecorder(_recorder))
-						frame.dispose();
-				}
-			});
 
 			final JButton btnAnnuler = new JButton("Annuler");
 			btnAnnuler.addActionListener(new ActionListener() {
@@ -89,7 +81,7 @@ public class Parring extends JFrame {
 				}
 			});
 
-			final JButton btnCalibrer = new JButton("Calibrer");
+			final JButton btnCalibrer = new JButton("Visualiser");
 			btnCalibrer.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent arg0) {
 					Image image = RecorderDAOImpl._instance.getImage(_recorder);
@@ -113,6 +105,36 @@ public class Parring extends JFrame {
 					}
 				}
 			});
+			
+			final JButton btnAppairer = new JButton("Appairer");
+			btnAppairer.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					text.setText("Appairage en cours");
+					text2.setText("Veuillez presser pendant 5 secondes le bouton sur le module de controle");
+					btnAppairer.setEnabled(false);
+					btnAnnuler.setEnabled(false);
+					btnCalibrer.setEnabled(false);
+					btnAppairer.setVisible(false);
+					btnAnnuler.setVisible(false);
+					btnCalibrer.setVisible(false);
+					//frame.getContentPane().repaint();
+					frame.revalidate();
+					revalidate();
+					Thread t = new Thread()
+					{
+						public void run() {
+							if (RecorderDAOImpl._instance.parringRecorder(_recorder));
+								frame.dispose();
+						}
+					};
+					
+					//RecorderDAOImpl._instance.parringRecorder(_recorder);
+					t.start();
+					
+				}
+			});
+
+			
 
 			JPanel buttonPanel = new JPanel();
 			contentPane.add(buttonPanel, BorderLayout.SOUTH);

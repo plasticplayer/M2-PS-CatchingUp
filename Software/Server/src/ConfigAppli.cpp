@@ -182,7 +182,7 @@ void ConfigAppli::decodeRequest ( char *req ){
 
 	else if ( type.compare( "need_cards" ) == 0 )
 		getCards();
-	
+
 	else if ( type.compare ( "need_logs") == 0 )
 		getLogs();
 
@@ -228,16 +228,47 @@ void ConfigAppli::decodeRequest ( char *req ){
 
 /****************  Getters ****************/
 void ConfigAppli::getLogs( ){
-	string log = "<type>logs</type></logs>";
-
-	ifstream file("log.log");
-	string str;
-	if ( file != NULL ){
-		while ( getline ( file , str ))
-			log = SSTR ( log <<  endl << "<log>" << str << "</log>");
+	ifstream file ( "log.log" , ios::in|ios::binary|ios::ate);
+	if (file.is_open())
+	{
+		int sizeUpload = 512;
+		streampos size;
+		char * memblock;	
+		size = file.tellg();
+		memblock = new char [size];
+		file.seekg (0, ios::beg);
+		file.read (memblock, size);
 		file.close();
+
+		int partNo = size / sizeUpload;
+		int lastSize = size % sizeUpload;
+		cout << "PartNo: " << partNo << endl; 
+		char sizes[] = {
+			((char)((size) & 0xFF)),
+			((char)((size>>8) & 0xFF)),
+			((char)((size>>16) & 0xFF)),
+			((char)((size>>24) & 0xFF))
+		};
+		LOGGER_VERB("Size Logs sent : "<< size);
+		send(client_sock,sizes,4,0);
+		for ( int i = 0; i <= partNo ; i++ ){
+			if ( i == partNo){
+				if ( lastSize != 0 )
+					send( client_sock , &memblock[i*sizeUpload] , lastSize ,0);
+			}
+			else {
+				send( client_sock , &memblock[i*sizeUpload], sizeUpload ,0);
+			}
+		}
+		char * newLine = (char*)"\r\n";
+		send(client_sock,newLine,sizeof(newLine),0);
+		LOGGER_VERB("Image Sent to configuration aplication");
+		delete[] memblock;
 	}
-	sendData ( SSTR( log << endl << "</logs>" << endl )) ;
+	else {
+		char a[] = { 0, 0, 0 , 0};
+		send( client_sock, &a, 4,0);
+	}
 }
 
 
@@ -287,7 +318,7 @@ void ConfigAppli::getRecorders(){
 	string sRes = "<type>GET_RECORDERS</type><recorders>";
 
 	//bool isRecording;
-	string idRec, idRoom, idCModule, idRModule, roomName, mac, status, ip ;
+	string idRec, idRoom, idCModule, idRModule, roomName, mac, status, ip, idNC, idNR ;
 	Recorder *rec;
 
 	while ( res->Next() ){
@@ -297,6 +328,8 @@ void ConfigAppli::getRecorders(){
 		mac		= res->GetCurrentRow()->GetField(4);
 		idCModule	= res->GetCurrentRow()->GetField(5);
 		idRModule	= res->GetCurrentRow()->GetField(6);
+		idNC		= res->GetCurrentRow()->GetField(7);
+		idNR		= res->GetCurrentRow()->GetField(8);
 
 		rec = Recorder::getRecorderByMac( (BYTE*) mac.c_str() );
 
@@ -306,7 +339,7 @@ void ConfigAppli::getRecorders(){
 
 		sRes = SSTR ( 	sRes << endl << "<recorder><id>" << idRec  << "</id><status>" << status << "</status><mac>" 
 				<< mac << "</mac><ip>" << ip << "</ip><idCModule>" << idCModule << "</idCModule><idRModule>" << idRModule << "</idRModule><roomid>" 
-				<< idRoom << "</roomid><roomname>" << roomName << "</roomname>" );
+				<< idRoom << "</roomid><roomname>" << roomName << "</roomname><idNC>" << idNC << "</idNC><idNR>" << idNR << "</idNR>" );
 
 
 		if ( status.compare("CONNECTED") == 0 )
@@ -605,8 +638,8 @@ void ConfigAppli::updateUsersRecorder( string req ){
 		lName = prepareString(getValue(line,(string)"lastname", &eLName ));
 		pwd   = prepareString(getValue(line,(string)"password", &ePwd   ));
 		email = prepareString(getValue(line,(string)"email", &eMail  ));
-		dateBegin = getValue(line,(string)"email", &eBegin  );
-		dateEnd = getValue(line,(string)"email", &eEnd  );
+		dateBegin = getValue(line,(string)"begin", &eBegin  );
+		dateEnd = getValue(line,(string)"end", &eEnd  );
 
 		verif  = Mysql::updateUserTable ( idUser, ( eFName == 1 ), fName, ( eLName == 1) , lName, ( ePwd == 1 ), pwd, ( eMail == 1) , email );
 		verif |= Mysql::updateUserRecorderTable ( idUser, ( eBegin == 1) , dateBegin, ( eEnd == 1) , dateEnd );
@@ -739,7 +772,7 @@ void ConfigAppli::getImageFromRecorder ( string req ){
 					//LOGGER_VERB("["<<(unsigned int)sizes[0]<< ","<<(unsigned int)sizes[1]<<","<<(unsigned int)sizes[2]<<","<<(unsigned int)sizes[3]<<"]"); 				
 					send(client_sock,sizes,4,0);
 					for ( int i = 0; i <= partNo ; i++ ){
-					
+
 						if ( i == partNo){
 							if ( lastSize != 0 )
 								send( client_sock , &memblock[i*sizeUpload] , lastSize ,0);

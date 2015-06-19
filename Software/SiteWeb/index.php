@@ -1,4 +1,13 @@
-<!DOCTYPE html>
+<?php
+require("config.php");
+$link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
+if (!$link) { 
+	die('Could not connect to MySQL: ' . mysqli_error()); 
+} 
+//echo 'Connection OK'; //mysql_close($link); 
+$connection=mysqli_select_db($link,$databaseName);
+mysqli_query($link,"SET NAMES UTF8");
+?><!DOCTYPE html>
 <html lang="en">
   <head>
     <meta name="generator"
@@ -88,6 +97,17 @@ $(document).ready(function(){
 	  );*/
 	 }
    });
+   
+   $("#listcategorie li").click(function() {
+    //alert(this.id); // id of clicked li by directly accessing DOMElement property
+    alert($(this).attr('id')); // jQuery's .attr() method, same but more verbose
+    $('#ListLesson').load(
+      "getLessons.php",{var:$(this).attr('id')},
+	  function() {
+           // alert('Got the data.');
+      }
+	  );
+});
 
 });
 </script>
@@ -137,72 +157,38 @@ $(document).ready(function(){
 	  <div class="container-fluid">
 		<div class="row">
 		  <div class="col-sm-3 col-md-2 sidebar">
-			<ul class="nav nav-sidebar">
+			<ul id="listcategorie" class="nav nav-sidebar">
 			 <li class="header">
 				<a href="categories.php">
 				Catégories
 				</a>
 			  </li>
 			  <?php 
-						$link = mysqli_connect('localhost','priseCours','priseCours'); 
-						if (!$link) { 
-							die('Could not connect to MySQL: ' . mysqli_error()); 
-						} 
-						//echo 'Connection OK'; //mysql_close($link); 
-						$connection=mysqli_select_db($link,'catchingup');
+						
 						$query = " SELECT NameCategory FROM `category` "; 
 						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+						$i=1;
 						while ($row=mysqli_fetch_array($result)) 
 						{ 
-							echo"<li><a href='./#'>$row[0]</a></li>"; 
+							echo"<li id='$i'><a>".htmlentities($row[0], ENT_NOQUOTES, "UTF-8")."</a></li>"; 
+							$i++;
 						} 
 			 ?>
-			 <!-- <li class="active">
-				<a href="./#">Mathématiques</a>
-			  </li>
-			  <li>
-				<a href="./#">Reports</a>
-			  </li>
-			  <li>
-				<a href="./#">Analytics</a>
-			  </li>
-			  <li>
-				<a href="./#">Export</a>
-			  </li>-->
 			</ul>
 		  </div>
 		 <!-- SELECT NameLesson FROM lesson WHERE IdCategory = 1 -->
 		  <div class="col-sm-1 col-sm-offset-12 col-md-12 col-md-offset-2 main">
-			<ol class="breadcrumb">
-			  <li><a href="#">Home</a></li>
-			  <li><a href="#">Library</a></li>
-			  <li class="active">Data</li>
-			</ol>
-			<h1 class="page-header">Dashboard</h1>
-			
-			<h2 class="sub-header">Section title</h2>
 			<table>
 				<tr>
 					<td>
 						<?php 
-						$link = mysqli_connect('localhost','root',''); 
-						if (!$link) { 
-							die('Could not connect to MySQL: ' . mysqli_error()); 
-						} 
-						//echo 'Connection OK'; //mysql_close($link); 
-						$connection=mysqli_select_db($link,'catchingup');
-
-							//On insère des données variables grâce à une requète préparée
-						//$query="INSERT INTO `User` (`IdUser`, `FirstName`, `LastName`, `Password`, `Email`) VALUES
-						//(2, 'AMIR', 'ABDELAOUI', 'PASSWD', 'amir.abdelaoui@gmail.com')";
-						// execution de la requète
-						//mysqli_query($link,$query);
 
 						$query = " SELECT NameCategory FROM `category` "; 
 						$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
 						echo "
 						 <table> 
-						<select id='ListCategory' name='NameCategory' id='NameCategory' onchange='getLessonSelected(this.value)' >"; 
+						<select id='ListCategory' name='NameCategory' id='NameCategory' onchange='getLessonSelected(this.value)' > 
+							<option value=-1>    - - Catégories - -    </option>";
 						$i=1;
 						while ($row=mysqli_fetch_array($result)) 
 						{ 
@@ -213,23 +199,14 @@ $(document).ready(function(){
 						</table> ";
 						?>
 					</td>
-					<td>
-						<?php 
-						echo "<table>
-						<select name='Statut' id='Statut'>"; 
-						echo"<option>Fini</option>"; 
-						echo"<option>En cours</option>"; 
-						echo"</select>
-						</table> ";
-						?>
-					</td>
+					
 					<td>
 						 <input id="rechercher" type="submit" class="button" name="insert" value="rechercher" />
 					</td>
 				</tr>
 			</table>
 		  </div>
-		  <div id="test"class="col-sm-1 col-sm-offset-12 col-md-12 col-md-offset-2 main">
+		  <div id="test"class="col-sm-1 col-sm-offset-12 col-md-8 col-md-offset-2 main">
 			<table id "displaytable" class="table table-striped table-bordered" cellspacing="0" width="100%">
 				<thead>
 				  <tr>

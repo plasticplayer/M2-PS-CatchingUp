@@ -35,7 +35,7 @@ public class calendar extends JPanel {
 
 	public static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 	public Date getDate(){
-		String date = yy +"-"+mm+"-"+dd;
+		String date = yy +"-"+(mm+1)+"-"+dd;
 		try {
 			Date d = (Date)sdf.parse(date);
 			return d;

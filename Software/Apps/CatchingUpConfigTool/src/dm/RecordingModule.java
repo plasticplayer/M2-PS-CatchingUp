@@ -4,9 +4,9 @@ public class RecordingModule {//TODO: vérifier que recordingConfiguration est bi
 	private int id;
 	private String adressMac;
 	private String recordingConfiguration;
-	private int idNetwork;
+	private long idNetwork;
 	
-	public RecordingModule(String adressMac,String recordingConfiguration,int idNetwork){
+	public RecordingModule(String adressMac,String recordingConfiguration,long idNetwork){
 		this.adressMac = adressMac;
 		this.recordingConfiguration = recordingConfiguration;
 		this.idNetwork = idNetwork;
@@ -41,11 +41,11 @@ public class RecordingModule {//TODO: vérifier que recordingConfiguration est bi
         this.recordingConfiguration = recordingConfiguration;
     }
 	
-    public int getIdNetwork() {
+    public long getIdNetwork() {
 	    return idNetwork;
 	 }
 
-    public void setIdNetwork(int idNetwork) {
+    public void setIdNetwork(long idNetwork) {
         this.idNetwork = idNetwork;
     }
 

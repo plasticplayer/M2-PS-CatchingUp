@@ -59,7 +59,7 @@ public class Logs extends JFrame {
 		});
 		
 		JTextArea textArea = new JTextArea();
-		textArea.setText( LogsImpl._instance.getLogs() );
+		textArea.setText( "" );
 		
 		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
