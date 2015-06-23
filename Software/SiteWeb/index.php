@@ -1,4 +1,6 @@
 <?php
+// On prolonge la session
+session_start();
 require("config.php");
 $link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
 if (!$link) { 
@@ -7,7 +9,24 @@ if (!$link) {
 //echo 'Connection OK'; //mysql_close($link); 
 $connection=mysqli_select_db($link,$databaseName);
 mysqli_query($link,"SET NAMES UTF8");
-?><!DOCTYPE html>
+
+// On teste si la variable de session existe et contient une valeur
+if(empty($_SESSION['login'])) 
+{
+	$connexion = 'connexion';
+  // Si inexistante ou nulle, on redirige vers le formulaire de login
+  //header('Location: http://localhost:8080/authentification.php');
+  //exit();
+}
+else{
+	$query = " SELECT FirstName,LastName FROM `user` WHERE Email = '".$_SESSION['login']."' "; 
+	$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+	$row=mysqli_fetch_array($result);
+	$connexion = "Bienvenue ".$row[0]. " ".$row[1]." ";
+}
+
+?>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta name="generator"
@@ -131,13 +150,13 @@ $(document).ready(function(){
 		  <div class="collapse navbar-collapse" id="id-navbar-collapse">
 			<ul class="nav navbar-nav navbar-right">
 			  <li>
-				<a href="#">
+				<a href="inscription.php">
 				  <b>Inscription</b>
 				</a>
 			  </li>
 			  <li>
-				<a href="#">
-				  <b>Connexion</b>
+				<a href="authentification.php">
+				  <b> <?php echo $connexion ?></b>
 				</a>
 			  </li>
 			</ul>
