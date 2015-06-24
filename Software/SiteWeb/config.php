@@ -1,9 +1,10 @@
 <?php
-
-$databaseUser = "root";
-$databasePass = "";
-$databaseName = "catchingup";
+// Definition
+$databaseUser = "priseCours";
+$databasePass = "priseCours";
+$databaseName = "CatchingUp";
 $databaseHost = "localhost";
+$attachmentsDirectory = "/home/CatchingUp/Attachments";
 $grainDeSel = 20;
 
 ?>
