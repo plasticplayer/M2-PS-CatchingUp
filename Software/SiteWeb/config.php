@@ -1,5 +1,5 @@
 <?php
-
+// Definition
 $databaseUser = "priseCours";
 $databasePass = "priseCours";
 $databaseName = "CatchingUp";
