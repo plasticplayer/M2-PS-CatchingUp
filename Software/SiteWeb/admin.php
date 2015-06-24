@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require("config.php");
 $link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
 if (!$link) { 
