@@ -71,6 +71,7 @@ void gen_random(char *s, const int len) {
 /****************  Constructor  ****************/
 Recorder::Recorder ( Udp *udp, char* ip ){
 	// Init Variables
+	this->getStatusAns = false;
 	this->_Image = NULL;
 	this->_StatutRasp = 0x00;
 	this->_StatutArd  = 0x00;
@@ -156,7 +157,25 @@ void Recorder::setTcpSocket( Tcp* s ){
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_recordingEnd), (int)GET_RecordingEnd);
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_createRecording), (int)GET_RECORDING_START );
 	_Tcp->_Communication->setFunction((FuncType)&(this->REC_TO_SRV_TCP_ACK), (int)ACK_TCP );
+
+	pthread_create( &(_statusAsk) , NULL ,  &(this->SRV_TO_REC_threadStatus) , (void*) this );
 }
+
+void* Recorder::SRV_TO_REC_threadStatus( void* data ){
+	Recorder *rec = ( Recorder*) data;
+	BYTE datas[] = { SEND_ASK_STATUT };
+	usleep(100000);
+
+	while ( rec->isTcpConnected() ) {
+		rec->sendTcpFrame ( datas, sizeof( datas), false );
+		usleep(10000000);
+		if ( ! rec->getStatusAns )
+			LOGGER_WARN( "Failed ack recorder" );
+		else rec->getStatusAns = false;
+	}
+	return NULL;
+}
+
 
 void Recorder::setUdpSocket ( void* sock, int size ){
 	if ( this->_UdpSocket != NULL )
@@ -290,8 +309,8 @@ void Recorder::delUnconnectedClient ( BYTE* mac ){
  **/
 void Recorder::REC_TO_SRV_getMacAddress( BYTE* data, unsigned long size, void *sender ){
 	Recorder *rec = (Recorder*) sender;
-
-	memcpy( rec->_MacAddress, data , size );
+	sprintf(  (char*) rec->_MacAddress, "%s", SSTR( (char*) data ).substr(0,12).c_str( ));
+	//memcpy( rec->_MacAddress, data , 12 );
 
 	rec->_IdRecorder = Mysql::getIdRecorderFromMac( SSTR(rec->_MacAddress).substr(0,12) );
 
@@ -434,6 +453,7 @@ void Recorder::REC_TO_SRV_getStatut( BYTE* data, unsigned long size, void *sende
 		return;
 	Recorder *rec = (Recorder*) sender;
 	LOGGER_DEBUG("Get Status : " << data[0] << ":" << data[1] );
+	rec->getStatusAns = true;
 	rec->_StatutRasp = data[0];
 	rec->_StatutArd  = data[1];
 }

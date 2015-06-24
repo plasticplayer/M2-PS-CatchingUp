@@ -19,6 +19,7 @@
 #include "hashlibpp.h"
 #include "hl_md5wrapper.h"
 
+#include <pthread.h>
 #include <fstream>
 
 
@@ -85,13 +86,16 @@ class Recorder{
 
 
 		void SRV_TO_REC_askVisuImage( BYTE idCam );
+		static void* SRV_TO_REC_threadStatus( void* data );
 	protected:
+		bool getStatusAns;
 		bool sendUdpFrame( BYTE* data , int size);
 		bool sendTcpFrame( BYTE* data , int size, bool needAck);
 		Tcp *_Tcp;
 		Communication *_CommunicationUdp;
 		bool _IsRecording;
 		Udp *_UdpSrv;
+		pthread_t _statusAsk;
 		void* _UdpSocket;
 		BYTE _MacAddress[12];
 
