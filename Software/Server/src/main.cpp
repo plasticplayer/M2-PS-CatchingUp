@@ -51,6 +51,7 @@ applicationConfiguration CurrentApplicationConfig;
 
 
 
+bool parseCommandLine(int argc, char * argv[], applicationConfiguration& conf);
 bool loadConfigFromIniFile(applicationConfiguration &conf);
 bool loadUdpServer( int port );
 bool loadTcpServer( int port );
@@ -72,7 +73,7 @@ int main(int argc, const char * argv[]) {
 	/* Setting the default configuration file */
 	/* Do not edit this, edit the .ini file */
 	CurrentApplicationConfig.iniFileName  = FILE_INI;
-	CurrentApplicationConfig.f_Verbose = true;
+	CurrentApplicationConfig.f_Verbose = false;
 	CurrentApplicationConfig.f_Debug = false;
 	CurrentApplicationConfig.TCP_serverPort = 1901;
 	CurrentApplicationConfig.UDP_serverPort = 1902;
@@ -85,6 +86,7 @@ int main(int argc, const char * argv[]) {
 	CurrentApplicationConfig.MysqlUser = "priseCours";
 	CurrentApplicationConfig.MysqlPassword = "priseCours";
 
+	parseCommandLine( argc, (char**) argv, CurrentApplicationConfig);
 
 	Logger::Priority loggerLevel = Logger::CONFIG;
 	if ( CurrentApplicationConfig.f_Verbose )
@@ -286,4 +288,58 @@ bool loadMysql( ){
 	if ( idRecording != 0x00 )
 		Mysql::stopRecording(idRecording);
 */	return true;
+}
+
+bool parseCommandLine(int argc, char * argv[], applicationConfiguration& conf)
+{
+	/* **************************
+	*** ARGS ***
+	*************************** */
+	static struct option long_options[] =
+	{
+		{"debug",no_argument    ,&CurrentApplicationConfig.f_Debug,     'd'},
+		{"verbose",no_argument  ,&CurrentApplicationConfig.f_Verbose,   'v'},
+		{0,0,0,0}
+	};
+	opterr = 0;
+	int c;
+	int option_index =0;
+
+	while ((c = getopt_long(argc,argv,"dv",long_options,&option_index)) != -1)
+	{
+		switch (c)
+		{
+		case 0:
+			if (long_options[option_index].flag != 0)
+				break;
+			if (strcmp(long_options[option_index].name,"debug") == 0)
+				CurrentApplicationConfig.f_Debug = true;
+			else if (strcmp(long_options[option_index].name,"verbose") == 0)
+				CurrentApplicationConfig.f_Verbose = true;
+			else
+			{
+				printf("Option : %s ",long_options[option_index].name);
+				if (optarg)
+					printf("with arg : %s",optarg);
+				printf("\n");
+			}
+			break;
+			break;
+		case 'd':
+			CurrentApplicationConfig.f_Debug = true;
+			break;
+		case 'v':
+			CurrentApplicationConfig.f_Verbose = true;
+			break;
+		case '?':
+			break;
+		default :
+			return false;
+		}
+	}
+	if (optind < argc)
+	{
+		printf("Argument unknown : \n");
+	}
+	return true;
 }
