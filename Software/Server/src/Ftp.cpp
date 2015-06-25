@@ -107,56 +107,52 @@ void OnServerEvent (int Event){
 
 		case CFtpServer::START_LISTENING:
 
-			printf ("* Server is listening !\r\n");
+			LOGGER_VERB("FTP : Server is listening !");
 
 			break;
 
 
 		case CFtpServer::START_ACCEPTING:
 
-			printf ("* Server is accepting incoming connexions !\r\n");
+			LOGGER_VERB("FTP: Server is accepting incoming connexions !");
 
 			break;
 
 
 		case CFtpServer::STOP_LISTENING:
 
-			printf ("* Server stopped listening !\r\n");
+			LOGGER_VERB("FTP: Server stopped listening !");
 
 			break;
 
 
 		case CFtpServer::STOP_ACCEPTING:
 
-			printf ("* Server stopped accepting incoming connexions !\r\n");
+			LOGGER_VERB("Server stopped accepting incoming connexions !");
 
 			break;
 
 		case CFtpServer::MEM_ERROR:
 
-			printf
-				("* Warning, the CFtpServer class could not allocate memory !\r\n");
+			LOGGER_WARN("Warning, the CFtpServer class could not allocate memory !");
 
 			break;
 
 		case CFtpServer::THREAD_ERROR:
 
-			printf
-				("* Warning, the CFtpServer class could not create a thread !\r\n");
+			LOGGER_WARN("Warning, the CFtpServer class could not create a thread !");
 
 			break;
 
 		case CFtpServer::ZLIB_VERSION_ERROR:
 
-			printf
-				("* Warning, the Zlib header version differs from the Zlib library version !\r\n");
+			LOGGER_WARN("Warning, the Zlib header version differs from the Zlib library version !");
 
 			break;
 
 		case CFtpServer::ZLIB_STREAM_ERROR:
 
-			printf
-				("* Warning, error during compressing/decompressing data !\r\n");
+			LOGGER_WARN("Warning, error during compressing/decompressing data !");
 
 			break;
 
@@ -174,18 +170,17 @@ void OnUserEvent (int Event, CFtpServer::CUserEntry * pUser, void *pArg){
 
 		case CFtpServer::NEW_USER:
 
-			printf ("* A new user has been created:\r\n"
-					"\tLogin: %s\r\n" "\tPassword: %s\r\n"
-					"\tStart directory: %s\r\n",
-					pUser->GetLogin (),
-					pUser->GetPassword (), pUser->GetStartDirectory ());
-
+			LOGGER_DEBUG("FTP: A new user has been created");
+					//"\tLogin: %s\r\n" "\tPassword: %s\r\n"
+					//"\tStart directory: %s\r\n",
+					//pUser->GetLogin (),
+					//pUser->GetPassword (), pUser->GetStartDirectory ());
 			break;
 
 
 		case CFtpServer::DELETE_USER:
 
-			printf ("* \"%s\"user is being deleted: \r\n", pUser->GetLogin ());
+			LOGGER_VERB("FTP: User is being deleted:");//, pUser->GetLogin ());
 
 			break;
 
@@ -203,91 +198,81 @@ void OnClientEvent (int Event, CFtpServer::CClientEntry * pClient, void *pArg){
 
 		case CFtpServer::NEW_CLIENT:
 
-			printf ("* A new client has been created:\r\n"
-					"\tClient IP: [%s]\r\n\tServer IP: [%s]\r\n",
-
-					inet_ntoa (*pClient->GetIP ()),
-					inet_ntoa (*pClient->GetServerIP ()));
-
+			LOGGER_VERB("A new client has been created");
+					//"\tClient IP: [%s]\r\n\tServer IP: [%s]\r\n",
+					//inet_ntoa (*pClient->GetIP ()),
+					//inet_ntoa (*pClient->GetServerIP ()));
 			break;
 
 
 		case CFtpServer::DELETE_CLIENT:
 
-			printf ("* A client is being deleted.\r\n");
+			LOGGER_VERB("A client is being deleted.");
 
 			break;
 
 
 		case CFtpServer::CLIENT_AUTH:
 
-			printf ("* A client has logged-in as \"%s\".\r\n",
-					pClient->GetUser ()->GetLogin ());
+			LOGGER_VERB("A client has logged-in as: " << pClient->GetUser ()->GetLogin ());
 
 			break;
 
 
 		case CFtpServer::CLIENT_SOFTWARE:
 
-			printf ("* A client has proceed the CLNT FTP command: %s.\r\n",
-					(char *) pArg);
+			LOGGER_VERB("A client has proceed the CLNT FTP command: " << (char *) pArg);
 
 			break;
 
 
 		case CFtpServer::CLIENT_DISCONNECT:
 
-			printf ("* A client has disconnected.\r\n");
+			LOGGER_VERB("A client has disconnected.");
 
 			break;
 
 
 		case CFtpServer::CLIENT_UPLOAD:
 
-			printf
-				("* A client logged-on as \"%s\" is uploading a file: \"%s\"\r\n",
-
-				 pClient->GetUser ()->GetLogin (), (char *) pArg);
+			LOGGER_VERB("A client logged-on as " << pClient->GetUser ()->GetLogin () 
+					<< " is uploading a file: " << (char *) pArg);
 
 			break;
 
 
 		case CFtpServer::CLIENT_DOWNLOAD:
 
-			printf
-				("* A client logged-on as \"%s\" is downloading a file: \"%s\"\r\n",
-
-				 pClient->GetUser ()->GetLogin (), (char *) pArg);
+			LOGGER_WARN("A client logged-on as " << pClient->GetUser ()->GetLogin ()
+				<<  " is downloading a file: "<<  (char *) pArg);
 
 			break;
 
 
 		case CFtpServer::CLIENT_LIST:
 
-			printf
-				("* A client logged-on as \"%s\" is listing a directory: \"%s\"\r\n",
-
-				 pClient->GetUser ()->GetLogin (), (char *) pArg);
+			LOGGER_WARN("A client logged-on as " <<  pClient->GetUser ()->GetLogin ()
+				<<  " is listing a directory: " << (char *) pArg);
 
 			break;
 
 
 		case CFtpServer::CLIENT_CHANGE_DIR:
 
-			printf
-				("* A client logged-on as \"%s\" has changed its working directory:\r\n"
+			LOGGER_DEBUG("A client logged-on as " << pClient->GetUser ()->GetLogin ()
+				<<   " has changed its working directory");
 
-				 "\tFull path: \"%s\"\r\n\tWorking directory: \"%s\"\r\n",
+				 //"\tFull path: \"%s\"\r\n\tWorking directory: \"%s\"\r\n",
 
-				 pClient->GetUser ()->GetLogin (), (char *) pArg,
-				 pClient->GetWorkingDirectory ());
+				 //, (char *) pArg,
+				 //pClient->GetWorkingDirectory ());
 
 			break;
 
 
 		case CFtpServer::RECVD_CMD_LINE:
 
-			printf ("* Received: %s (%s)>  %s\r\n",
+			printf("Received: %s (%s)>  %s\r\n",
 
 					pClient->GetUser ()? pClient->
 					GetUser ()->GetLogin () : "(Not logged in)",
