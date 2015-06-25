@@ -13,7 +13,7 @@
     {
 		
 		//TODO: interdiction d'ajouter un utilisateur avec un mot de passe déjà existant
-		$errorMessage = 'Ici 3 !';
+		//$errorMessage = 'Ici 3 !';
 		require("config.php");
 		$password = addslashes(md5($_POST['password'].$grainDeSel));
 		$link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
@@ -23,41 +23,55 @@
 		 //echo 'Connection OK'; //mysql_close($link); 
 		$connection=mysqli_select_db($link,$databaseName);
 
-		$query = " SELECT Email FROM `user` WHERE Email ='".$_POST['email']."' "; 
-		$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+		$query = "SELECT Email FROM User WHERE Email ='".$_POST['email']."' "; 
+		$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
 		$email=mysqli_fetch_array($result); 
 		
-		$query = "SELECT user.IdUser FROM `user`,`websiteuser` WHERE user.IdUser = websiteuser.IdUser and user.email = '".$_POST['email']."'";
-		$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+		$query = "SELECT User.IdUser FROM User,WebsiteUser WHERE User.IdUser = WebsiteUser.IdUser and User.email = '".$_POST['email']."'";
+		$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
 		$id=mysqli_fetch_array($result);
 
 		
 		if($email[0] === NULL){ // aucune existence dans la base (aucune présence dans la table user et websiteuser)
-			$errorMessage = 'nouvel utilisateur !';
-			$query = " INSERT INTO `user`(`IdUser`, `FirstName`, `LastName`, `Password`, `Email`) VALUES (null,'".$_POST['prenom']."','".$_POST['nom']."','".$password."','".$_POST['email']."') "; 
-			$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+			//$errorMessage = 'nouvel utilisateur !';
+			$query = "INSERT INTO User (IdUser, FirstName, LastName, Password, Email) VALUES (null,'".$_POST['prenom']."','".$_POST['nom']."','".$password."','".$_POST['email']."') "; 
+			$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
 			// TODO: mettre date d'enregistrement
-			$query = " INSERT INTO `websiteuser`(`IdUser`, `DateRegistration`) VALUES ('".mysqli_insert_id($link)."','2015-05-06 10:32:14') "; 
-			$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+			$id = mysqli_insert_id($link);
+			$query = "INSERT INTO WebsiteUser(IdUser, DateRegistration) VALUES ('".$id."',now()) "; 
+			$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
+			session_start();
+			// On enregistre le login en session
+			$_SESSION['login'] = $id;
+			// On redirige vers le fichier admin.php
+			header('Location: /');
+			exit();		
 		}
 		elseif($id[0] !== NULL){ // si utilisateur présent dans user ET websiteuser
 			$errorMessage ='Compte déjà existant!';
 		}
 		else{ //utilisateur présent uniquement dans user
-			$query = " SELECT Password FROM `user` WHERE Email ='".$_POST['email']."' "; 
-			$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
-			$password=mysqli_fetch_array($result);
-			if($_POST['password'] === $password[0]){
+			$query = "SELECT Password FROM User WHERE Email ='".$_POST['email']."' "; 
+			$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
+			$pass=mysqli_fetch_array($result);
+			if($password === $pass[0]){
 				// 1 ligne à ajouter websiteuser
-				$query = "SELECT IdUser FROM `user` WHERE email = '".$_POST['email']."'";
-				$result = mysqli_query($link,$query) or die("Requete pas comprise 1"); 
+				$query = "SELECT IdUser FROM User WHERE Email = '".$_POST['email']."'";
+				$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
 				$id = mysqli_fetch_array($result);
 				
-				$query = " INSERT INTO `websiteuser`(`IdUser`, `DateRegistration`) VALUES ($id[0],'2015-05-06 10:32:14') "; 
-				$result = mysqli_query($link,$query) or die("Requete pas comprise 2"); 
+				$query = "INSERT INTO WebsiteUser(IdUser, DateRegistration) VALUES ($id[0],now()) "; 
+				$result = mysqli_query($link,$query) or die(mysqli_error($link));
+
+				session_start();
+				// On enregistre le login en session
+				$_SESSION['login'] = $id[0];
+				// On redirige vers le fichier admin.php
+				header('Location: /');
+				exit();				
 			}
 			else{
-				$errorMessage = 'mot de passe incorrect';
+				$errorMessage = 'Mot de passe incorrect';
 			}
 			
 			//TODO: vérifier que la personne qui souhaite s'enregistrer à renseigner les mêmes informations que user

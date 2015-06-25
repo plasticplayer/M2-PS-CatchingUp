@@ -4,6 +4,7 @@ session_start();
 // On teste si la variable de session existe et contient une valeur
 if(empty($_SESSION['login'])) 
 {
+	
   // Si inexistante ou nulle, on redirige vers le formulaire de login
   header('Location: authentification.php');
   exit();
@@ -17,17 +18,17 @@ if (!$link) {
 $connection=mysqli_select_db($link,$databaseName);
 			
 mysqli_query($link,"SET NAMES UTF8");
-function enum_to_array($table, $field) {
-	global $link;
-    $query = "SHOW FIELDS FROM `{$table}` LIKE '{$field}'";
-	$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
-    $row = mysqli_fetch_assoc($result);
-    preg_match('#^enum\((.*?)\)$#ism', $row['Type'], $matches);
-    $enum = str_getcsv($matches[1], ",", "'");
-    return $enum;
+$idUser = $_SESSION['login'];
+$query = "SELECT count(*) as count FROM RecorderUser WHERE idUser = ".$idUser.";";
+$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
+$row =mysqli_fetch_assoc($result);
+if($row['count'] != '1')
+{
+	// Si inexistante ou nulle, on redirige vers le formulaire de login
+  header('Location: index.php');
+  exit();
 }
-$listStatusLesson = enum_to_array("Lesson","StatusLesson");
-$idUser = 17;
+
 ?><!DOCTYPE html>
 <html lang="en">
   <head>
