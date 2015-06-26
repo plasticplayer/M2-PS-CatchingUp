@@ -29,6 +29,7 @@ using namespace std;
 
 void showImage(Mat * img,string name);
 void * track_thread(void * d);
+int ratio = 4;
 void initImageRefs()
 {
 	Webcam * cam = Webcam::getWebcam();
@@ -46,12 +47,14 @@ void initImageRefs()
 			unsigned char * imageData = new unsigned char[height * width * 3];
 			cam->grabImage(imageData,&sizeImage);
 			LOGGER_VERB("Capturing Image : " << currentIndex );
-			listImages[currentIndex] = imageData; // Copy pointer to data
+			Mat * imgTmp = new Mat(width,height,3,imageData,ratio);
+			//listImages[currentIndex] = imageData; // Copy pointer to data
+			listImages[currentIndex] = imgTmp->data; // Copy pointer to data
 			//Mat i(width,height,3,imageData);
 			//showImage(&i,SSTR(currentIndex));
 		}
 		diff = *(new Mat(width,height,3));
-		_frameInterThread = *(new Mat(width,height,3));
+		_frameInterThread = *(new Mat(width/ratio,height/ratio,3)) ;
 	}
 	else
 	  LOGGER_WARN("Cannot init camera for setting imageRef");
@@ -105,7 +108,7 @@ void track(Mat * frame)
 	}
 	if(_threadImageWritable)
 	{
-		_frameInterThread.clone(*frame);
+		_frameInterThread.clone(*frame,ratio);
 		_threadImageWritable = false;
 	}
 
@@ -458,7 +461,7 @@ void * track_thread(void * d)
 			}
 			cv::imshow( "DISP", image );
 
-			showImage(frame,"CUR");
+			//showImage(frame,"CUR");
 			//for(unsigned int currentIndex = 0; currentIndex < NB_IMAGE_REF ; currentIndex++)
 			//{
 			Mat i(frame->cols,frame->rows,3,listImages[indexRef]);

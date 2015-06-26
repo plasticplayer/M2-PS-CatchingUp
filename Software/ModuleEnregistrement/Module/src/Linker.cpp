@@ -841,10 +841,10 @@ bool startRecording( uint64_t idRecording )
 		{
 			LOGGER_VERB("Starting Cameras and sound recording");
 			isRecording &= cam->startRecording(_CurrentRecording);
-			#ifndef DEBUG_IMAGE
+			//#ifndef DEBUG_IMAGE
  		        isRecording &= still->startRecording(_CurrentRecording);
 			isRecording &= sound->startRecording(_CurrentRecording);
-			#endif
+			//#endif
 
 		}
 		else
@@ -1020,7 +1020,7 @@ void* ftpSenderThread( void* data )
 		retry = 0;
 		while ( _FtpWaitStorageAns == true && retry < 100 ) {
 			usleep(25000);
-			cout << "Wait FTp ans " << retry << endl;
+			//cout << "Wait FTp ans " << retry << endl;
 			++retry;
 		}
 
@@ -1038,7 +1038,7 @@ void* ftpSenderThread( void* data )
 				fileInUpload->uploadOk();
 				fileInUpload = NULL;
 				if ( !r->isRecording() ){
-					cout << "Is Not Recording " << endl;
+					//cout << "Is Not Recording " << endl;
 					if ( r->_Files.empty() ){
 						//REC_TO_SRV_RECORDING_END( r->_IdRecording );
 						REC_TO_SRV_allFilesSends( r->_IdRecording );

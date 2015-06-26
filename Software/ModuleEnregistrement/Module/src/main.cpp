@@ -315,7 +315,7 @@ int main(int argc, char * argv[])
 
     LOGGER_INFO("Program started !");
 #ifdef DEBUG_IMAGE
-	forceStartRecording();
+//	forceStartRecording();
 #endif
 	while ( char c = getchar() )
 	{

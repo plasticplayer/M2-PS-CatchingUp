@@ -82,16 +82,21 @@ void Logger::Stop()
 }
 void * Logger::_threadFunc(void * d)
 {
-	while(Logger::instance.active || !instance.fifo.empty())
+	while(Logger::instance.active)
 	{
 		while(!Logger::instance.fifo.empty())
 		{
 			// identify current output stream
 			ostream& stream = instance.fileStream.is_open() ? instance.fileStream : std::cout;
-			stream << instance.fifo.front();
-			if(stream != std::cout && instance.outputBoth)
-				std::cout << instance.fifo.front();
-			instance.fifo.pop();
+			{
+				string tmp = (string)Logger::instance.fifo.front();
+				Logger::instance.fifo.pop();
+				if(tmp.empty())
+					continue;
+				stream << tmp;
+				if(stream != std::cout && instance.outputBoth)
+					std::cout << tmp;
+			}
 		}
 		usleep(10000);
 	}
