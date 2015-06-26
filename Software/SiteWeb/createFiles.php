@@ -13,7 +13,7 @@ if ( ! isset($_FILES["file"]) ){
 	return;
 }
 if ( $_FILES['file']['error'] > 0 ){
-	echo "0";
+	echo "0:".$_FILES['file']['error'];
 	return;
 }
 

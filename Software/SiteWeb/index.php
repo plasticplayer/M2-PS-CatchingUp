@@ -3,6 +3,7 @@
 session_start();
 require("config.php");
 $adminActiv = false;
+$deconnexionEnable = false;
 $link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
 if (!$link) { 
 	die('Could not connect to MySQL: ' . mysqli_error()); 
@@ -24,7 +25,7 @@ else{
 	$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
 	$row=mysqli_fetch_array($result);
 	$connexion = "Bienvenue ".$row['FirstName']. " ".$row['LastName']." ";
-	
+	$deconnexionEnable = true;
 	
 	$query = "SELECT count(*) as count FROM RecorderUser WHERE idUser = ".$_SESSION['login'].";";
 	$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
@@ -75,18 +76,18 @@ video {
 		<div class="container-fluid">
 		  <!-- Brand and toggle get grouped for better mobile display -->
 		  <div class="navbar-header">
-			<!-- Bouton utilisé pour le mode mobile pour affiché le menu -->
+			<!-- Bouton utilisÃ© pour le mode mobile pour affichÃ© le menu -->
 			<a class="navbar-brand" href="#">Catching UP</a>
 		  </div>
 		  <!-- Collect the nav links, forms, and other content for toggling -->
 		  <div class="collapse navbar-collapse" id="id-navbar-collapse">
 			<ul class="nav navbar-nav navbar-right">
-			  <li>
-				<a href="inscription.php">
-				  <b>Inscription</b>
-				</a>
-			  </li>
 			  <?php
+				if($deconnexionEnable)
+					echo '<li><a href="deconnexion.php"><b>Déconnexion</b></a></li>';
+				else
+					echo '<li><a href="inscription.php"><b>Inscription</b></a></li>';
+			 
 				if($adminActiv)
 					echo '<li><a href="admin.php"><b>Administration</b></a></li>';
 			  ?>
@@ -105,12 +106,15 @@ video {
 	  <div class="container-fluid">
 		<div class="row">
 		  <div class="col-sm-3 col-md-2 sidebar">
-			<ul id="listcategorie" class="nav nav-sidebar">
-			 <li class="header">
+			<ul class="nav nav-sidebar">
+			<li class="header">
 				<a href="#">
 				Catégories
 				</a>
 			  </li>
+			</ul>
+			<ul id="listcategorie" class="nav nav-sidebar">
+			 
 			  <?php 
 						
 						$query = "SELECT IdCategory,NameCategory FROM Category"; 
@@ -123,12 +127,12 @@ video {
 			</ul>
 			</div>
 		  <div class="col-md-10 col-md-offset-2 main">
-		  <h2>Selectionner une catégorie de cours à afficher</h2><br/>
+		  <h2>Sélectionner une catégorie de cours à afficher</h2><br/>
 		  <form class="form-inline">
 			  <div class="form-group">
 				<label for="exampleInputName2">Catégorie : </label>
 				<select name='exampleInputName2' id='selectCategory' class="form-control"> 
-					<option value=-1>-- Selectionner --</option>
+					
 					<?php 
 					$query = "SELECT IdCategory,NameCategory FROM Category"; 
 					$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
@@ -168,7 +172,20 @@ video {
 	  </div>
   </body>
 	<script>
-    function showRecordings(idLesson)
+	function showCategories()
+	{
+		$.post('ajax/getCategories.php', {}, function(data, textStatus) {
+				$("#listcategorie").empty();
+				$("#selectCategory").empty();
+				$("#selectCategory").append('<option value=-1>-- Sélectionner --</option>');
+				$.each(data, function(index,jsonObject){
+					$("#listcategorie").append('<li><a href="javascript:showLessons('+jsonObject['IdCategory']+');" >'+jsonObject['NameCategory']+'</a></li>');					
+					$("#selectCategory").append("<option value='"+jsonObject['IdCategory']+"'>"+jsonObject["NameCategory"]+"</option>");
+					
+				});
+			}, "json");
+	}
+        function showRecordings(idLesson)
 	{
 		if(idLesson != -1)
 	   {
@@ -178,7 +195,7 @@ video {
 			    $("#listAffCours").hide();
 				$.each(data, function(index,jsonObject){
 					
-					$("#listAffChap").append('<tr><td><a href="index_2.php?idChap='+jsonObject['IdChapter']+'" >Cour enregistré par ' + jsonObject['FirstName'] + " " + jsonObject['LastName'] + ' en salle '+ jsonObject['RoomName'] + '</a></td><td>' + jsonObject['DateChapter'] + '</td></tr>' );
+					$("#listAffChap").append('<tr><td><a href="index_2.php?idChap='+jsonObject['IdChapter']+'" >Cour enregistrÃ© par ' + jsonObject['FirstName'] + " " + jsonObject['LastName'] + ' en salle '+ jsonObject['RoomName'] + '</a></td><td>' + jsonObject['DateChapter'] + '</td></tr>' );
 					/*$.each(jsonObject, function(key,val){
 						console.log("key : "+key+" ; value : "+val);
 					});*/
@@ -209,5 +226,6 @@ video {
 	   var idCat = $("#selectCategory").val();
 	   showLessons(idCat);
 	});
+	showCategories();
 	</script>
 </html>

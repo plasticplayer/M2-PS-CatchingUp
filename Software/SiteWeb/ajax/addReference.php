@@ -8,6 +8,7 @@
 		die('Could not connect to MySQL: ' . mysqli_error()); 
 	} 
 	$connection=mysqli_select_db($link,$databaseName);
+	$text = mysqli_real_escape_string($link, $text);
 	$query = " INSERT INTO Reference(TextReference, IdChapter, TimeCode, Relevance) VALUES ('$text',$idChapter,$time,1) "; 
 	$result = mysqli_query($link,$query) or die(mysqli_error()); 
 	echo "OK";

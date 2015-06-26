@@ -1,5 +1,16 @@
 <?php
+// On prolonge la session
+session_start();
+// On teste si la variable de session existe et contient une valeur
+if(empty($_SESSION['login'])) 
+{
+  $connexion = 'Connexion';
+  // Si inexistante ou nulle, on redirige vers le formulaire de login
+  header('Location: authentification.php');
+  exit();
+}
 require("config.php");
+$adminActiv = false;
 $link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
 if (!$link) { 
 	die('Could not connect to MySQL: ' . mysqli_error()); 
@@ -8,6 +19,20 @@ $connection=mysqli_select_db($link,$databaseName);
 $idChapter=$_GET['idChap'];
 			
 mysqli_query($link,"SET NAMES UTF8");
+
+$idUser = $_SESSION['login'];
+$query = "SELECT FirstName,LastName,Email FROM User WHERE User.IdUser=$idUser LIMIT 1"; 
+$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
+$row=mysqli_fetch_assoc($result);
+$connexion = "Bienvenue ".$row['FirstName']. " ".$row['LastName']." ";
+
+$query = "SELECT count(*) as count FROM RecorderUser WHERE idUser = ".$_SESSION['login'].";";
+$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
+$row =mysqli_fetch_assoc($result);
+if($row['count'] == '1')
+{
+	$adminActiv = true;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -62,22 +87,16 @@ video #b{
 		  <div class="collapse navbar-collapse" id="id-navbar-collapse">
 			<ul class="nav navbar-nav navbar-right">
 			  <li>
-				<a href="#">
-				  <b>Inscription</b>
+				<a href="deconnexion.php">
+				  <b>Déconnexion</b>
 				</a>
 			  </li>
 			  <li>
 				<a href="#">
-				  <b>Connexion</b>
+				  <b><?php echo $connexion ?></b>
 				</a>
 			  </li>
 			</ul>
-			<form class="navbar-form navbar-right" role="search" action="recherche.php" method="POST">
-			  <div class="form-group">
-				<input type="text" class="form-control" placeholder="Search" />
-			<button type="submit" class="btn btn-default">
-				<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-			</button>
 			  </div>
 			</form>
 		  </div>
@@ -89,13 +108,7 @@ video #b{
 		<div class="row">
 			<div class="col-md-12 main">
 			<a class="btn btn-default" aria-label="Left Align" href="index.php"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>Retour à l'acceuil</a><br/>
-			<?php
-					$query = "SELECT NameLesson,NameCategory,DateChapter FROM Lesson,Category,Chapter WHERE Chapter.idChapter=$idChapter AND Chapter.idLesson = Lesson.idLesson AND Category.idCategory = Lesson.idCategory"; 
-					$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
-					$row=mysqli_fetch_assoc($result);
-					echo "<h3>Cours nommé : <b>".$row['NameLesson']."</b> du ".$row['DateChapter']." enregistré dans la catégorie <b>".$row['NameCategory']."</b></h3>";
-			?>
-			<br/>
+			<h3>Cours nommé : <b id="nomCours"></b> du <span id="dateCours"></span> enregistré dans la catégorie <b id="nomCategorie"></b></h3>
 				<video preload="auto" id="a" muted>
 				<?php
 					$query = " SELECT NameFileLesson FROM FileLesson fileLesson WHERE fileLesson.idChapter = $idChapter and  fileLesson.typeFile = 'VIDEO_TRACKING'"; 
@@ -122,10 +135,17 @@ video #b{
 				<button type="button" id="playvideo" class="btn btn-default">
 					<span class="glyphicon glyphicon-play" aria-hidden="true"></span>
 				</button>
-				<button type="button" id="addreference" class="btn btn-default" >
+				<?php if($adminActiv)
+				echo '<button type="button" id="addreference" class="btn btn-default" >
 					<span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-				</button>
+				</button>'
+				?>
+				<h4>Notes additionelles :</h4>
 				<div id = "footnotediv"></div>
+				<div id="BoxAddNote" style="display:none;">
+					<h4>Ajouter une note</h4>
+					<div id = "addNote"></div>
+				</div>
 			</div>
 			<div class="col-md-3 main">
 				<h4>Liste des références</h4>
@@ -139,6 +159,19 @@ video #b{
 			    <tbody >
 				</tbody>
 			</table>
+			</div>
+			<div class="col-md-9 main">
+				<h4>Liste des fichiers joints</h4>
+				<table id="listAffFiles" class="table table-striped table-bordered" cellspacing="0">
+					<thead>
+						<tr>
+							<th>Nom du fichier</th>
+							<th>Visualisation</th>
+						</tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
 			</div>
 		</div>
 	</div>
@@ -169,6 +202,32 @@ video #b{
 		{
 			videos.a.currentTime( seconds );
 			videos.b.currentTime( seconds );
+		}
+		function getFilesAttached()
+		{
+			$.post("ajax/getFilesAttached.php",{'idChapter':<?php echo $idChapter; ?>}, 
+				function(data, textStatus) {
+						$("#listAffFiles > tbody").empty();
+						$.each(data, function(index,jsonObject){
+							var url = jsonObject['PathAttachment'].split( '/' );
+							var ligne = '<tr>'+
+									'<td>' + jsonObject['NameAttachment'] + '</td>'+
+									'<td>' + '<a type="button" class="btn btn-default" aria-label="Left Align" href="attachment/' + url[url.length-2] + '/' + url[url.length-1] +'"><span class="glyphicon glyphicon-save" aria-hidden="true"></span> Télécharger</a></td>'+
+									'</tr>' ;
+							$("#listAffFiles").append(ligne);
+						});
+				
+			}, "json");	
+		}
+		function getInfosCours()
+		{
+			$.post('ajax/getInfosChapter.php', {"idChapter":<?php echo $idChapter ?>}, function(data, textStatus) {
+				$.each(data, function(index,jsonObject){
+					$("#nomCours").text(jsonObject['NameLesson']);
+					$("#dateCours").text(jsonObject['DateChapter']);
+					$("#nomCategorie").text(jsonObject['NameCategory']);
+				});
+			}, "json");	
 		}
 		function refreshRefs()
 		{
@@ -359,54 +418,35 @@ video #b{
 			
 
 			addref.bind("click",function(){
+				addref.hide();
+				$("#BoxAddNote").show();
 
-				alert("yata");
-
-				var newTextBoxDiv = $(document.createElement('div')).attr("id", 'TextBoxDiv');
-
- 
-
-				newTextBoxDiv.after().html(
-
-				'<textarea  name="textarea" id="textArea" rows="4" cols="150" >laisser un commentaire</textarea><br><br><button type="submit" id="validatereference" class="btn btn-default"> Valider </button>');
-
-				//todo bouton annuler
-
-				newTextBoxDiv.appendTo("#footnotediv");
+				$("#addNote").append('<textarea  name="textarea" id="textArea" rows="4" cols="150" >laisser un commentaire</textarea><br><br><button type="submit" id="validatereference" class="btn btn-default"> Valider </button><button type="button" id="closeRef" class="btn btn-default">Annuler</button>');
 
 				validatereference = $("#validatereference");
+				closeRef = $("#closeRef");
 
 				validatereference.bind("click",function(){
 					var text = $("#textArea").val();
 					var time = Math.round(videos.a.currentTime());
 					
-					
 					$.post("ajax/addReference.php",{"textData":text,"idChap":<?php echo $idChapter ?>,"time":time}, 
 						function(data, textStatus) {
 							if(data == "OK")
 							{
-								document.getElementById("addreference").style.visibility='hidden'; // hide
+								$("#addNote").empty();
+								$("#BoxAddNote").hide();
 								refreshRefs();
+								addref.show();
 							}
 					});	
-					
-					/*$('#footnotediv').load(
-
-						"addReference.php",{"textData":text,"idChap":<?php echo $idChapter ?>,"time":time},
-
-						function() {
-
-						// alert('Got the data.');
-
-						}
-
-					);*/
-					
-
-				
-
 				});
-
+				closeRef.bind("click",function(){
+					$("#addNote").empty();
+					$("#BoxAddNote").hide();
+					addref.show();
+	
+				});
 				
 
 			});
@@ -446,6 +486,8 @@ video #b{
 			sync();
 
 		});
+getInfosCours();
+getFilesAttached();
 
 
 
