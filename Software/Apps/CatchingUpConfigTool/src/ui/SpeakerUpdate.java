@@ -52,6 +52,7 @@ public class SpeakerUpdate extends JDialog {
 	 */
 	public SpeakerUpdate( UserRecorder user ) {
 		setTitle("Modification intervenant");
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		userUpdated = user;
 		this.firstName = user.getFirstName();
 		this.lastName = user.getLastName();

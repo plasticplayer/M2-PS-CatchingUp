@@ -13,8 +13,8 @@ import javax.swing.JLabel;
 import javax.swing.JTextArea;
 
 import communication.Tools;
-
 import persistence.RoomDAOImpl;
+import ui.Configuration.closeWinListener;
 import dao.RoomDAO;
 import dm.Room;
 
@@ -38,7 +38,7 @@ public class RoomCreation extends JDialog {
 		setTitle("Creation salle");
 		setBounds(100, 100, 450, 300);
 		getContentPane().setLayout(new BorderLayout());
-		
+		//setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		JPanel namePanel = new JPanel();
 		getContentPane().add(namePanel, BorderLayout.NORTH);
 		
@@ -81,6 +81,7 @@ public class RoomCreation extends JDialog {
 				cancelButton.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
 						dispose();
+						
 					}
 				});
 				cancelButton.setActionCommand("Annuler");

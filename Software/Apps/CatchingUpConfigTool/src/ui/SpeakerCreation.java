@@ -55,7 +55,7 @@ public class SpeakerCreation extends JDialog {
 	 */
 	public SpeakerCreation() {
 		setTitle("Cr�ation intervenant");
-		
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 735, 553);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
