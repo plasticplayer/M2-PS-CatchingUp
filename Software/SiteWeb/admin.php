@@ -4,7 +4,7 @@ session_start();
 // On teste si la variable de session existe et contient une valeur
 if(empty($_SESSION['login'])) 
 {
-	
+  $connexion = 'Connexion';
   // Si inexistante ou nulle, on redirige vers le formulaire de login
   header('Location: authentification.php');
   exit();
@@ -19,6 +19,12 @@ $connection=mysqli_select_db($link,$databaseName);
 			
 mysqli_query($link,"SET NAMES UTF8");
 $idUser = $_SESSION['login'];
+					
+$query = "SELECT FirstName,LastName,Email FROM User WHERE User.IdUser=$idUser LIMIT 1"; 
+$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
+$row=mysqli_fetch_assoc($result);
+$connexion = "Bienvenue ".$row['FirstName']. " ".$row['LastName']." ";
+
 $query = "SELECT count(*) as count FROM RecorderUser WHERE idUser = ".$idUser.";";
 $result = mysqli_query($link,$query) or die(mysqli_error($link)); 
 $row =mysqli_fetch_assoc($result);
@@ -82,22 +88,16 @@ video #b{
 		  <div class="collapse navbar-collapse" id="id-navbar-collapse">
 			<ul class="nav navbar-nav navbar-right">
 			  <li>
-				<a href="#">
-				  <b>Inscription</b>
+				<a href="deconnexion.php">
+				  <b>Déconnexion</b>
 				</a>
 			  </li>
 			  <li>
 				<a href="#">
-				  <b>Connexion</b>
+				  <b><?php echo $connexion ?></b>
 				</a>
 			  </li>
 			</ul>
-			<form class="navbar-form navbar-right" role="search" action="recherche.php" method="POST">
-			  <div class="form-group">
-				<input type="text" class="form-control" placeholder="Search" />
-			<button type="submit" class="btn btn-default">
-				<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-			</button>
 			  </div>
 			</form>
 		  </div>
@@ -108,13 +108,7 @@ video #b{
 		<div class="container-fluid">
 			<div class="row">
 				<div class="col-md-12 main">
-					<?php
 					
-						$query = "SELECT FirstName,LastName,Email FROM User WHERE User.IdUser=$idUser LIMIT 1"; 
-						$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
-						$row=mysqli_fetch_assoc($result);
-						echo "<h3>Bonjour <b>".$row['FirstName']." ".$row['LastName']."</b>, Bienvenue dans votre interface d'administration</h3>";
-					?>
 					<h4>Voici les cours:</h4>
 					<table id="listAffLess" class="table table-striped table-bordered" cellspacing="0" width="100%">
 						<thead>

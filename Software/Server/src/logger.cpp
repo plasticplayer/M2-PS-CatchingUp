@@ -89,6 +89,7 @@ void * Logger::_threadFunc(void * d)
 			// identify current output stream
 			ostream& stream = instance.fileStream.is_open() ? instance.fileStream : std::cout;
 			stream << instance.fifo.front();
+			stream.flush();
 			if(stream != std::cout && instance.outputBoth)
 				std::cout << instance.fifo.front();
 			instance.fifo.pop();

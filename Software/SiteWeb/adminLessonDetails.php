@@ -1,4 +1,13 @@
 <?php
+session_start();
+// On teste si la variable de session existe et contient une valeur
+if(empty($_SESSION['login'])) 
+{
+  $connexion = 'Connexion';
+  // Si inexistante ou nulle, on redirige vers le formulaire de login
+  header('Location: authentification.php');
+  exit();
+}
 require("config.php");
 $link = mysqli_connect($databaseHost,$databaseUser,$databasePass); 
 if (!$link) { 
@@ -7,6 +16,12 @@ if (!$link) {
 $connection=mysqli_select_db($link,$databaseName);
 			
 mysqli_query($link,"SET NAMES UTF8");
+
+$query = " SELECT FirstName,LastName FROM User WHERE idUser = '".$_SESSION['login']."' "; 
+$result = mysqli_query($link,$query) or die("Requete pas comprise"); 
+$row=mysqli_fetch_array($result);
+$connexion = "Bienvenue ".$row['FirstName']. " ".$row['LastName']." ";
+
 function enum_to_array($table, $field) {
 		global $link;
     $query = "SHOW FIELDS FROM `{$table}` LIKE '{$field}'";
@@ -17,7 +32,16 @@ function enum_to_array($table, $field) {
     return $enum;
 }
 $listStatusLesson = enum_to_array("Lesson","StatusLesson");
-$idUser = 17;
+$idUser = $_SESSION['login'];
+$query = "SELECT count(*) as count FROM RecorderUser WHERE idUser = ".$idUser.";";
+$result = mysqli_query($link,$query) or die(mysqli_error($link)); 
+$row =mysqli_fetch_assoc($result);
+if($row['count'] != '1')
+{
+	// Si inexistante ou nulle, on redirige vers le formulaire de login
+  header('Location: index.php');
+  exit();
+}
 $idLesson = (isset($_GET['idLesson']))?$_GET['idLesson']:0;
 ?><!DOCTYPE html>
 <html lang="en">
@@ -72,22 +96,16 @@ video #b{
 		  <div class="collapse navbar-collapse" id="id-navbar-collapse">
 			<ul class="nav navbar-nav navbar-right">
 			  <li>
-				<a href="#">
-				  <b>Inscription</b>
+				<a href="deconnexion.php">
+				  <b>Déconnexion</b>
 				</a>
 			  </li>
 			  <li>
 				<a href="#">
-				  <b>Connexion</b>
+				  <b><?php echo $connexion ?></b>
 				</a>
 			  </li>
 			</ul>
-			<form class="navbar-form navbar-right" role="search" action="recherche.php" method="POST">
-			  <div class="form-group">
-				<input type="text" class="form-control" placeholder="Search" />
-			<button type="submit" class="btn btn-default">
-				<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-			</button>
 			  </div>
 			</form>
 		  </div>
@@ -100,12 +118,6 @@ video #b{
 				<div class="col-md-12 main">
 					<a class="btn btn-default" aria-label="Left Align" href="admin.php"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>Retour</a><br/>
 					<?php
-					
-						$query = "SELECT FirstName,LastName,Email FROM User WHERE User.IdUser=$idUser LIMIT 1"; 
-						$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
-						$row=mysqli_fetch_assoc($result);
-						echo "<h3>Bonjour <b>".$row['FirstName']." ".$row['LastName']."</b>, Bienvenue dans votre interface d'administration</h3>";
-						
 						$query = "SELECT NameLesson FROM Lesson WHERE IdLesson=$idLesson LIMIT 1"; 
 						$result = mysqli_query($link,$query) or die( mysqli_error($link)); 
 						$row=mysqli_fetch_assoc($result);
