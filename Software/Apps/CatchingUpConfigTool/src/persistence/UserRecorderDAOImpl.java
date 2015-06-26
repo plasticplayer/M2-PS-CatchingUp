@@ -1,5 +1,6 @@
 package persistence;
 
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 		if ( updateMail )
 			req += "<email>" + user.getEmail() + "</email>";
 		if ( updatePassword )
-			req += "<password>" + user.getPassword() + "</password>";
+			req += "<password>" + MD5(user.getPassword()) + "</password>";
 		if ( updateBeginDate )
 			req += "<begin>" + sdf.format(user.getDateBegin()) + "</begin>";
 		if ( updateEndDate )
@@ -73,13 +74,29 @@ public class UserRecorderDAOImpl implements UserRecorderDAO {
 		}
 		return null;
 	}
-
+	public String MD5(String md5)  {
+		   try {
+			    md5 += Tools.Salt;
+		        java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+		        byte[] array = md.digest(md5.getBytes("UTF-8"));
+		        StringBuffer sb = new StringBuffer();
+		        for (int i = 0; i < array.length; ++i) {
+		          sb.append(Integer.toHexString((array[i] & 0xFF) | 0x100).substring(1,3));
+		       }
+		        return sb.toString();
+		    } catch (java.security.NoSuchAlgorithmException e) {
+		    } catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		    return null;
+		}
 	public boolean createUserRecorder( UserRecorder userRecorder ){
 		String req = "<type>create_userrecorder</type>"
 				+ "<user>"
 				+ "<firstname>" + userRecorder.getFirstName() + "</firstname>"
 				+ "<lastname>"  + userRecorder.getLastName()  + "</lastname>"
-				+ "<password>"  + userRecorder.getPassword()  + "</password>"
+				+ "<password>"  + MD5(userRecorder.getPassword()) + "</password>"
 				+ "<email>" + userRecorder.getEmail() + "</email>"
 				+ "<datebegin>" + sdf.format(userRecorder.getDateBegin()) + "</datebegin>"
 				+ "<dateend>"+ sdf.format(userRecorder.getDateEnd()) + "</dateend>"

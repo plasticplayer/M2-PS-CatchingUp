@@ -31,7 +31,7 @@ public class RecorderCreation extends JDialog {
 	public RecorderCreation() {
 		isOpen = true;
 		setTitle("Ajout d'un enregistreur");
-		
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 435, 191);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));

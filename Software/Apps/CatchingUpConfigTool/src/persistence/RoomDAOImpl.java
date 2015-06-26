@@ -105,7 +105,7 @@ public class RoomDAOImpl implements RoomDAO {
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("GET_ROOMS") != 0 )
-		  	return null;
+		  	return _rooms;
 	  
 		  Room room;
 		  String id, name, description, idRecorder;

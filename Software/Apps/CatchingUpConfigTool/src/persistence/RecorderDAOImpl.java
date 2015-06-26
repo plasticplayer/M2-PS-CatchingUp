@@ -24,7 +24,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 				+ "</recorder></recorders>";
 		
 		String res = communication.Server.sendData(req);
-		String[] lines = res.split("["+System.getProperty("line.separator")+"");
+		String[] lines = res.split("["+System.getProperty("line.separator")+"]");
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("CREATE_RECORDERS") != 0 )
@@ -126,7 +126,7 @@ public class RecorderDAOImpl implements RecorderDAO {
 		  
 		String type = Tools.getValue( lines[0] ,"type");
 		if ( type.compareTo("GET_RECORDERS") != 0 )
-		  	return null;
+		  	return _recorders;
 	  
 		ConnectingModule connectingModule = null;
 		Room room = null;

@@ -3,6 +3,7 @@ package ui;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.Color;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -26,6 +27,7 @@ import persistence.LogsImpl;
 import persistence.RecorderDAOImpl;
 import persistence.RoomDAOImpl;
 import persistence.UserRecorderDAOImpl;
+import sun.org.mozilla.javascript.internal.ObjArray;
 import dao.CardDAO;
 import dao.RecorderDAO;
 import dao.RoomDAO;
@@ -173,11 +175,14 @@ public class Configuration extends JFrame {
 		String[] titreColonnes = { "Identifiant", "Pr\u00E9nom", "Nom", "Email",
 				"Date de d\u00E9but", "Date de fin" };
 
-		final Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
+		Object[][] arrayUserRecorder = toArrayUserRecorder(userRecorder);
+		if ( arrayUserRecorder.length == 0){
+			arrayUserRecorder = new Object[1][titreColonnes.length];
+		}
 		mSpeacker = new Model(arrayUserRecorder, titreColonnes);
 
 		JScrollPane scrollPaneUser = new JScrollPane();
-
+	
 		JButton createUserButton = new JButton("Nouvel utilisateur");
 		createUserButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -185,7 +190,7 @@ public class Configuration extends JFrame {
 				r.addWindowListener(new closeWinListener() {
 					@Override
 					public void windowClosed(WindowEvent e) {
-						super.windowClosed(e);
+						//super.windowClosed(e);
 						reloadSpeacker();
 					};
 				});
@@ -196,7 +201,9 @@ public class Configuration extends JFrame {
 		speakersManagementPanel.setLayout(new BorderLayout(0, 0));
 
 		tableSpeakers = new JTable(mSpeacker);
+
 		scrollPaneUser.setViewportView(tableSpeakers);
+		scrollPaneUser.setBackground(Color.WHITE);		
 		speakersManagementPanel.add(scrollPaneUser);
 		speakersManagementPanel.add(createUserButton, BorderLayout.SOUTH);
 		tableSpeakers.addMouseListener(new MouseAdapter() {
@@ -212,7 +219,7 @@ public class Configuration extends JFrame {
 					speakerUpdate.addWindowListener(new closeWinListener() {
 						@Override
 						public void windowClosed(WindowEvent e) {
-							super.windowClosed(e);
+							//super.windowClosed(e);
 							reloadSpeacker();
 						};
 					});
@@ -236,7 +243,7 @@ public class Configuration extends JFrame {
 				r.addWindowListener(new closeWinListener() {
 					@Override
 					public void windowClosed(WindowEvent e) {
-						super.windowClosed(e);
+						//super.windowClosed(e);
 						reloadCard();
 					};
 				});
@@ -249,8 +256,11 @@ public class Configuration extends JFrame {
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
 		List<Card> card = cardDao.getCardList();
-
-		mCard = new Model(toArrayCard(card), cardColumnTitle);
+		Object[][] cards = toArrayCard(card);
+		if ( cards.length == 0 )
+			cards = new Object[1][cardColumnTitle.length];
+		
+		mCard = new Model(cards, cardColumnTitle);
 		cardsManagementPanel.setLayout(new BorderLayout(0, 0));
 		tableCards = new JTable(mCard);
 
@@ -272,7 +282,7 @@ public class Configuration extends JFrame {
 				r.addWindowListener(new closeWinListener() {
 					@Override
 					public void windowClosed(WindowEvent e) {
-						super.windowClosed(e);
+						//super.windowClosed(e);
 						reloadRoom();
 					};
 				});
@@ -282,7 +292,10 @@ public class Configuration extends JFrame {
 
 		final List<Room> room = roomDao.getRoomList();
 		String[] roomColumnTitle = { "nom", "description" };
-		final Object[][] arrayRoom = toArrayRoom(room);
+		Object[][] arrayRoom = toArrayRoom(room);
+		if ( arrayRoom.length == 0)
+			arrayRoom = new Object[1][roomColumnTitle.length];
+		
 		mRoom = new Model(arrayRoom, roomColumnTitle);
 		classroomsManagementPanel.setLayout(new BorderLayout(0, 0));
 		tableClassrooms = new JTable(mRoom);
@@ -302,7 +315,7 @@ public class Configuration extends JFrame {
 					r.addWindowListener(new closeWinListener() {
 						@Override
 						public void windowClosed(WindowEvent e) {
-							super.windowClosed(e);
+							//super.windowClosed(e);
 							reloadRoom();
 						};
 					});
@@ -324,7 +337,7 @@ public class Configuration extends JFrame {
 				r.addWindowListener(new closeWinListener() {
 					@Override
 					public void windowClosed(WindowEvent e) {
-						super.windowClosed(e);
+						//super.windowClosed(e);
 						reloadRecorder();
 					};
 				});
@@ -334,8 +347,11 @@ public class Configuration extends JFrame {
 
 		RecorderDAO connectingModuleDao = RecorderDAOImpl._instance;
 		List<Recorder> recorders = connectingModuleDao.getRecorderList();
-
-		mModul = new Model(toArrayModuls(recorders),
+		Object[][] recordersO = toArrayModuls(recorders);
+		if ( recordersO.length == 0 )
+			recordersO = new Object[1][connectingModuleColumnTitle.length];
+		
+		mModul = new Model(recordersO,
 				connectingModuleColumnTitle);
 		tableModuls = new JTable(mModul);
 
@@ -352,7 +368,7 @@ public class Configuration extends JFrame {
 						r.addWindowListener(new closeWinListener() {
 							@Override
 							public void windowClosed(WindowEvent e) {
-								super.windowClosed(e);
+								//super.windowClosed(e);
 								reloadRecorder();
 							};
 						});
@@ -384,32 +400,48 @@ public class Configuration extends JFrame {
 	}
 
 	public void reloadRoom() {
-		mRoom.donnees = toArrayRoom(roomDao.getRoomList());
+		Object[][] rooms = toArrayRoom(roomDao.getRoomList());
+		if ( rooms.length == 0 )
+			mRoom.donnees = new Object[1][mRoom.titres.length];
+		else mRoom.donnees = rooms;
 		mRoom.fireTableDataChanged();
 	}
 
 	public void reloadSpeacker() {
 		try {
-			mSpeacker.donnees = toArrayUserRecorder(userRecorderDao
-					.getUserRecorderList());
+			Object[][] users = toArrayUserRecorder(userRecorderDao.getUserRecorderList());
+			if ( users.length == 0 )
+				mSpeacker.donnees = new Object[1][mSpeacker.titres.length]; 
+			else
+				mSpeacker.donnees = users;
 		} catch (ParseException e) {
 		}
 		mSpeacker.fireTableDataChanged();
 	}
 
 	public void reloadCard() {
-		mCard.donnees = toArrayCard(cardDao.getCardList());
+		Object[][] cards = toArrayCard(cardDao.getCardList());
+		if ( cards.length == 0)
+			mCard.donnees = new Object[1][mCard.titres.length];
+		else
+			mCard.donnees = cards;
 		mCard.fireTableDataChanged();
 	}
 
 	public void reloadRecorder() {
 		List<Recorder> recorders = RecorderDAOImpl._instance.getRecorderList();
-		mModul.donnees = toArrayModuls(recorders);
+		Object[][] reco = toArrayModuls(recorders);
+		if ( reco.length == 0)
+			mModul.donnees = new Object[1][mModul.titres.length];
+		else
+			mModul.donnees = reco;
 		mModul.fireTableDataChanged();
 	}
 
 	// / List to Object[][]
 	private Object[][] toArrayUserRecorder(List<UserRecorder> datas) {
+		if(datas == null)
+			return new Object[0][6];
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
 			ArrayList<String> row = new ArrayList<String>();
@@ -428,7 +460,7 @@ public class Configuration extends JFrame {
 		Object[][] array = new Object[datas.size()][];
 		for (int i = 0; i < datas.size(); i++) {
 			ArrayList<String> row = new ArrayList<String>();
-			row.add(datas.get(i).getNumberCard());
+			row.add(datas.get(i).getHexNumberCard());
 			if (datas.get(i).getUser() != null) {
 				row.add(datas.get(i).getUser().getFirstName() + " "
 						+ datas.get(i).getUser().getLastName());

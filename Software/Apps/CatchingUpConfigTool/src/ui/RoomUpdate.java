@@ -35,6 +35,7 @@ public class RoomUpdate extends JDialog {
 	 * Create the dialog.
 	 */
 	public RoomUpdate( Room updateRoom ) {
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		_updatedRoom = updateRoom;
 		this.name = _updatedRoom.getName();
 		this.description = _updatedRoom.getDescription();

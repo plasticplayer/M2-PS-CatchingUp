@@ -61,7 +61,7 @@ public class Parring extends JFrame {
 			_recorder = rec;
 			setResizable(false);
 			setTitle("");
-			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 			setBounds(100, 100, 446, 168);
 			JPanel contentPane = new JPanel();
 			contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -118,8 +118,6 @@ public class Parring extends JFrame {
 					btnAnnuler.setVisible(false);
 					btnCalibrer.setVisible(false);
 					//frame.getContentPane().repaint();
-					frame.revalidate();
-					revalidate();
 					Thread t = new Thread()
 					{
 						public void run() {

@@ -23,7 +23,10 @@ public class Card {
     }
     
     public String getNumberCard() {
-        return numberCard;
+        return this.numberCard;
+    }
+    public String getHexNumberCard() {
+        return "0x"+Long.toHexString(Long.parseLong(this.numberCard)).toUpperCase();
     }
 
     public void setNumberCard(String numberCard) {
@@ -40,6 +43,6 @@ public class Card {
     
     @Override
     public String toString() {
-    	return this.numberCard;
+    	 return "0x"+Long.toHexString(Long.parseLong(this.numberCard)).toUpperCase();
     }
 }
